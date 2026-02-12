@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "dev": "docsify serve ./docs"
+  },
+  "dependencies": {
+    "docsify": "^4.13.1"
+  }
+}

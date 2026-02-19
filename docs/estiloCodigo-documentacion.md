@@ -165,6 +165,44 @@ try {
 }
 ```
 
+### Linter (ESLint)
+
+El proyecto usa **ESLint** para mantener un estilo de código consistente. ESLint analiza el código sin ejecutarlo y detecta errores de estilo, variables no usadas, falta de JSDoc, y problemas potenciales.
+
+**Comandos disponibles (Backend):**
+
+| Comando | Qué hace |
+|---------|----------|
+| `pnpm run lint` | Muestra **todos** los warnings y errores del proyecto |
+| `pnpm run lint:fix` | Auto-corrige lo que puede (semicolons, trailing spaces, etc.) |
+| `pnpm run build` | Ejecuta lint en modo estricto — **falla si hay errores** (warnings no bloquean) |
+
+**Reglas principales configuradas en `eslint.config.js`:**
+
+| Regla | Nivel | Efecto |
+|-------|-------|--------|
+| `semi` | Error | Obliga semicolon `;` al final de cada statement |
+| `quotes` | Warning | Sugiere usar comillas dobles `"..."` |
+| `no-console` | Warning | Avisa si usas `console.log` (permite `console.error` y `console.warn`) |
+| `eqeqeq` | Warning | Sugiere `===` en vez de `==` |
+| `no-var` | Warning | Sugiere `const`/`let` en vez de `var` |
+| `jsdoc/require-jsdoc` | Warning | Avisa si una función no tiene documentación JSDoc |
+
+> **Antes de cada commit**, correr `pnpm run lint` y corregir cualquier **error** (los warnings se pueden dejar pendientes). El comando `pnpm run build` valida automáticamente que no haya errores.
+
+**Flujo recomendado antes de commit:**
+```bash
+# 1. Auto-corregir lo que se pueda
+pnpm run lint:fix
+
+# 2. Revisar si quedan errores (los warnings son OK)
+pnpm run build
+
+# 3. Si build pasa, hacer commit
+git add .
+git commit -m "feat: descripción del cambio"
+```
+
 ### Estructura de Carpetas
 
 ```

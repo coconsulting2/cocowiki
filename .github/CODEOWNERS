@@ -4,17 +4,17 @@
 *       @MVRer @edeytai @hector-lg @JezraelMoreno
 
 # Todos los equipos son code owners de la documentación
-*       @coconsulting2/Backend @coconsulting2/Frontend @coconsulting2/QA-y-Documentación
+*       @coconsulting2/Backend @coconsulting2/Frontend @coconsulting2/QA-y-Documentacion
 
 # Carpeta docs - toda la documentación del proyecto
-/docs/              @coconsulting2/Backend @coconsulting2/Frontend @coconsulting2/QA-y-Documentación
+/docs/              @coconsulting2/Backend @coconsulting2/Frontend @coconsulting2/QA-y-Documentacion
 
 # Archivos de configuración del proyecto (solo admins)
 package.json        @MVRer @edeytai @hector-lg @JezraelMoreno
 .gitignore          @MVRer @JezraelMoreno
 
 # README principal (admins + todos los equipos)
-README.md           @MVRer @JezraelMoreno @coconsulting2/Backend @coconsulting2/Frontend @coconsulting2/QA-y-Documentación
+README.md           @MVRer @JezraelMoreno @coconsulting2/Backend @coconsulting2/Frontend @coconsulting2/QA-y-Documentacion
 
 # GitHub workflows y configuración (solo admins)
 /.github/           @MVRer @edeytai @hector-lg @JezraelMoreno

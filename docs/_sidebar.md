@@ -4,4 +4,5 @@
 * [Setup Frontend](setup-frontend.md "Guía de instalación del Frontend")
 * [Estilo de Código y Documentación](estiloCodigo-documentacion.md "Estilo de Código y Documentación")
 * [Nosotros](nosotros-101.md "Nosotros")
+* [Pruebas Caja Negra](documentacion_pruebas_caja_negra.md "Documentación Pruebas Caja Negra")
 

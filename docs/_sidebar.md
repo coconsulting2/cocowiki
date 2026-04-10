@@ -5,4 +5,5 @@
 * [Setup Docker](setup-docker.md "Backend + Frontend con Docker y Bun")
 * [Estilo de Código y Documentación](estiloCodigo-documentacion.md "Estilo de Código y Documentación")
 * [Nosotros](nosotros-101.md "Nosotros")
+* [Pruebas Caja Negra](documentacion_pruebas_caja_negra.md "Documentación Pruebas Caja Negra")
 

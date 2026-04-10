@@ -2,6 +2,9 @@
 
 Guía completa para echar a andar el proyecto **TC3005B.501-Backend** en tu máquina local.
 
+> [!TIP]
+> **Flujo recomendado del equipo:** desarrollo con **Docker** (Postgres, Mongo, Bun/Prisma y API con hot-reload). Instala [Docker](https://www.docker.com/products/docker-desktop/) y, si quieres usar los scripts del `package.json`, [Bun](https://bun.sh/). Guía detallada: [Setup Docker](setup-docker.md).
+
 ---
 
 ## 1. Requisitos previos

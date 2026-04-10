@@ -2,6 +2,9 @@
 
 Guía completa para echar a andar el proyecto **TC3005B.501-Frontend** en tu máquina local.
 
+> [!TIP]
+> **Flujo recomendado:** levantar el **backend con Docker** y, en otra terminal, el frontend con Docker o localmente. Ver [Setup Docker](setup-docker.md) (incluye Bun, `docker compose` y comandos `bun run docker:dev`).
+
 ---
 
 ## 1. Requisitos previos

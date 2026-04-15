@@ -1,9 +1,11 @@
 * [Inicio](/)
-* [Analisis](analisis_esfuerzos.md "Analisis Esfuerzos 2026@V2")
-* [Setup Backend](setup-backend.md "Guía de instalación del Backend")
-* [Setup Frontend](setup-frontend.md "Guía de instalación del Frontend")
+* [Análisis](analisis_esfuerzos.md "Analisis Esfuerzos 2026@V2")
+* [Setup Backend](setup-backend.md "Guia de instalacion del Backend")
+* [Setup Frontend](setup-frontend.md "Guia de instalacion del Frontend")
 * [Setup Docker](setup-docker.md "Backend + Frontend con Docker y Bun")
-* [Estilo de Código y Documentación](estiloCodigo-documentacion.md "Estilo de Código y Documentación")
+* [Estilo de Código y Documentación](estiloCodigo-documentacion.md "Estilo de Codigo y Documentacion")
 * [Nosotros](nosotros-101.md "Nosotros")
-* [Pruebas Caja Negra](documentacion_pruebas_caja_negra.md "Documentación Pruebas Caja Negra")
-
+* [Pruebas Caja Negra](documentacion_pruebas_caja_negra.md "Documentacion Pruebas Caja Negra")
+* **Pruebas**
+  * [CFDI [E2E]](tests/cfdi.e2e.test.md "Pruebas de integracion CFDI")
+  * [Utilidades de Pruebas](tests/utils.md "Funciones utilitarias y helpers de pruebas")

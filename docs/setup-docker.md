@@ -2,6 +2,9 @@
 
 Guía para levantar **TC3005B.501-Backend** y **TC3005B.501-Frontend** con Docker, alineada con el trabajo de containerización del repo (commits de **Mariano Carretero**, `MVRer`, y contribuciones posteriores en backend).
 
+> [!IMPORTANT]
+> **El flujo canónico del equipo es Docker** (backend y frontend). Las dependencias y el runtime coherentes (Linux, Bun en las imágenes, Postgres/Mongo en backend) viven en contenedores. Usa los scripts `docker:*` del `package.json` de cada repo para **build, tests o Prisma** sin depender de un `node_modules` correcto en Windows. Bun en el host solo sirve como atajo para invocar `docker compose`.
+
 ---
 
 ## 1. Qué instalar en tu máquina (host)
@@ -118,6 +121,15 @@ docker compose -f docker-compose.dev.yml up
 Variantes: `docker:dev:build`, `docker:dev:down`, `docker:dev:clean` (misma convención que el backend).
 
 Abre el sitio en **http://localhost:4321** (o la URL que muestre Astro). El backend debe estar accesible en **https://localhost:3000** en el host.
+
+**Con el contenedor `frontend` ya en marcha** (`docker:dev` en primer plano o en segundo plano), puedes validar el proyecto sin instalar dependencias en el host:
+
+```sh
+bun run docker:build      # astro build dentro del contenedor
+bun run docker:typecheck  # astro check
+```
+
+(Requieren que el servicio `frontend` esté corriendo; si el contenedor no existe aún, levanta antes con `bun run docker:dev`.)
 
 ---
 

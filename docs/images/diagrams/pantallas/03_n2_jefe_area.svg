@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 660" width="680" height="660" role="img">
+<title>Flujo de pantallas del rol N2 jefe de área</title>
+<desc>Jefe de área con vista consolidada del área y aprobaciones escaladas desde N1</desc>
+<style>
+  text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+  .t { font-size: 14px; fill: #1a1a1a; font-weight: 400; }
+  .ts { font-size: 12px; fill: #5F5E5A; font-weight: 400; }
+  .th { font-size: 14px; fill: #1a1a1a; font-weight: 500; }
+  .arr { fill: none; stroke: #5F5E5A; stroke-width: 1.5; }
+  .leader { fill: none; stroke: #888780; stroke-width: 0.5; stroke-dasharray: 2 2; }
+  .box { fill: #F5F4F0; stroke: rgba(0,0,0,0.15); }
+  .c-gray > rect, .c-gray > circle, .c-gray > ellipse, .c-gray > polygon { fill: #F1EFE8; stroke: #5F5E5A; }
+  .c-gray > text.th, .c-gray > text.t { fill: #444441; }
+  .c-gray > text.ts { fill: #5F5E5A; }
+  .c-blue > rect, .c-blue > circle, .c-blue > ellipse, .c-blue > polygon { fill: #E6F1FB; stroke: #185FA5; }
+  .c-blue > text.th, .c-blue > text.t { fill: #0C447C; }
+  .c-blue > text.ts { fill: #185FA5; }
+  .c-teal > rect, .c-teal > circle, .c-teal > ellipse, .c-teal > polygon { fill: #E1F5EE; stroke: #0F6E56; }
+  .c-teal > text.th, .c-teal > text.t { fill: #085041; }
+  .c-teal > text.ts { fill: #0F6E56; }
+  .c-purple > rect, .c-purple > circle, .c-purple > ellipse, .c-purple > polygon { fill: #EEEDFE; stroke: #534AB7; }
+  .c-purple > text.th, .c-purple > text.t { fill: #3C3489; }
+  .c-purple > text.ts { fill: #534AB7; }
+  .c-coral > rect, .c-coral > circle, .c-coral > ellipse, .c-coral > polygon { fill: #FAECE7; stroke: #993C1D; }
+  .c-coral > text.th, .c-coral > text.t { fill: #712B13; }
+  .c-coral > text.ts { fill: #993C1D; }
+  .c-pink > rect, .c-pink > circle, .c-pink > ellipse, .c-pink > polygon { fill: #FBEAF0; stroke: #993556; }
+  .c-pink > text.th, .c-pink > text.t { fill: #72243E; }
+  .c-pink > text.ts { fill: #993556; }
+  .c-green > rect, .c-green > circle, .c-green > ellipse, .c-green > polygon { fill: #EAF3DE; stroke: #3B6D11; }
+  .c-green > text.th, .c-green > text.t { fill: #27500A; }
+  .c-green > text.ts { fill: #3B6D11; }
+  .c-amber > rect, .c-amber > circle, .c-amber > ellipse, .c-amber > polygon { fill: #FAEEDA; stroke: #854F0B; }
+  .c-amber > text.th, .c-amber > text.t { fill: #633806; }
+  .c-amber > text.ts { fill: #854F0B; }
+  .c-red > rect, .c-red > circle, .c-red > ellipse, .c-red > polygon { fill: #FCEBEB; stroke: #A32D2D; }
+  .c-red > text.th, .c-red > text.t { fill: #791F1F; }
+  .c-red > text.ts { fill: #A32D2D; }
+</style>
+<rect x="0" y="0" width="680" height="660" fill="#FAFAF7"/>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs>
+
+<g class="c-gray">
+<rect x="250" y="30" width="180" height="48" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="48" text-anchor="middle" dominant-baseline="central">Login</text>
+<text class="ts" x="340" y="64" text-anchor="middle" dominant-baseline="central">JWT + IP binding</text>
+</g>
+<line x1="340" y1="78" x2="340" y2="108" class="arr" marker-end="url(#arrow)"/>
+
+<g class="c-teal">
+<rect x="150" y="108" width="380" height="96" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="130" text-anchor="middle" dominant-baseline="central">Dashboard ejecutivo del área</text>
+<text class="ts" x="340" y="150" text-anchor="middle" dominant-baseline="central">Gasto acumulado por centro de costos · US-18</text>
+<text class="ts" x="340" y="168" text-anchor="middle" dominant-baseline="central">Alertas al 80% de presupuesto</text>
+<text class="ts" x="340" y="184" text-anchor="middle" dominant-baseline="central">Pendientes escalados a mi nivel</text>
+</g>
+
+<line x1="230" y1="204" x2="130" y2="234" class="arr" marker-end="url(#arrow)"/>
+<line x1="340" y1="204" x2="340" y2="234" class="arr" marker-end="url(#arrow)"/>
+<line x1="450" y1="204" x2="550" y2="234" class="arr" marker-end="url(#arrow)"/>
+
+<g class="c-teal">
+<rect x="40" y="234" width="180" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="130" y="254" text-anchor="middle" dominant-baseline="central">Bandeja escalados</text>
+<text class="ts" x="130" y="272" text-anchor="middle" dominant-baseline="central">Solo los que requieren</text>
+<text class="ts" x="130" y="288" text-anchor="middle" dominant-baseline="central">segundo nivel</text>
+</g>
+
+<g class="c-teal">
+<rect x="250" y="234" width="180" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="254" text-anchor="middle" dominant-baseline="central">Gasto por área</text>
+<text class="ts" x="340" y="272" text-anchor="middle" dominant-baseline="central">Gráficas y filtros</text>
+<text class="ts" x="340" y="288" text-anchor="middle" dominant-baseline="central">Export a Excel</text>
+</g>
+
+<g class="c-teal">
+<rect x="460" y="234" width="180" height="72" rx="8" stroke-width="0.5"/>
+<text class="th" x="550" y="254" text-anchor="middle" dominant-baseline="central">Historial decisiones</text>
+<text class="ts" x="550" y="272" text-anchor="middle" dominant-baseline="central">Lo que ya resolví</text>
+<text class="ts" x="550" y="288" text-anchor="middle" dominant-baseline="central">Trazabilidad total</text>
+</g>
+
+<line x1="130" y1="306" x2="130" y2="336" class="arr" marker-end="url(#arrow)"/>
+
+<g class="c-teal">
+<rect x="40" y="336" width="280" height="128" rx="8" stroke-width="0.5"/>
+<text class="th" x="180" y="358" text-anchor="middle" dominant-baseline="central">Detalle de solicitud escalada</text>
+<text class="ts" x="180" y="378" text-anchor="middle" dominant-baseline="central">Motivo de escalado</text>
+<text class="ts" x="180" y="394" text-anchor="middle" dominant-baseline="central">Decisión previa de N1</text>
+<text class="ts" x="180" y="410" text-anchor="middle" dominant-baseline="central">Timeline · US-19</text>
+<text class="ts" x="180" y="428" text-anchor="middle" dominant-baseline="central">Comentarios · US-22</text>
+<text class="ts" x="180" y="444" text-anchor="middle" dominant-baseline="central">Confirma o ajusta decisión N1</text>
+</g>
+
+<g class="c-teal">
+<rect x="360" y="336" width="280" height="128" rx="8" stroke-width="0.5"/>
+<text class="th" x="500" y="358" text-anchor="middle" dominant-baseline="central">Detalle por centro de costos</text>
+<text class="ts" x="500" y="378" text-anchor="middle" dominant-baseline="central">Presupuesto asignado</text>
+<text class="ts" x="500" y="394" text-anchor="middle" dominant-baseline="central">Gastado vs comprometido</text>
+<text class="ts" x="500" y="410" text-anchor="middle" dominant-baseline="central">Top 5 gastadores</text>
+<text class="ts" x="500" y="428" text-anchor="middle" dominant-baseline="central">Distribución por tipo</text>
+<text class="ts" x="500" y="444" text-anchor="middle" dominant-baseline="central">Drill down a solicitud</text>
+</g>
+
+<line x1="340" y1="306" x2="500" y2="336" class="arr" marker-end="url(#arrow)"/>
+<line x1="180" y1="464" x2="180" y2="494" class="arr" marker-end="url(#arrow)"/>
+
+<g class="c-green">
+<rect x="40" y="494" width="130" height="60" rx="8" stroke-width="0.5"/>
+<text class="th" x="105" y="514" text-anchor="middle" dominant-baseline="central">Aprobar</text>
+<text class="ts" x="105" y="534" text-anchor="middle" dominant-baseline="central">Pasa a finanzas</text>
+</g>
+
+<g class="c-amber">
+<rect x="180" y="494" width="70" height="60" rx="8" stroke-width="0.5"/>
+<text class="th" x="215" y="514" text-anchor="middle" dominant-baseline="central">Excepción</text>
+<text class="ts" x="215" y="534" text-anchor="middle" dominant-baseline="central">Justificar</text>
+</g>
+
+<g class="c-red">
+<rect x="260" y="494" width="60" height="60" rx="8" stroke-width="0.5"/>
+<text class="th" x="290" y="520" text-anchor="middle" dominant-baseline="central">Rechazar</text>
+</g>
+
+<g class="c-gray">
+<rect x="40" y="584" width="280" height="56" rx="8" stroke-width="0.5"/>
+<text class="th" x="180" y="604" text-anchor="middle" dominant-baseline="central">Trazabilidad completa</text>
+<text class="ts" x="180" y="620" text-anchor="middle" dominant-baseline="central">Notifica solicitante y N1</text>
+</g>
+<line x1="180" y1="554" x2="180" y2="584" class="arr" marker-end="url(#arrow)"/>
+
+</svg>

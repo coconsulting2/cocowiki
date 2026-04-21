@@ -8,7 +8,7 @@ Documentación del proyecto (**Docsify**), servida con **GitHub Pages** desde la
 |---------|------|
 | Arquitectura de datos — modelo ER | [docs/arquitectura-datos/modelo-er.md](docs/arquitectura-datos/modelo-er.md) |
 | Arquitectura de datos — flujos y pantallas | [docs/arquitectura-datos/flujos.md](docs/arquitectura-datos/flujos.md) |
-| Arquitectura de datos — flujos por rol (diagramas) | [docs/arquitectura-datos/flujos-pantallas-por-rol.md](docs/arquitectura-datos/flujos-pantallas-por-rol.md) |
+| Arquitectura de datos — flujos por rol (diagramas) | [docs/flujos-pantallas-por-rol.md](docs/flujos-pantallas-por-rol.md) |
 | Resto de guías | [docs/](docs/) (sidebar en `_sidebar.md`) |
 
 ## Versión de la wiki

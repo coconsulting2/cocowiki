@@ -54,7 +54,7 @@ Origen: `roleRoutes` en el frontend. Patrón `/*` indica prefijo (p. ej. `/detal
 | **Cuentas por pagar** | `/dashboard`, `/perfil-usuario`, `/cotizaciones`, `/comprobaciones`, `/cotizar-solicitud/*`, `/comprobar-gastos/*` |
 | **Administrador** | `/dashboard`, `/perfil-usuario`, `/crear-usuario`, `/editar-usuario/*` |
 
-Para diagramas de navegación **pantalla a pantalla** por rol (diagramas en `docs/images/diagrams/pantallas/`, alcance Módulos 1–3), ver **[Flujos de pantallas por rol](flujos-pantallas-por-rol.md)**.
+Para diagramas de navegación **pantalla a pantalla** por rol (diagramas en `docs/images/diagrams/pantallas/`, alcance Módulos 1–3), ver **[Flujos de pantallas por rol](../flujos-pantallas-por-rol.md)** (página en `docs/` junto a `images/`).
 
 El **dashboard** monta una vista distinta por rol ([role-views.ts](../../../TC3005B.501-Frontend/src/views/role-views.ts)): `ApplicantView`, `AuthorizerView`, `AdminView`, `AccountsPayableView`, `TravelAgencyView`.
 

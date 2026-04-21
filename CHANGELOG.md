@@ -8,7 +8,7 @@ El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0
 
 ### Añadido
 
-- `docs/arquitectura-datos/flujos-pantallas-por-rol.md` — CocoAPI: flujos de pantallas por rol (7 roles, patrones compartidos) con diagramas SVG en `docs/images/diagrams/pantallas/` (desplegable con GitHub Pages).
+- `docs/flujos-pantallas-por-rol.md` — CocoAPI: flujos de pantallas por rol (7 roles, patrones compartidos); PNG en `docs/images/diagrams/pantallas/`. El `.md` está en la raíz de `docs/` para que `./images/…` coincida con el árbol del repo.
 - Entrada en la barra lateral y enlaces desde `flujos.md`, `docs/README.md` y la tabla del `README` raíz.
 
 ## [1.0.1] - 2026-04-15

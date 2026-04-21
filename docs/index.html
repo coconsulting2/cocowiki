@@ -40,7 +40,6 @@
         alias: {
             '/.*/_sidebar.md': '_sidebar.md'
         },
-        subMaxLevel: 5,
         themeable: {
             readyTransition: true,
             responsiveTables: true
@@ -53,5 +52,55 @@
    <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.js"></script>
    <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/zoom-image.min.js"></script>
+   <!-- Después de zoom-image (reordena plugins): rutas de imágenes siempre respecto a la raíz del sitio Docsify -->
+   <script>
+    (function () {
+        function staticSiteBase() {
+            var bp = (window.$docsify && window.$docsify.basePath) || '/';
+            if (bp !== '/' && bp.slice(-1) !== '/') bp += '/';
+            if (bp === '/') return location.origin + '/';
+            return location.origin + bp;
+        }
+        function rewriteImageMarkdown(md) {
+            if (!/^https?:$/i.test(location.protocol)) return md;
+            var base = staticSiteBase();
+            try {
+                return md
+                    .replace(/!\[([^\]]*)\]\(\.\/images\/([^)]+)\)/g, function (_, alt, rest) {
+                        return '![' + alt + '](' + new URL('./images/' + rest, base).href + ')';
+                    })
+                    .replace(/!\[([^\]]*)\]\(\/images\/([^)]+)\)/g, function (_, alt, rest) {
+                        return '![' + alt + '](' + new URL('./images/' + rest, base).href + ')';
+                    });
+            } catch (e) {
+                return md;
+            }
+        }
+        function fixDiagramImagesInDom() {
+            if (!/^https?:$/i.test(location.protocol)) return;
+            var base = staticSiteBase();
+            var section = document.querySelector('.markdown-section');
+            if (!section) return;
+            section.querySelectorAll('img').forEach(function (img) {
+                if (img.classList && img.classList.contains('emoji')) return;
+                var s = img.getAttribute('src');
+                if (!s) return;
+                var m = s.match(/diagrams\/pantallas\/[^/?#"']+\.(?:png|svg|jpe?g)/i);
+                if (!m) return;
+                try {
+                    var fixed = new URL('./images/' + m[0], base).href;
+                    if (img.src !== fixed) img.src = fixed;
+                    if (img.hasAttribute('data-origin')) img.setAttribute('data-origin', fixed);
+                } catch (e) { /* ignore */ }
+            });
+        }
+        window.$docsify.plugins = (window.$docsify.plugins || []).concat([
+            function (hook) {
+                hook.beforeEach(rewriteImageMarkdown);
+                hook.doneEach(fixDiagramImagesInDom);
+            }
+        ]);
+    })();
+   </script>
 </body>
 </html>

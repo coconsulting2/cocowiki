@@ -2,13 +2,13 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión del documento** | 1.0.0 |
+| **Versión del documento** | 1.0.1 |
 | **Última actualización** | 2026-04-21 |
-| **Relacionado** | [Flujos — arquitectura de datos y navegación](flujos.md) |
+| **Relacionado** | [Flujos — arquitectura de datos y navegación](arquitectura-datos/flujos.md) |
+
+Este archivo vive en **`docs/`** (junto a `index.html` y la carpeta **`images/`**). Por eso las imágenes se enlazan en markdown como **`./images/diagrams/pantallas/…`**: esa ruta coincide con el árbol real (`docs/images/diagrams/pantallas/*.png`). Si el `.md` estuviera dentro de `arquitectura-datos/`, aquí tocaría usar `../images/…`.
 
 Mapeo de pantallas accesibles, acciones disponibles y transiciones por cada uno de los 7 roles del sistema. Alcance completo: Módulo 1 + 2 + 3.
-
-Las imágenes usan rutas **`./images/...`** (relativas al `index.html` de Docsify), que el navegador resuelve bien con el hash `#/…` y en GitHub Pages bajo subcarpeta (`/repo/`).
 
 ---
 

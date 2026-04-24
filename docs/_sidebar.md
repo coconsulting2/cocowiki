@@ -8,6 +8,7 @@
 * [Setup Frontend](setup-frontend.md "Guía de instalación del Frontend")
 * [Setup Docker](setup-docker.md "Backend + Frontend con Docker y Bun")
 * [Estilo de Código y Documentación](estiloCodigo-documentacion.md "Estilo de Codigo y Documentacion")
+* [Changelog errores resueltos](changelog-errores-resueltos.md "Seguimiento de incidencias corregidas")
 * [Nosotros](nosotros-101.md "Nosotros")
 * [Pruebas Caja Negra](documentacion_pruebas_caja_negra.md "Documentacion Pruebas Caja Negra")
 * **Pruebas**

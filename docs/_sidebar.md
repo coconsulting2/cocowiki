@@ -3,6 +3,7 @@
   * [Modelo ER](arquitectura-datos/modelo-er.md "PostgreSQL / Prisma")
   * [Flujos y pantallas](arquitectura-datos/flujos.md "Capas, roles, API, estados")
   * [Flujos de pantallas por rol](flujos-pantallas-por-rol.md "Diagramas por rol, M1–M3")
+  * [Sistema de permisos](permisos.md "RBAC granular + grupos + asignación directa")
 * [Analisis](analisis_esfuerzos.md "Analisis Esfuerzos 2026@V2")
 * [Setup Backend](setup-backend.md "Guía de instalación del Backend")
 * [Setup Frontend](setup-frontend.md "Guía de instalación del Frontend")
@@ -13,4 +14,5 @@
 * [Pruebas Caja Negra](documentacion_pruebas_caja_negra.md "Documentacion Pruebas Caja Negra")
 * **Pruebas**
   * [CFDI [E2E]](tests/cfdi.e2e.test.md "Pruebas de integracion CFDI")
+  * [BER  [E2E]](tests/ber-bmx.e2e.test.md "Pruebas de integracion BER")
   * [Utilidades de Pruebas](tests/utils.md "Funciones utilitarias y helpers de pruebas")

@@ -2,8 +2,8 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión del documento** | 1.0.1 |
-| **Última actualización** | 2026-04-15 |
+| **Versión del documento** | 1.1.0 |
+| **Última actualización** | 2026-04-21 |
 | **Fuente** | [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma) (monorepo, ruta relativa desde este repo) |
 
 ## Alcance
@@ -159,6 +159,56 @@ erDiagram
         datetime created_at
     }
 
+    Permission {
+        int permission_id PK
+        varchar code UK
+        varchar resource
+        varchar action
+        varchar description
+        bool active
+        datetime creation_date
+        datetime last_mod_date
+    }
+
+    PermissionGroup {
+        int group_id PK
+        varchar group_name UK
+        varchar description
+        bool active
+        datetime creation_date
+        datetime last_mod_date
+    }
+
+    Permission_Group_Item {
+        int group_id PK
+        int permission_id PK
+        datetime creation_date
+    }
+
+    Role_Permission {
+        int role_id PK
+        int permission_id PK
+        datetime creation_date
+    }
+
+    Role_Permission_Group {
+        int role_id PK
+        int group_id PK
+        datetime creation_date
+    }
+
+    User_Permission {
+        int user_id PK
+        int permission_id PK
+        datetime creation_date
+    }
+
+    User_Permission_Group {
+        int user_id PK
+        int group_id PK
+        datetime creation_date
+    }
+
     Role ||--o{ User : "assigned"
     Department ||--o{ User : "belongs"
     User ||--o{ Request : "creates"
@@ -174,6 +224,17 @@ erDiagram
     Receipt_Type ||--o{ Receipt : "type"
     Request ||--o{ Receipt : "expense_proof"
     Receipt ||--o| cfdi_comprobantes : "zero_or_one_cfdi"
+
+    Role ||--o{ Role_Permission : "grants"
+    Permission ||--o{ Role_Permission : "granted_to_role"
+    Role ||--o{ Role_Permission_Group : "grants_group"
+    PermissionGroup ||--o{ Role_Permission_Group : "granted_to_role"
+    User ||--o{ User_Permission : "direct_grant"
+    Permission ||--o{ User_Permission : "granted_to_user"
+    User ||--o{ User_Permission_Group : "direct_group_grant"
+    PermissionGroup ||--o{ User_Permission_Group : "granted_to_user"
+    PermissionGroup ||--o{ Permission_Group_Item : "contains"
+    Permission ||--o{ Permission_Group_Item : "member_of"
 ```
 
 ## Enum `ValidationStatus` (columna `Receipt.validation`)
@@ -184,6 +245,30 @@ Valores en base de datos (Prisma): `Pendiente`, `Aprobado`, `Rechazado`.
 
 - Cada fila en `cfdi_comprobantes` exige un `receipt_id` único (una factura CFDI por comprobante).
 - Un `Receipt` puede existir **sin** registro CFDI hasta que se registre vía API (ver `POST /api/comprobantes/:receipt_id`).
+
+## Sistema de permisos granulares (RBAC + directo a usuario)
+
+A partir de v1.1.0 el modelo incluye un sistema de permisos tipo IAM compuesto por:
+
+- **`Permission`** — permiso atómico con código único `resource:action` (p.ej. `travel_request:authorize`).
+- **`PermissionGroup`** — bundle reutilizable de permisos.
+- **`Permission_Group_Item`** — membresía grupo ↔ permiso.
+- **`Role_Permission`** — grant directo de un permiso a un rol.
+- **`Role_Permission_Group`** — grant de un grupo completo a un rol (los permisos del grupo se "expanden" al resolver).
+- **`User_Permission`** — grant directo de un permiso a un usuario (aditivo sobre los del rol).
+- **`User_Permission_Group`** — grant de un grupo a un usuario (aditivo).
+
+**Resolución de permisos efectivos de un usuario** (unión de 4 conjuntos):
+
+```
+effective(userId) =
+      role.rolePermissions
+    ∪ role.rolePermissionGroups[*].items
+    ∪ user.userPermissions
+    ∪ user.userPermissionGroups[*].items
+```
+
+Ver `services/permissionService.js` para la implementación y `middleware/permissionMiddleware.js` para el middleware `requirePermission(...)` que compone `authenticateToken` como primer paso (no es posible llegar a un handler sin autenticación).
 
 ## Archivos binarios (fuera del ER relacional)
 

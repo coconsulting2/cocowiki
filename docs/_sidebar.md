@@ -1,4 +1,7 @@
 * [Inicio](/)
+* **Manuales**
+  * [Manual de Usuario](MANUAL_USUARIO.md "Manual de Usuario")
+  * [Manual Técnico](MANUAL_ADMIN.md "Manual de usuario administrador ditta")
 * **Arquitectura de datos**
   * [Modelo ER](arquitectura-datos/modelo-er.md "PostgreSQL / Prisma")
   * [Flujos y pantallas](arquitectura-datos/flujos.md "Capas, roles, API, estados")
@@ -14,6 +17,8 @@
 * [Nosotros](nosotros-101.md "Nosotros")
 * [Pruebas Caja Negra](documentacion_pruebas_caja_negra.md "Documentacion Pruebas Caja Negra")
 * **Pruebas**
+  * [Documentacion de Pruebas del sistema](TESTING.md "Documentacion Pruebas del sistema")
   * [CFDI [E2E]](tests/cfdi.e2e.test.md "Pruebas de integracion CFDI")
   * [BER  [E2E]](tests/ber-bmx.e2e.test.md "Pruebas de integracion BER")
   * [Utilidades de Pruebas](tests/utils.md "Funciones utilitarias y helpers de pruebas")
+

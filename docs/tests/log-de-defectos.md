@@ -10,7 +10,7 @@
 - **ID**: `BUG-<modulo>-<NNN>` (ej. `BUG-M1-001`).
 - **Severidad**: Crítica / Alta / Media / Baja (matriz §7.1 del Plan de Pruebas).
 - **Estatus**: Abierto / En revisión / Resuelto / Cerrado / Reabierto.
-- **Sesión origen**: ruta relativa a `CLAUDE_SESSIONS/reportes/` que detectó el defecto.
+- **Sesión origen**: nombre del reporte de sesión QA que detectó el defecto.
 
 ## Resumen por severidad (corte 2026-05-27, Módulos 1 + 2)
 

@@ -15,7 +15,7 @@ Guía para levantar **TC3005B.501-Backend** y **TC3005B.501-Frontend** con Docke
 | **Bun** (opcional pero recomendado) | Los `package.json` exponen atajos como `bun run docker:dev`. Sin Bun, puedes usar los mismos comandos sustituyendo por `docker compose ...` como se indica abajo. | [bun.sh](https://bun.sh/docs/installation) |
 
 > [!IMPORTANT]
-> No hace falta instalar **Node**, **pnpm**, **Postgres** ni **Mongo** en el host para desarrollar con Docker: van dentro de los contenedores. El backend usa **Bun** dentro de la imagen para `install` / `prisma`; el runtime del API en dev es **Node 22** (imagen base del Dockerfile del backend).
+> No hace falta instalar **Node**, **Bun**, **Postgres** ni **Mongo** en el host para desarrollar con Docker: van dentro de los contenedores. El backend usa **Bun** dentro de la imagen para `install` / `prisma`; el runtime del API en dev es **Node 22** (imagen base del Dockerfile del backend).
 
 Verifica:
 
@@ -160,6 +160,6 @@ Configura secretos reales en un `.env` junto al compose (`AES_SECRET_KEY`, `JWT_
 
 ## 7. Enlaces relacionados en esta wiki
 
-- [Setup Backend (sin Docker)](setup-backend.md) — flujo histórico con pnpm/MariaDB en host; el equipo prioriza Docker para alinear dependencias.
+- [Setup Backend (sin Docker)](setup-backend.md) — flujo nativo con Bun/Postgres en el host; el equipo prioriza Docker para alinear dependencias.
 - [Setup Frontend (sin Docker)](setup-frontend.md)
 - [Estilo de código y documentación](../desarrollo/estiloCodigo-documentacion.md)

@@ -12,11 +12,11 @@ Guía completa para echar a andar el proyecto **TC3005B.501-Frontend** en tu má
 | Herramienta | Versión mínima | Enlace |
 |---|---|---|
 | **Node.js** | v18+ | [nodejs.org](https://nodejs.org/) |
-| **pnpm** | v8+ | [pnpm.io](https://pnpm.io/installation) |
+| **Bun** | v1.1+ | [bun.sh](https://bun.sh/) |
 | **Git** | — | [git-scm.com](https://git-scm.com/) |
 
 > [!TIP]
-> Si aún no tienes **pnpm**, revisa la [guía de instalación de pnpm](setup-backend.md#3-instalar-pnpm) en el Setup del Backend.
+> Si aún no tienes **Bun**, revisa la [guía de instalación de Bun](setup-backend.md#3-instalar-bun) en el Setup del Backend.
 
 ---
 
@@ -39,11 +39,11 @@ cd TC3005B.501-Frontend
 ## 3. Instalar dependencias
 
 ```sh
-pnpm install
+bun install
 ```
 
 > [!NOTE]
-> También puedes usar `npm install`, pero se recomienda **pnpm** para mantener consistencia con el equipo.
+> El proyecto usa **Bun** (`bun.lock`). Puedes usar `npm install` como alternativa, pero el equipo usa Bun para mantener consistencia.
 
 ---
 
@@ -58,15 +58,15 @@ touch .env
 Agrega las siguientes variables:
 
 ```ini
-# URL base del backend (donde corre tu servidor Express)
-PUBLIC_API_BASE_URL=https://localhost:3000
+# URL base del backend (incluye /api)
+PUBLIC_API_BASE_URL=https://localhost:3000/api
 
 # Modo de desarrollo (true para desarrollo local)
 PUBLIC_IS_DEV=true
 ```
 
 > [!IMPORTANT]
-> - `PUBLIC_API_BASE_URL` debe apuntar a la URL donde corre tu **Backend**. Si seguiste el [Setup del Backend](setup-backend.md), será `https://localhost:3000` (con HTTPS porque el backend usa certificados).
+> - `PUBLIC_API_BASE_URL` debe apuntar al backend **incluyendo `/api`**. Si seguiste el [Setup del Backend](setup-backend.md), será `https://localhost:3000/api` (HTTPS porque el backend usa certificados).
 > - Asegúrate de que el Backend esté corriendo **antes** de intentar hacer requests desde el Frontend.
 
 ---
@@ -74,14 +74,10 @@ PUBLIC_IS_DEV=true
 ## 5. Ejecutar el servidor de desarrollo
 
 ```sh
-# Con pnpm (recomendado)
-pnpm run dev
-
-# O con npm
-npm run dev
+bun run dev    # astro dev, HTTPS en :4321
 ```
 
-Se abrirá una ventana del navegador automáticamente y deberías ver el dashboard.
+El servidor de Astro queda escuchando en `https://localhost:4321`. Abre esa URL y deberías ver el dashboard.
 
 ---
 
@@ -122,7 +118,7 @@ export const getCookie = (key: keyof typeof mockCookies): string | UserRole => {
 
 | Problema | Posible solución |
 |---|---|
-| `pnpm: command not found` | Revisa la [guía de instalación de pnpm](setup-backend.md#3-instalar-pnpm). |
+| `bun: command not found` | Revisa la [guía de instalación de Bun](setup-backend.md#3-instalar-bun). |
 | `EADDRINUSE: port already in use` | Otro proceso usa el puerto. Cierra el proceso o cambia el puerto en `astro.config.mjs`. |
 | Errores de certificado SSL en el navegador | Es normal con certificados auto-firmados. Acepta el riesgo en el navegador o usa `PUBLIC_IS_DEV=true`. |
 | No se conecta al Backend | Verifica que `PUBLIC_API_BASE_URL` en `.env` apunte al Backend corriendo y que las URLs coincidan. |

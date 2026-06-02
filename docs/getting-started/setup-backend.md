@@ -14,9 +14,9 @@ Asegúrate de tener instalado lo siguiente antes de continuar:
 | Herramienta | Versión mínima | Enlace |
 |---|---|---|
 | **Node.js** | v18+ | [nodejs.org](https://nodejs.org/) |
-| **pnpm** | v8+ | [pnpm.io](https://pnpm.io/installation) |
-| **MariaDB** | 10.6+ | [mariadb.com](https://mariadb.com/downloads/) |
-| **MongoDB** | 6.0+ | [mongodb.com](https://www.mongodb.com/docs/manual/installation/) |
+| **Bun** | v1.1+ | [bun.sh](https://bun.sh/) |
+| **PostgreSQL** | 14+ (16 recomendado) | [postgresql.org](https://www.postgresql.org/download/) |
+| **MongoDB** | 6.0+ (7 recomendado) | [mongodb.com](https://www.mongodb.com/docs/manual/installation/) |
 | **OpenSSL** | — | Incluido en Git Bash / macOS / Linux |
 | **Git** | — | [git-scm.com](https://git-scm.com/) |
 
@@ -38,37 +38,26 @@ cd TC3005B.501-Backend
 
 ---
 
-## 3. Instalar pnpm
+## 3. Instalar Bun
 
-Si aún no tienes **pnpm**, instálalo con alguna de estas opciones:
+Si aún no tienes **Bun**, instálalo:
 
-### Opción A — Con npm (la más común)
+### macOS / Linux
 
 ```sh
-npm install -g pnpm
+curl -fsSL https://bun.sh/install | bash
 ```
 
-### Opción B — Con Corepack (viene con Node.js 16.13+)
+### Windows (PowerShell)
 
 ```sh
-corepack enable
-corepack prepare pnpm@latest --activate
-```
-
-### Opción C — Script de instalación
-
-```sh
-# Windows (PowerShell)
-iwr https://get.pnpm.io/install.ps1 -useb | iex
-
-# macOS / Linux
-curl -fsSL https://get.pnpm.io/install.sh | sh -
+powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
 Verifica la instalación:
 
 ```sh
-pnpm --version
+bun --version
 ```
 
 ---
@@ -78,79 +67,72 @@ pnpm --version
 Desde la raíz del repositorio:
 
 ```sh
-pnpm install
+bun install
 ```
 
 > [!NOTE]
-> También puedes usar `npm install`, pero se recomienda **pnpm** para mantener consistencia con el equipo.
+> El proyecto usa **Bun** como gestor de paquetes y runner de scripts (lockfile `bun.lock`). Bun se usa para instalar y para tooling (`bunx prisma`, `bun run`); el servidor en sí arranca con Node (`node --watch`, ver paso 9).
 
 ---
 
-## 5. Instalar y configurar MariaDB
+## 5. Instalar y configurar PostgreSQL
 
-### 5.1 Descargar MariaDB
+El almacén relacional es **PostgreSQL** (base `CocoScheme` en desarrollo), accedido vía **Prisma** (esquema en `prisma/schema.prisma`).
+
+### 5.1 Descargar PostgreSQL
 
 | SO | Instrucción |
 |---|---|
-| **Windows** | Descarga el instalador MSI desde [mariadb.com/downloads](https://mariadb.com/downloads/). Durante la instalación, **anota el usuario root y la contraseña** que configures. |
-| **macOS** | `brew install mariadb` |
-| **Linux (Debian/Ubuntu)** | `sudo apt install mariadb-server` |
+| **Windows** | Instalador desde [postgresql.org/download/windows](https://www.postgresql.org/download/windows/). **Anota la contraseña** del usuario `postgres`. |
+| **macOS** | `brew install postgresql@16` |
+| **Linux (Debian/Ubuntu)** | `sudo apt install postgresql` |
 
 ### 5.2 Iniciar el servicio
 
 ```sh
 # Linux
-sudo systemctl start mariadb
-sudo systemctl enable mariadb   # para que inicie con el sistema
+sudo systemctl start postgresql
+sudo systemctl enable postgresql   # para que inicie con el sistema
 
 # macOS (Homebrew)
-brew services start mariadb
+brew services start postgresql@16
 
 # Windows
-# El servicio se inicia automáticamente si lo activaste en el instalador.
-# También puedes iniciarlo desde "Servicios" de Windows o con:
-net start MariaDB
+# El servicio se inicia automáticamente tras la instalación.
 ```
 
-### 5.3 Asegurar la instalación (recomendado)
+### 5.3 Crear la base de datos y un usuario
+
+Conéctate como superusuario y crea la base y un usuario dedicado:
 
 ```sh
-sudo mysql_secure_installation
-# o en Windows:
-mysql_secure_installation
-```
-
-Sigue las instrucciones para establecer contraseña de root, eliminar usuarios anónimos, etc.
-
-### 5.4 Crear un usuario para el proyecto
-
-Conéctate a MariaDB y crea un usuario dedicado:
-
-```sh
-mariadb -u root -p
+psql -U postgres
 ```
 
 ```sql
-CREATE USER 'tu_usuario'@'localhost' IDENTIFIED BY 'tu_contraseña';
-GRANT ALL PRIVILEGES ON *.* TO 'tu_usuario'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
+CREATE DATABASE "CocoScheme";
+CREATE USER cocoscheme WITH PASSWORD 'cocoscheme_dev';
+GRANT ALL PRIVILEGES ON DATABASE "CocoScheme" TO cocoscheme;
+\q
 ```
 
 > [!IMPORTANT]
-> El **usuario** y **contraseña** que crees aquí son los que usarás en el archivo `.env` (variables `DB_USER` y `DB_PASSWORD`).
+> El usuario, contraseña y nombre de base que uses aquí van en la variable `DATABASE_URL` del `.env` (paso 8).
 
-### 5.5 Inicializar la base de datos
+### 5.4 Inicializar el esquema y los datos
 
-Desde la raíz del repositorio:
+Desde la raíz del repositorio, con `DATABASE_URL` ya configurada en el `.env`:
 
 ```sh
-# Con datos de prueba (recomendado para desarrollo)
-pnpm dummy_db
+# Esquema + datos de referencia + datos de prueba (recomendado para desarrollo)
+bun run dummy_db
 
-# Solo estructura sin datos
-pnpm empty_db
+# Solo esquema + datos de referencia (sin datos de prueba)
+bun run empty_db
 ```
+
+> [!NOTE]
+> `dummy_db` y `empty_db` ejecutan `bunx prisma db push --force-reset` y luego el seed: **borran** la base antes de recrearla.
 
 ---
 
@@ -286,46 +268,41 @@ Abre el archivo `.env` y modifica los valores según tu configuración local:
 PORT=3000
 NODE_ENV=development
 
-# Database Configuration (MariaDB)
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=travel_management
-DB_USER=tu_usuario          # ← El usuario que creaste en MariaDB
-DB_PASSWORD=tu_contraseña   # ← La contraseña que asignaste en MariaDB
+# PostgreSQL (usado por Prisma)
+# Nativo: Postgres local en :5432. Con el stack Docker se publica en el host como :5434.
+DATABASE_URL=postgresql://cocoscheme:cocoscheme_dev@localhost:5432/CocoScheme?schema=public
 
-# MongoDB
+# MongoDB (GridFS para PDF/XML de comprobantes)
 MONGO_URI=mongodb://localhost:27017
 
-# Llaves de encriptación
-# Reemplaza con las llaves del SharePoint o genera las tuyas para desarrollo
-AES_SECRET_KEY=<llave_de_32_caracteres>
+# Orígenes permitidos para CORS (separados por coma)
+CORS_ORIGIN=http://localhost:4321,https://localhost:4321
+
+# Llaves de encriptación (usa las del SharePoint o genera unas para desarrollo)
+AES_SECRET_KEY=<llave_de_32_caracteres>   # exactamente 32 caracteres
 JWT_SECRET=<llave_secreta>
 
-# Correo (usa las credenciales del SharePoint para las reales)
+# Correo (credenciales reales en el SharePoint)
 MAIL_USER=test.mail@outlook.com
 MAIL_PASSWORD=password
 ```
 
 > [!IMPORTANT]
-> - `DB_USER` y `DB_PASSWORD` deben coincidir **exactamente** con el usuario y contraseña que configuraste al [instalar MariaDB](#51-descargar-mariadb).
-> - `DB_PORT` por defecto es `3306` para MariaDB. **No confundir** con el puerto de MongoDB (`27017`).
-> - Las llaves `AES_SECRET_KEY` y `JWT_SECRET` las puedes encontrar en el SharePoint del equipo, o para desarrollo local puedes usar cualquier texto con la longitud indicada.
+> - `DATABASE_URL` debe coincidir con el usuario, contraseña, host, puerto y base que configuraste en PostgreSQL (paso 5). Puerto por defecto nativo: `5432`; con el stack Docker: `5434`.
+> - `AES_SECRET_KEY` debe tener **exactamente 32 caracteres**.
+> - `.env.example` incluye además variables **opcionales** para integraciones (AWS S3/LocalStack, Wise, Banxico, SAT, Web Push/VAPID, Duffel). No son necesarias para el desarrollo básico.
 
 ---
 
 ## 9. Ejecutar el servidor
 
-Asegúrate de que tanto **MariaDB** como **MongoDB** estén corriendo, luego ejecuta:
+Asegúrate de que tanto **PostgreSQL** como **MongoDB** estén corriendo, luego ejecuta:
 
 ```sh
-# Con pnpm (recomendado)
-pnpm run dev
-
-# O con npm
-npm run dev
+bun run dev    # node --watch index.js, HTTPS en :3000
 ```
 
-Deberías ver un mensaje de confirmación indicando que el servidor está corriendo en el puerto configurado y que la conexión a la base de datos fue exitosa.
+Verás el banner ASCII y un mensaje como `🚀 Server running on port 3000 with HTTPS`.
 
 ---
 
@@ -333,8 +310,8 @@ Deberías ver un mensaje de confirmación indicando que el servidor está corrie
 
 | Problema | Posible solución |
 |---|---|
-| `pnpm: command not found` | Revisa la [sección de instalación de pnpm](#3-instalar-pnpm). |
-| `ERROR 1045 (28000): Access denied for user` | Tu usuario o contraseña de MariaDB en el `.env` no coinciden. |
+| `bun: command not found` | Revisa la [sección de instalación de Bun](#3-instalar-bun). |
+| `password authentication failed` / `database "CocoScheme" does not exist` | Tu `DATABASE_URL` no coincide con el usuario/contraseña/base de PostgreSQL (paso 5). |
 | `MongoServerError: connect ECONNREFUSED` | MongoDB no está corriendo. Inicia el servicio con `systemctl start mongod` o `net start MongoDB`. |
 | Error al ejecutar `create_certs.sh` | Asegúrate de tener `openssl.cnf` en `/certs` y de usar Git Bash en Windows. |
 | `EADDRINUSE: port already in use` | Otro proceso usa el puerto. Cambia `PORT` en `.env` o cierra el proceso conflictivo. |

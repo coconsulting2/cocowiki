@@ -173,9 +173,9 @@ El proyecto usa **ESLint** para mantener un estilo de código consistente. ESLin
 
 | Comando | Qué hace |
 |---------|----------|
-| `pnpm run lint` | Muestra **todos** los warnings y errores del proyecto |
-| `pnpm run lint:fix` | Auto-corrige lo que puede (semicolons, trailing spaces, etc.) |
-| `pnpm run build` | Ejecuta lint en modo estricto — **falla si hay errores** (warnings no bloquean) |
+| `bun run lint` | Muestra **todos** los warnings y errores del proyecto |
+| `bun run lint:fix` | Auto-corrige lo que puede (semicolons, trailing spaces, etc.) |
+| `bun run build` | Ejecuta lint en modo estricto — **falla si hay errores** (warnings no bloquean) |
 
 **Reglas principales configuradas en `eslint.config.js`:**
 
@@ -188,15 +188,15 @@ El proyecto usa **ESLint** para mantener un estilo de código consistente. ESLin
 | `no-var` | Warning | Sugiere `const`/`let` en vez de `var` |
 | `jsdoc/require-jsdoc` | Warning | Avisa si una función no tiene documentación JSDoc |
 
-> **Antes de cada commit**, correr `pnpm run lint` y corregir cualquier **error** (los warnings se pueden dejar pendientes). El comando `pnpm run build` valida automáticamente que no haya errores.
+> **Antes de cada commit**, correr `bun run lint` y corregir cualquier **error** (los warnings se pueden dejar pendientes). El comando `bun run build` valida automáticamente que no haya errores.
 
 **Flujo recomendado antes de commit:**
 ```bash
 # 1. Auto-corregir lo que se pueda
-pnpm run lint:fix
+bun run lint:fix
 
 # 2. Revisar si quedan errores (los warnings son OK)
-pnpm run build
+bun run build
 
 # 3. Si build pasa, hacer commit
 git add .
@@ -221,7 +221,7 @@ Backend/                    Frontend/
 | Backend | Frontend |
 |---------|----------|
 | Node.js + Express | Astro 5 + React 19 |
-| MariaDB + MongoDB | Tailwind CSS 4 |
+| PostgreSQL + MongoDB | Tailwind CSS 4 |
 | JWT + bcrypt | TypeScript |
 | Nodemailer | Cypress (testing) |
 

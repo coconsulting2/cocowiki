@@ -21,7 +21,7 @@
 | Newman M3-Integration | **29/29** assertions (100%) | — | ✅ |
 | Cypress TI-001 (cross-module) | **3/5** specs | — | 🟡 2 bloqueados por bug de producto |
 | Casos manuales M1 | **210/210** | — | ✅ |
-| Defectos abiertos (log formal) | **6** (2 Alta, 4 Media) + 1 cerrado | — | 🟡 |
+| Defectos abiertos (log formal) | **6** (2 Alta, 3 Media, 1 Baja) + 1 cerrado | — | 🟡 |
 
 > La cobertura y el conteo de tests provienen de la medición real del 2026-06-02 documentada en
 > [`testing.md` §1](testing.md). El frontend **superó la meta de 70%** tras ampliar las pruebas de

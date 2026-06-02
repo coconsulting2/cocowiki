@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "dev": "docsify serve ./docs"
+    "dev": "docsify serve ./docs --port 4500"
   },
-  "dependencies": {
-    "docsify": "^4.13.1"
+  "devDependencies": {
+    "docsify-cli": "^4.4.4"
   }
 }

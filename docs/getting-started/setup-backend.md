@@ -1,4 +1,4 @@
-# 🚀 Setup del Backend
+# Setup del Backend
 
 Guía completa para echar a andar el proyecto **TC3005B.501-Backend** en tu máquina local.
 
@@ -302,11 +302,11 @@ Asegúrate de que tanto **PostgreSQL** como **MongoDB** estén corriendo, luego 
 bun run dev    # node --watch index.js, HTTPS en :3000
 ```
 
-Verás el banner ASCII y un mensaje como `🚀 Server running on port 3000 with HTTPS`.
+Verás el banner ASCII y un mensaje como ` Server running on port 3000 with HTTPS`.
 
 ---
 
-## 🔍 Troubleshooting
+##  Troubleshooting
 
 | Problema | Posible solución |
 |---|---|

@@ -1,4 +1,4 @@
-# 🎨 Setup del Frontend
+#  Setup del Frontend
 
 Guía completa para echar a andar el proyecto **TC3005B.501-Frontend** en tu máquina local.
 

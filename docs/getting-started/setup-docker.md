@@ -84,7 +84,7 @@ Desde la raíz de **TC3005B.501-Backend**:
 
 ```sh
 # Con Bun (atajo del package.json)
-bun run docker:dev
+bun run docker:dev´
 
 # Equivalente sin Bun
 docker compose -f docker-compose.dev.yml up

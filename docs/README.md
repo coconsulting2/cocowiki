@@ -12,4 +12,4 @@ Documentación técnica del ecosistema coconsulting / TC3005B.
 
 Usa la **barra lateral** para setup (backend, frontend, Docker), estilo de código, pruebas y más.
 
-Versión de esta wiki: ver el archivo [`VERSION`](../VERSION) en la raíz del repo.
+Versión de esta wiki: ver [`VERSION`](https://github.com/coconsulting2/cocowiki/blob/main/VERSION) y el [`CHANGELOG.md`](https://github.com/coconsulting2/cocowiki/blob/main/CHANGELOG.md) en la raíz del repo.

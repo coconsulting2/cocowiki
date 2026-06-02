@@ -131,7 +131,7 @@ app.use(cors({
 }));
 ```
 
-**Archivo:** [`index.js`](../index.js) · línea 34
+**Archivo:** [`index.js`](../../../TC3005B.501-Backend/index.js) · línea 34
 
 ---
 
@@ -195,7 +195,7 @@ npm install winston
 
 ```
 
-**2. Nuevo archivo [`services/logger.js`](../services/logger.js):**
+**2. Nuevo archivo `services/logger.js`:**
 
 
 ```js
@@ -482,7 +482,7 @@ Este caso aplica principalmente al **frontend** (Astro/React). Desde el backend 
 #### Corrección aplicada
 
 
-**Nuevo [`services/travelAgentService.js`](../services/travelAgentService.js):**
+**Nuevo [`services/travelAgentService.js`](../../../TC3005B.501-Backend/services/travelAgentService.js):**
 
 
 ```js
@@ -652,11 +652,11 @@ All files               |   97.14 |    89.65 |  100.00 |   97.05 |
 
 |---------|-------------|
 
-| [`services/logger.js`](../services/logger.js) | Logger Winston centralizado con salida a consola y a `logs/` |
+| `services/logger.js` | Logger Winston centralizado con salida a consola y a `logs/` |
 
-| [`services/travelAgentService.js`](../services/travelAgentService.js) | Lógica de agencia de viajes: validación de status y hotel/avión |
+| [`services/travelAgentService.js`](../../../TC3005B.501-Backend/services/travelAgentService.js) | Lógica de agencia de viajes: validación de status y hotel/avión |
 
-| [`tests/services/travelAgentService.test.js`](../tests/services/travelAgentService.test.js) | 8 tests unitarios para travelAgentService |
+| `tests/services/travelAgentService.test.js` | 8 tests unitarios para travelAgentService |
 
 | `logs/error.log` | Generado en runtime — solo errores |
 
@@ -668,16 +668,16 @@ All files               |   97.14 |    89.65 |  100.00 |   97.05 |
 | Archivo | Cambios |
 
 |---------|---------|
-| [`index.js`](../index.js) | DELETE en CORS · import logger · logger en conexiones · middleware 503 |
+| [`index.js`](../../../TC3005B.501-Backend/index.js) | DELETE en CORS · import logger · logger en conexiones · middleware 503 |
 
-| [`database/config/prisma.js`](../database/config/prisma.js) | `datasourceUrl` explícito en PrismaClient |
-| [`routes/fileRoutes.js`](../routes/fileRoutes.js) | auth.js → authMiddleware.js · `authenticateToken` en 3 rutas de recibos |
+| [`database/config/prisma.js`](../../../TC3005B.501-Backend/database/config/prisma.js) | `datasourceUrl` explícito en PrismaClient |
+| [`routes/fileRoutes.js`](../../../TC3005B.501-Backend/routes/fileRoutes.js) | auth.js → authMiddleware.js · `authenticateToken` en 3 rutas de recibos |
 
-| [`controllers/adminController.js`](../controllers/adminController.js) | import logger · `console.*` → `logger.*` |
-| [`controllers/userController.js`](../controllers/userController.js) | import logger · `console.*` → `logger.*` |
+| [`controllers/adminController.js`](../../../TC3005B.501-Backend/controllers/adminController.js) | import logger · `console.*` → `logger.*` |
+| [`controllers/userController.js`](../../../TC3005B.501-Backend/controllers/userController.js) | import logger · `console.*` → `logger.*` |
 
-| [`controllers/travelAgentController.js`](../controllers/travelAgentController.js) | Usa servicio · manejo de errores con status · logger |
-| [`package.json`](../package.json) | `winston` en dependencies · `travelAgentService.js` en `collectCoverageFrom` |
+| [`controllers/travelAgentController.js`](../../../TC3005B.501-Backend/controllers/travelAgentController.js) | Usa servicio · manejo de errores con status · logger |
+| [`package.json`](../../../TC3005B.501-Backend/package.json) | `winston` en dependencies · `travelAgentService.js` en `collectCoverageFrom` |
 
 
 ---

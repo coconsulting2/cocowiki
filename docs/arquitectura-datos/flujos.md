@@ -167,8 +167,8 @@ sequenceDiagram
 
 No usar como fuente del despliegue actual (en el monorepo padre, si está clonado junto a este repo):
 
-- [BLUEPRINT_SISTEMA.md](../../../BLUEPRINT_SISTEMA.md) — describe stack con MariaDB.
-- [DIAGRAMA_SISTEMA_DETALLADO.md](../../../DIAGRAMA_SISTEMA_DETALLADO.md) — mismo desfase respecto a PostgreSQL + Prisma + GridFS.
+- `BLUEPRINT_SISTEMA.md` — describía el stack con MariaDB; **eliminado** del repo. El modelo vigente es PostgreSQL + Prisma + GridFS (ver [modelo-er.md](modelo-er.md)).
+- `DIAGRAMA_SISTEMA_DETALLADO.md` — mismo desfase respecto a PostgreSQL + Prisma + GridFS; también **eliminado**.
 - [20260409000000_create_cfdi_comprobantes.up.sql](../../../TC3005B.501-Backend/database/migrations/20260409000000_create_cfdi_comprobantes.up.sql) — esquema alternativo (`organizaciones`, `viajes`) no alineado con el modelo Prisma `CfdiComprobante` ↔ `Receipt`.
 
 **Operativo:** [docker-compose.dev.yml](../../../TC3005B.501-Backend/docker-compose.dev.yml), `prisma db push`, [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma) y el ER en [modelo-er.md](modelo-er.md).

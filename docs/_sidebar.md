@@ -8,6 +8,7 @@
   * [Flujos y pantallas](arquitectura-datos/flujos.md "Capas, roles, API, estados")
   * [Sistema de permisos](arquitectura-datos/permisos.md "RBAC granular + grupos + asignación directa")
   * [Multi-tenant (Ditta como ROOT)](arquitectura-datos/multi-tenancy.md "Aislamiento por organización + RLS Postgres + Prisma extension")
+  * [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md "Negocio, Aplicación, Datos, Infraestructura, RNF y Continuidad")
 * **Guías de usuario**
   * [Manual de Usuario](guias-usuario/manual-usuario.md "Manual de Usuario")
   * [Manual Admin Ditta](guias-usuario/manual-admin.md "Manual del administrador Ditta (superadmin cross-tenant)")

@@ -8,17 +8,20 @@ El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0
 
 ### Cambiado
 
-- **Reorganización de `docs/` en carpetas temáticas** para mejorar la navegación. Los documentos antes sueltos en la raíz se agruparon en `getting-started/` (setup), `guias-usuario/` (manuales + flujos por rol), `desarrollo/` (estilo, CFDI/SAT, changelog de errores), `qa/` (renombrada desde `tests/`: TESTING, caja negra, casos M2-006, log de defectos, utilidades) y `proyecto/` (nosotros, análisis de esfuerzos). `permisos.md` y `multi-tenancy.md` se movieron a `arquitectura-datos/`.
+- **Reorganización de `docs/` en carpetas temáticas** para mejorar la navegación. Los documentos antes sueltos en la raíz se agruparon en `getting-started/` (setup), `arquitectura-datos/` (modelo ER, flujos, permisos, multi-tenant), `guias-usuario/` (manuales + flujos por rol), `desarrollo/` (estilo, CFDI/SAT, changelog de errores), `qa/` (renombrada desde `tests/`) y `proyecto/` (nosotros, análisis de esfuerzos).
 - `_sidebar.md` reescrito con 7 grupos alineados a las carpetas.
 - Cross-links internos y rutas relativas al monorepo ajustados a las nuevas ubicaciones.
+- **Nombres de archivo normalizados a kebab-case:** `MANUAL_USUARIO`→`manual-usuario`, `MANUAL_ADMIN`→`manual-admin`, `TESTING`→`testing`, `estiloCodigo-documentacion`→`estilo-codigo-documentacion`, `documentacionAPI-SAT`→`documentacion-api-sat`, `documentacion_pruebas_caja_negra`→`documentacion-pruebas-caja-negra`, `analisis_esfuerzos`→`analisis-esfuerzos`.
 
 ### Añadido
 
-- Incluidos en la barra lateral tres documentos que existían pero no estaban enlazados: `desarrollo/documentacionAPI-SAT.md`, `qa/m2-006-casos-de-prueba.md` y `qa/log-de-defectos.md`.
+- Incluidos en la barra lateral tres documentos que existían pero no estaban enlazados: `desarrollo/documentacion-api-sat.md`, `qa/m2-006-casos-de-prueba.md` y `qa/log-de-defectos.md`.
 
 ### Corregido
 
-- Etiqueta del sidebar: "Manual Técnico" → "Manual Admin Ditta" (apuntaba a `MANUAL_ADMIN.md`, el manual del superadmin Ditta).
+- Etiqueta del sidebar: "Manual Técnico" → "Manual Admin Ditta" (apunta al manual del superadmin Ditta).
+- **Guías de setup alineadas al stack real:** Bun en vez de pnpm, PostgreSQL 16 en vez de MariaDB, `DATABASE_URL` y variables `.env` vigentes, comandos `bun run dev`/`dummy_db`.
+- Enlaces a código backend del reporte de caja negra (NT-003) repuntados a su ruta real; referencias obsoletas a `BLUEPRINT_SISTEMA`/`DIAGRAMA_SISTEMA_DETALLADO` (eliminadas del repo) desenlazadas.
 
 ## [1.0.2] - 2026-04-21
 

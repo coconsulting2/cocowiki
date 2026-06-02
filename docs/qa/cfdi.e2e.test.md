@@ -17,7 +17,7 @@
 
 NODE_ENV=test
 PORT=3000
-DATABASE_URL=postgresql://cocoscheme:cocoscheme_dev@localhost:5432/CocoScheme?schema=public
+DATABASE_URL=postgresql://cocoscheme:cocoscheme_dev@localhost:5434/CocoScheme?schema=public
 MONGO_URI=mongodb://localhost:27017
 CORS_ORIGIN=http://localhost:4321,https://localhost:4321
 AES_SECRET_KEY=12345678901234567890123456789012
@@ -39,7 +39,7 @@ PRISMA_DISABLE_TRIGGERS=true
 bun run test:e2e
 ```
 
-## Servicio de verificacion CFDI `PUT /api/accouns-payable/validate-receipt/:id`
+## Servicio de verificacion CFDI `PUT /api/accounts-payable/validate-receipt/:id`
 
 ### **1. CFDI valido (Valid: S - 200 o 201)**
 
@@ -114,8 +114,7 @@ simuladas (EFOS).
 - Las pruebas E2E validan respuesta de API y estado de BD (`receipt.validation`, `cfdiComprobante.sat*`).
 - La semantica SAT se valida por separado en pruebas de mock-server para evitar falsos negativos por restricciones del
   endpoint.
-- La validacion SAT real esta disponible como carril opcional (`RUN_REAL_SAT_TESTS=1 npm run test:sat:real`) usando XML
-  fixtures de ejemplos SW.
+- La validacion SAT real esta disponible como carril opcional activado con `RUN_REAL_SAT_TESTS=1` (ver seccion "Pruebas con SAT real") usando XML fixtures de ejemplos SW.
 - Las expectativas solo-mock y solo-E2E se rastrean por separado en matrices estrictas.
 
 ### Notas de deuda tecnica

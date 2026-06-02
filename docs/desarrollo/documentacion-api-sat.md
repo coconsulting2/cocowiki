@@ -102,15 +102,19 @@ Los datos anteriores son los que M1-002 (parser XML) debe exponer para armar la 
 
 ## Mapeo a base de datos
 
-**Diseño objetivo (CocoAPI / backlog):** `cfdi_comprobantes.estatus_sat` como ENUM (`VIGENTE`, `CANCELADO`, `NO_ENCONTRADO`, `PENDIENTE_VALIDACION`, …), más `fecha_validacion_sat`, `respuesta_sat_raw` opcional.
-
-**Implementación actual en TC3005B (Prisma):** tabla `cfdi_comprobantes` con columnas `sat_estado`, `sat_codigo_estatus`, `sat_es_cancelable`, `sat_estatus_cancelacion`, `sat_validacion_efos` — los textos de **`Estado`** y **`CodigoEstatus`** se guardan tal cual los devuelve el SAT (p. ej. `Vigente`, `No Encontrado`). Hasta que exista migración al ENUM unificado, el código y las validaciones deben usar **los mismos literales que el SAT** o una capa de mapeo explícita.
+**Implementación actual en TC3005B (Prisma):** tabla `cfdi_comprobantes` con columnas `sat_estado`, `sat_codigo_estatus`, `sat_es_cancelable`, `sat_estatus_cancelacion`, `sat_validacion_efos` — los textos de **`Estado`** y **`CodigoEstatus`** se guardan tal cual los devuelve el SAT (p. ej. `Vigente`, `No Encontrado`). El código y las validaciones usan **los mismos literales que el SAT** o una capa de mapeo explícita.
 
 | `Estado` del SAT | Regla de negocio CocoAPI |
 |---|---|
 | `Vigente` | Permitir flujo de aprobación (tras validar EFOS según política). |
-| `Cancelado` | Bloquear reembolso; mensaje al usuario. |
-| `No Encontrado` | Bloquear reembolso; pedir revisar datos / UUID. |
+| `Cancelado` | Bloquear inserción; mensaje al usuario. |
+| `No Encontrado` | Bloquear inserción; pedir revisar datos / UUID. |
+
+**Regla EFOS (Art. 69-B CFF):** cuando `sat_validacion_efos` es `100`, `101` o `104`, el RFC Emisor figura en la lista negra EFOS y `comprobantesService.js` rechaza la inserción con `status 409` y mensaje `EFOS_EMISOR_BLACKLISTED`. Los códigos `102`/`103` (solo RFC de terceros) se permiten y se persisten para auditoría.
+
+> **Nota:** `normalizeConsultaResult` en `satConsultaService.js` inyecta `validacionEFOS="200"` cuando el campo viene vacío en la respuesta del SAT **y** `Estado` es `"Vigente"`. Esto evita falsos bloqueos en comprobantes vigentes cuyos datos EFOS no se devuelven.
+
+**Deduplicación de UUID:** la verificación de UUID duplicado se realiza **antes** de llamar al SAT (en `comprobantesService.js`), lo que evita llamadas externas innecesarias ante reenvíos.
 
 ---
 
@@ -234,15 +238,14 @@ axios.post(
 
 ## Stack técnico (backend TC3005B / CocoAPI)
 
-- **Framework:** Express.js (proyecto actual en **JavaScript** ESM; un servicio dedicado puede nombrarse `satValidationService.js` o `.ts` si migran a TypeScript).
-- **Cliente SOAP:** paquete npm [`soap`](https://github.com/vpulim/node-soap) o `strong-soap` como alternativa.
+- **Framework:** Express.js (proyecto actual en **JavaScript** ESM).
+- **Servicio:** `services/satConsultaService.js` (cliente SOAP implementado).
+- **Cliente SOAP:** paquete [`soap`](https://github.com/vpulim/node-soap) (`soap@^1.8.0`).
 
 ### Instalación
 
 ```bash
-npm install soap
-# o
-npm install strong-soap
+bun add soap
 ```
 
 ### Esqueleto del servicio (TypeScript; adaptable a `.js`)
@@ -315,15 +318,59 @@ export async function validarCFDI(input: ValidacionSATInput): Promise<Validacion
 
 ---
 
-## Resiliencia (obligatorio en producción)
+## Endpoints de comprobantes
+
+### `POST /api/comprobantes/parse-xml`
+
+Recibe un archivo XML (multipart `xml`) y devuelve los campos fiscales principales **sin persistir nada**. Útil para autollenar formularios antes del registro definitivo.
+
+**Respuesta `200`:**
+
+```json
+{
+  “rfc_emisor”: “AAA010101AAA”,
+  “fecha_emision”: “2026-04-15T12:00”,
+  “monto_total”: 1160.00,
+  “uuid”: “6128396F-C09B-4EC6-8699-43D3DC9F8111”,
+  “registro_sugerido”: { /* cuerpo JSON listo para POST /api/comprobantes/:id, o null si no aplica */ }
+}
+```
+
+Permiso requerido: `receipt:upload`.
+
+### `POST /api/comprobantes/:receipt_id`
+
+Registra un CFDI nacional. El cuerpo contiene los campos CFDI 4.0 en `snake_case`; el backend consulta al SAT y persiste el acuse. El cliente **no** envía los campos SAT.
+
+**Bypass internacional (`is_international=true`):** cuando el cuerpo incluye `”is_international”: true`, el backend omite la consulta al SAT y persiste el comprobante con `sat_estado=”Internacional”` y `sat_codigo_estatus=”N/A”`. Los RFC emisor y receptor se fijan a `XEXX010101000` / `XAXX010101000`. Este flujo cubre gastos fuera de México que no cuentan con CFDI timbrado.
+
+### `GET /api/comprobantes/:id/validacion-sat`
+
+Devuelve el **último estado SAT almacenado** para el recibo indicado. **No dispara** una consulta nueva al SAT.
+
+**Respuesta `200`:**
+
+```json
+{
+  “status”: “vigente”,
+  “verified_at”: “2026-04-22T10:00:00.000Z”
+}
+```
+
+Los valores posibles de `status` son: `”vigente”`, `”cancelado”`, `”no_encontrado”`. Los campos crudos del SAT (`CodigoEstatus`, `ValidacionEFOS`, etc.) **no se exponen** en esta respuesta.
+
+Permiso requerido: `receipt:view_sat`.
+
+---
+
+## Resiliencia (implementada en `satConsultaService.js`)
 
 El servicio del SAT tiene downtime. **No asumir Vigente si el SAT no responde** — eso rompería US-03.
 
-1. **Reintentos con backoff** — por ejemplo 3 intentos: 1s, 2s, 4s.
-2. **Timeout** — por ejemplo 10s por intento.
-3. **Cache corta** — p. ej. 24h si el resultado fue `Vigente` (el estatus cambia con poca frecuencia).
-4. **Estado `PENDIENTE_VALIDACION`** — si tras reintentos no hay respuesta, no aprobar reembolso hasta tener acuse real; cola/cron según arquitectura.
-5. **Nunca** fallback automático a “Vigente” sin respuesta del SAT.
+1. **Reintentos con backoff exponencial** — 4 intentos en total: 1s, 2s, 4s entre reintentos.
+2. **Timeout** — 10s por intento (configurable con `SAT_REQUEST_TIMEOUT_MS`).
+3. **Sin fallback a “Vigente”** — tras agotar los reintentos, el servicio lanza error y el controlador responde `503`.
+4. **Validación síncrona** — no existe cola ni estado `PENDIENTE_VALIDACION`; la inserción del CFDI se bloquea hasta obtener respuesta del SAT o alcanzar el límite de reintentos.
 
 ---
 
@@ -350,9 +397,9 @@ Mock NT-009 debe simular respuestas con la misma forma de campos que el SAT real
 
 ### M1-003 — POST /comprobantes
 
-- [ ] Persistir resultado SAT (objetivo: `estatus_sat` + timestamps; hoy: columnas `sat_*` en Prisma hasta migración).
-- [ ] Encolar o invocar validación SAT según diseño (síncrono vs `PENDIENTE_VALIDACION`).
-- [ ] UUID duplicado → 409 Conflict.
+- [x] Persistir resultado SAT (columnas `sat_*` en Prisma: `sat_estado`, `sat_codigo_estatus`, `sat_es_cancelable`, `sat_estatus_cancelacion`, `sat_validacion_efos`).
+- [x] Validación SAT: **síncrona** (no existe cola ni `PENDIENTE_VALIDACION`). RESUELTO: la inserción espera la respuesta del SAT o falla con `503` tras agotar reintentos.
+- [x] UUID duplicado → 409 Conflict (verificado antes de llamar al SAT).
 
 ### M1-009 — Validación SAT
 

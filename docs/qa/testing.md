@@ -5,7 +5,7 @@
 CocoAPI cuenta con una base de pruebas automatizadas distribuida en dos repositorios:
 
 - **Backend (`TC3005B.501-Backend`)**: 51 archivos de test (Jest + Supertest), con foco fuerte en servicios de negocio, middleware de seguridad, migraciones y flujos E2E críticos (CFDI/SAT, BER, exportación contable, reglas de reembolso).
-- **Frontend (`TC3005B.501-Frontend`)**: 37 archivos de test (22 Vitest/RTL + 15 Cypress E2E), con foco en componentes UI, validaciones funcionales y recorridos de usuario por rol.
+- **Frontend (`TC3005B.501-Frontend`)**: 39 archivos de test (24 Vitest/RTL + 16 Cypress E2E), con foco en componentes UI, validaciones funcionales y recorridos de usuario por rol.
 
 ### Cobertura total aproximada (estimación operativa)
 
@@ -67,8 +67,8 @@ bun run test:all
 bun run test              # Vitest
 bun run test:watch
 bun run test:coverage
-npx cypress open          # E2E interactivo
-npx cypress run           # E2E headless
+bunx cypress open         # E2E interactivo
+bunx cypress run          # E2E headless
 ```
 
 ### Ejecución en CI/CD (GitHub Actions)
@@ -544,6 +544,14 @@ npx cypress run           # E2E headless
 - **Qué problema resuelve / qué bug previene**: evita parámetros de búsqueda inconsistentes.
 - **Requisitos asociados**: flujo de agencia de viajes.
 
+### `uploadOnboarding.test.ts` -> `uploadOnboarding`
+- **Archivo**: `TC3005B.501-Frontend/tests/frontend/utils/uploadOnboarding.test.ts`
+- **Tipo**: unitario
+- **Qué hace**: valida la lógica de utilidades de carga de archivos durante el flujo de onboarding de organización.
+- **Cómo está automatizado**: Vitest.
+- **Qué problema resuelve / qué bug previene**: evita errores de carga silenciosos durante el proceso de alta de nueva organización.
+- **Requisitos asociados**: módulo de onboarding.
+
 ## 4.3 Componentes UI base
 
 ### `Button.test.tsx` -> `Button`
@@ -708,6 +716,14 @@ npx cypress run           # E2E headless
 - **Qué problema resuelve / qué bug previene**: evita configuración operativa incorrecta de plazos.
 - **Requisitos asociados**: M2-006.
 
+### `CustomImportRoleModal.test.tsx` -> `CustomImportRoleModal`
+- **Archivo**: `TC3005B.501-Frontend/tests/frontend/components/CustomImportRoleModal.test.tsx`
+- **Tipo**: integración
+- **Qué hace**: valida el modal de importación personalizada de roles, incluyendo selección, confirmación y manejo de errores.
+- **Cómo está automatizado**: Vitest + RTL + user-event + MSW.
+- **Qué problema resuelve / qué bug previene**: evita importaciones de roles incorrectas o incompletas durante la administración de organización.
+- **Requisitos asociados**: administración de roles.
+
 ## 4.5 End-to-end (Cypress)
 
 ### `create-request.cy.ts` -> `Creación de solicitud`
@@ -831,6 +847,14 @@ npx cypress run           # E2E headless
 - **Qué problema resuelve / qué bug previene**: evita suites inestables por comandos rotos de autenticación.
 - **Requisitos asociados**: infraestructura de testing E2E.
 
+### `ti-001-flujo-completo.cy.ts` -> `TI-001 flujo completo`
+- **Archivo**: `TC3005B.501-Frontend/cypress/e2e/ti-001-flujo-completo.cy.ts`
+- **Tipo**: e2e
+- **Qué hace**: valida el flujo completo de solicitud de viaje extremo a extremo (TI-001), desde la creación hasta el cierre del proceso.
+- **Cómo está automatizado**: Cypress con comandos de login por rol.
+- **Qué problema resuelve / qué bug previene**: evita regresiones en el recorrido crítico de negocio de inicio a fin.
+- **Requisitos asociados**: TI-001.
+
 ## 4.6 Soporte de pruebas relevante (frontend)
 
 | Tipo | Archivos | Uso |
@@ -906,11 +930,11 @@ bun run test:coverage
 bunx vitest run tests/frontend/components/RolesAdmin.test.tsx
 
 # Cypress interactivo / headless
-npx cypress open
-npx cypress run
+bunx cypress open
+bunx cypress run
 
 # Cypress por spec
-npx cypress run --spec "cypress/e2e/refund-rules.cy.ts"
+bunx cypress run --spec "cypress/e2e/refund-rules.cy.ts"
 ```
 
 ## 6.2 Cómo agregar un nuevo test (convenciones del proyecto)
@@ -940,7 +964,7 @@ npx cypress run --spec "cypress/e2e/refund-rules.cy.ts"
 
 6. **Verificar localmente antes de PR**
    - Backend: `bun run test` y, si toca flujo completo, `bun run test:e2e`.
-   - Frontend: `bun run test` y e2e relevante (`npx cypress run --spec ...`).
+   - Frontend: `bun run test` y e2e relevante (`bunx cypress run --spec ...`).
 
 ---
 

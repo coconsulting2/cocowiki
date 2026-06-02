@@ -2,13 +2,13 @@
 
 | Metadato | Valor |
 |---|---|
-| **Versión** | 1.0.0 |
-| **Última actualización** | 2026-04-22 |
-| **Fuente** | [permissionMiddleware.js](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [prisma/seed.js](../../../TC3005B.501-Backend/prisma/seed.js), [modelo-er.md](modelo-er.md#sistema-de-permisos-granulares-rbac--directo-a-usuario) |
+| **Versión** | 1.1.0 |
+| **Última actualización** | 2026-06-02 |
+| **Fuente** | [permissionMiddleware.js](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [prisma/seed.js](../../../TC3005B.501-Backend/prisma/seed.js), [prisma/seedHelpers/bootstrapOrganization.js](../../../TC3005B.501-Backend/prisma/seedHelpers/bootstrapOrganization.js), [config/tenantApplicantCapability.js](../../../TC3005B.501-Backend/config/tenantApplicantCapability.js), [modelo-er.md](modelo-er.md#sistema-de-permisos-granulares-rbac--directo-a-usuario) |
 
 ## TL;DR para agregar un permiso nuevo
 
-1. Edita `TC3005B.501-Backend/prisma/seed.js` → agrega el permiso a `PERMISSION_CATALOG` y al grupo correspondiente en `PERMISSION_GROUPS`.
+1. Edita `TC3005B.501-Backend/prisma/seed.js` → agrega el permiso a `PERMISSION_CATALOG` (catálogo **global** de permisos atómicos) y, si forma parte de un rol default, al grupo correspondiente en `PERMISSION_GROUPS_DEFAULTS` (que vive en `prisma/seedHelpers/bootstrapOrganization.js`, no en `seed.js`).
 2. Reinicia el stack: `bun run docker:dev:down && bun run docker:dev`. El migrate service re-aplica la seed de referencia (idempotente) automáticamente — tus compañeros obtendrán el permiso al próximo `up` sin hacer nada.
 3. En la ruta backend: `...requirePermission("mi_resource:mi_action")`.
 4. En React: `hasPermission(perms, "mi_resource:mi_action")` — los permisos se cargan al login y están en el store.
@@ -40,10 +40,12 @@ Cliente ──(POST /api/user/login)──> Backend
                          │
 Protege rutas:   ...requirePermission("travel_request:authorize")
                  ↓
-                 [authenticateToken, loadPermissions, authorizePermission]
-                                                       ↑
-                                   nunca se puede saltar authenticateToken
-                                   (orden garantizado por el helper)
+                 [authenticateToken, tenantContextMiddleware, applyRlsForRequest,
+                  loadPermissions, authorizePermission]
+                            ↑
+        nunca se puede saltar authenticateToken (orden garantizado por el helper);
+        tenantContextMiddleware + applyRlsForRequest fijan el organization_id y la RLS
+        de Postgres antes de resolver permisos
 ```
 
 ### Modelos Prisma involucrados
@@ -70,33 +72,105 @@ Ver [`modelo-er.md`](modelo-er.md#sistema-de-permisos-granulares-rbac--directo-a
 
 ## Catálogo actual (referencia)
 
-Definido en [`prisma/seed.js`](../../../TC3005B.501-Backend/prisma/seed.js) bajo `PERMISSION_CATALOG` y `PERMISSION_GROUPS`.
+El catálogo de permisos atómicos es **global** (no está scopeado por organización) y se define en [`prisma/seed.js`](../../../TC3005B.501-Backend/prisma/seed.js) bajo `PERMISSION_CATALOG`. Los **grupos**, los **roles** y su asignación son **por organización** y se siembran vía `bootstrapOrganizationCatalogs()` en [`prisma/seedHelpers/bootstrapOrganization.js`](../../../TC3005B.501-Backend/prisma/seedHelpers/bootstrapOrganization.js) (`PERMISSION_GROUPS_DEFAULTS`, `DEFAULT_ROLES`, `ROLE_GROUP_ASSIGNMENTS_DEFAULT`).
+
+A la fecha de este documento el catálogo tiene **48 permisos atómicos** repartidos en **21 namespaces** (recursos). Cualquier alta/baja requiere release del software porque los middlewares dependen de strings literales.
 
 ### Permisos
 
-| Recurso | Acción | Código |
+| Recurso | Código | Descripción |
 |---|---|---|
-| `travel_request` | `create` · `view_own` · `view_any` · `edit_own` · `submit` · `cancel` · `authorize` | `travel_request:create`, `travel_request:view_own`, … |
-| `travel_agent` | `attend` | `travel_agent:attend` |
-| `accounts_payable` | `attend` | `accounts_payable:attend` |
-| `accounting` | `export` | `accounting:export` |
-| `receipt` | `upload` · `delete_own` · `validate` | `receipt:upload`, `receipt:delete_own`, `receipt:validate` |
-| `expense` | `view` · `submit` | `expense:view`, `expense:submit` |
-| `authorizer` | `view_alerts` | `authorizer:view_alerts` |
-| `user` | `view_self` · `list` · `create` · `edit` · `manage_permissions` | `user:view_self`, … |
-| `permission` | `read` · `write` | `permission:read`, `permission:write` |
-| `permission_group` | `manage` | `permission_group:manage` |
-| `role` | `manage_permissions` | `role:manage_permissions` |
+| `travel_request` | `travel_request:create` | Crear una solicitud de viaje. |
+| `travel_request` | `travel_request:view_own` | Ver las solicitudes propias. |
+| `travel_request` | `travel_request:view_any` | Ver cualquier solicitud de la organización. |
+| `travel_request` | `travel_request:edit_own` | Editar las solicitudes propias. |
+| `travel_request` | `travel_request:submit` | Enviar una solicitud a revisión. |
+| `travel_request` | `travel_request:cancel` | Cancelar una solicitud. |
+| `travel_request` | `travel_request:authorize` | Autorizar/rechazar una solicitud (N1/N2). |
+| `travel_agent` | `travel_agent:attend` | Atender reservas como agencia de viajes. |
+| `accounts_payable` | `accounts_payable:attend` | Atender el flujo de cuentas por pagar. |
+| `accounting` | `accounting:export` | Exportar la información contable. |
+| `receipt` | `receipt:upload` | Subir comprobantes. |
+| `receipt` | `receipt:delete_own` | Eliminar comprobantes propios. |
+| `receipt` | `receipt:validate` | Validar comprobantes (cuentas por pagar). |
+| `receipt` | `receipt:view_sat` | Ver los datos SAT/CFDI del comprobante. |
+| `expense` | `expense:view` | Ver gastos. |
+| `expense` | `expense:submit` | Enviar gastos para comprobación. |
+| `expense` | `expense:authorize_exception` | Autorizar gastos fuera de política (excepción). |
+| `authorizer` | `authorizer:view_alerts` | Ver las alertas del autorizador. |
+| `user` | `user:view_self` | Ver el perfil propio. |
+| `user` | `user:list` | Listar usuarios de la organización. |
+| `user` | `user:create` | Crear usuarios. |
+| `user` | `user:edit` | Editar usuarios. |
+| `user` | `user:manage_permissions` | Gestionar permisos/grupos directos de un usuario. |
+| `permission` | `permission:read` | Leer el catálogo de permisos. |
+| `permission` | `permission:write` | Crear/editar/desactivar permisos del catálogo. |
+| `permission_group` | `permission_group:manage` | Gestionar grupos de permisos. |
+| `role` | `role:manage_permissions` | Gestionar los permisos/grupos asignados a un rol. |
+| `policy` | `policy:read` | Leer las políticas de viáticos (M2-006). |
+| `policy` | `policy:manage` | Crear/editar políticas de viáticos. |
+| `api_key` | `api_key:manage` | Gestionar las API keys de integración de la organización (M3-004). |
+| `organization` | `organization:create` | Crear organizaciones cliente. |
+| `organization` | `organization:list_all` | Listar todas las organizaciones (cross-tenant). |
+| `organization` | `organization:read` | Leer los datos de una organización. |
+| `organization` | `organization:update` | Actualizar los datos de una organización. |
+| `organization` | `organization:activate` | Activar una organización. |
+| `organization` | `organization:suspend` | Suspender una organización. |
+| `organization` | `organization:impersonate` | Impersonar (operar como) otra organización. |
+| `organization` | `organization:manage_any` | Gestionar cualquier organización (cross-tenant). |
+| `integration` | `integration:read` | Leer la configuración de integraciones. |
+| `integration` | `integration:write` | Editar la configuración de integraciones. |
+| `accounting_catalog` | `accounting_catalog:read` | Leer el catálogo contable. |
+| `accounting_catalog` | `accounting_catalog:write` | Editar el catálogo contable. |
+| `notification_template` | `notification_template:read` | Leer las plantillas de notificación. |
+| `notification_template` | `notification_template:write` | Editar las plantillas de notificación. |
+| `receipt_type` | `receipt_type:write` | Gestionar los tipos de comprobante. |
+| `alert_message` | `alert_message:write` | Gestionar los mensajes de alerta. |
+| `onboarding` | `onboarding:import` | Importar onboarding masivo de organizaciones/usuarios (M3-007). |
+| `workflow` | `workflow:manage` | Gestionar las reglas de flujo de trabajo (solo admin de la org). |
 
 ### Grupos y su asignación a roles
 
-| Grupo | Rol asignado | Incluye |
+Cada rol **acumula varios grupos** (semántica aditiva, ver más abajo). Por ejemplo, N1 y N2 obtienen `[BaseColaborador, TravelRequestAuthor, TravelRequestApprover]`: heredan toda la capacidad de solicitante **y además** la de aprobador. La columna "Rol(es) asignado(s)" lista los roles default que incluyen cada grupo según `ROLE_GROUP_ASSIGNMENTS_DEFAULT`.
+
+| Grupo | Rol(es) asignado(s) | Incluye |
 |---|---|---|
-| `TravelRequestAuthor` | Solicitante | Crear/editar/cancelar sus propias solicitudes, subir comprobantes, enviar gastos |
-| `TravelRequestApprover` | N1, N2 | Todo lo del Solicitante **+** `travel_request:authorize` + `authorizer:view_alerts` |
-| `TravelAgencyOps` | Agencia de viajes | `travel_agent:attend` + `travel_request:view_any` |
-| `AccountsPayableOps` | Cuentas por pagar | `accounts_payable:attend` + `receipt:validate` + `accounting:export` + lecturas |
-| `OrgAdmin` | Administrador | Gestión de usuarios y del propio sistema de permisos |
+| `BaseColaborador` | **Todos los roles** | `user:view_self` (mínimo para cualquier usuario). |
+| `TravelRequestAuthor` | **Todos los roles** | Capacidad de solicitante: se resuelve desde `TENANT_APPLICANT_CAPABILITY_CODES` (ver nota abajo) — `travel_request:create`/`view_own`/`view_any`/`edit_own`/`submit`/`cancel`, `receipt:upload`/`delete_own`/`view_sat`, `expense:view`/`submit`, `policy:read`, `user:view_self`. |
+| `TravelRequestApprover` | N1, N2 | Todo lo del solicitante **+** `travel_request:authorize` + `authorizer:view_alerts` + `expense:authorize_exception`. |
+| `TravelAgencyOps` | Agencia de viajes | `travel_agent:attend` + `travel_request:view_any` + `user:view_self`. |
+| `AccountsPayableOps` | Cuentas por pagar | `accounts_payable:attend` + `accounting:export` + `receipt:validate` + `receipt:view_sat` + `expense:view` + `travel_request:view_any` + `policy:read` + `accounting_catalog:read` + `user:view_self`. |
+| `OrgAdmin` | Administrador | Gestión de usuarios (`user:list`/`create`/`edit`), del sistema de permisos (`permission:read`/`write`, `permission_group:manage`, `role:manage_permissions`, `user:manage_permissions`), políticas (`policy:read`/`manage`), `receipt_type:write`, `alert_message:write`, catálogo contable (`accounting_catalog:read`/`write`), plantillas de notificación (`notification_template:read`/`write`), integraciones (`integration:read`/`write`), `organization:read`/`update`, `workflow:manage` y `user:view_self`. |
+| `TravelNotifyOnly` | Observador | `travel_request:view_any` + `authorizer:view_alerts` + `user:view_self` (solo lectura/alertas, sin autorizar). |
+| `DittaSuperAdmin` | Admin Ditta (solo org ROOT) | Super-admin cross-tenant — ver tabla dedicada abajo. |
+
+> **Nota sobre `TravelRequestAuthor`.** Sus permisos **no** se enumeran a mano en el grupo: se resuelven a partir de `TENANT_APPLICANT_CAPABILITY_CODES` en [`config/tenantApplicantCapability.js`](../../../TC3005B.501-Backend/config/tenantApplicantCapability.js), que es la fuente de verdad de la "capacidad solicitante" del tenant. Esa lista incluye, entre otros, `receipt:view_sat`, `policy:read` y `user:view_self`. Por eso cualquier usuario activo de una org obtiene el flujo mínimo de solicitudes/comprobantes propios, aunque su rol no sea Solicitante.
+
+### Roles default por organización
+
+`bootstrapOrganizationCatalogs()` siembra estos roles en toda organización (`DEFAULT_ROLES`), más sus límites de monto de aprobación:
+
+| Rol | Grupos asignados (`ROLE_GROUP_ASSIGNMENTS_DEFAULT`) | `maxApprovalAmount` |
+|---|---|---|
+| Solicitante | `BaseColaborador`, `TravelRequestAuthor` | — |
+| N1 | `BaseColaborador`, `TravelRequestAuthor`, `TravelRequestApprover` | 50 000 |
+| N2 | `BaseColaborador`, `TravelRequestAuthor`, `TravelRequestApprover` | 500 000 |
+| Agencia de viajes | `BaseColaborador`, `TravelRequestAuthor`, `TravelAgencyOps` | — |
+| Cuentas por pagar | `BaseColaborador`, `TravelRequestAuthor`, `AccountsPayableOps` | — |
+| Administrador | `BaseColaborador`, `TravelRequestAuthor`, `OrgAdmin` | — |
+| Observador | `BaseColaborador`, `TravelRequestAuthor`, `TravelNotifyOnly` | — |
+
+Cada org puede además crear roles custom y reasignar grupos en caliente vía los endpoints admin (ver más abajo).
+
+### Grupo y rol exclusivos de la org ROOT (Ditta)
+
+La organización ROOT (**Ditta**, id=1) se bootstrappea con `includeDittaSuperAdmin: true`, lo que añade el grupo `DittaSuperAdmin` y el rol **`Admin Ditta`** (mapeado a `[BaseColaborador, TravelRequestAuthor, DittaSuperAdmin]`). Las organizaciones cliente se siembran con `includeDittaSuperAdmin: false`, así que **no** tienen ni este grupo ni este rol.
+
+| Grupo | Rol | Permisos |
+|---|---|---|
+| `DittaSuperAdmin` | `Admin Ditta` | Las 8 acciones de `organization:*` (`create`, `list_all`, `read`, `update`, `activate`, `suspend`, `impersonate`, `manage_any`); gestión de usuarios (`user:list`/`create`/`edit`); sistema de permisos (`permission:read`/`write`, `permission_group:manage`, `role:manage_permissions`, `user:manage_permissions`); `policy:read`/`manage`; `integration:read`/`write`; `accounting_catalog:read`/`write`; `notification_template:read`/`write`; `receipt_type:write`; `alert_message:write`; **`api_key:manage`**; **`onboarding:import`**; y `user:view_self`. |
+
+> **`api_key:manage` y `onboarding:import` son EXCLUSIVOS de `DittaSuperAdmin`.** Ningún grupo default de una org cliente los incluye; son capacidades del super-admin cross-tenant.
 
 ---
 
@@ -114,7 +188,7 @@ El **`code`** es el que usarás en el middleware — convención `resource:actio
 
 ### 2. Asignarlo a un grupo (o directo al rol)
 
-Si el permiso forma parte de un rol ya existente, agrégalo al array `permissions` del grupo correspondiente en `PERMISSION_GROUPS`:
+Si el permiso forma parte de un rol ya existente, agrégalo al array `permissions` del grupo correspondiente en `PERMISSION_GROUPS_DEFAULTS` (en `prisma/seedHelpers/bootstrapOrganization.js`):
 
 ```js
 {
@@ -123,16 +197,18 @@ Si el permiso forma parte de un rol ya existente, agrégalo al array `permission
   permissions: [
     "accounts_payable:attend",
     "accounting:export",
-    "expense:export",        // ← nuevo
-    "receipt:validate",
+    "expense:export",          // ← nuevo
+    "receipt:validate", "receipt:view_sat",
     "expense:view",
     "travel_request:view_any",
+    "policy:read",
+    "accounting_catalog:read",
     "user:view_self",
   ],
 },
 ```
 
-Si necesitas un grupo nuevo, agrega un objeto a `PERMISSION_GROUPS` y un mapeo en `ROLE_GROUP_ASSIGNMENTS`.
+Si necesitas un grupo nuevo, agrega un objeto a `PERMISSION_GROUPS_DEFAULTS` y un mapeo en `ROLE_GROUP_ASSIGNMENTS_DEFAULT` (ambos en `bootstrapOrganization.js`). Recuerda que un rol puede acumular **varios** grupos. Para un permiso que deba pertenecer a la capacidad solicitante de todo el tenant, agrégalo a `TENANT_APPLICANT_CAPABILITY_CODES` en `config/tenantApplicantCapability.js` en lugar de a un grupo concreto.
 
 ### 3. Aplicar el seed
 
@@ -318,7 +394,7 @@ requirePermission("codigo1", "codigo2")     // AND — todos requeridos
 requireAnyPermission("codigo1", "codigo2")  // OR  — al menos uno
 ```
 
-Cada uno retorna un **array** `[authenticateToken, loadPermissions, authorizePermission(...)]`, usado con spread:
+Cada uno retorna un **array** `[authenticateToken, tenantContextMiddleware, applyRlsForRequest, loadPermissions, authorizePermission(...)]` (para `requireAnyPermission`, el último hop es `authorizeAnyPermission(...)`), usado con spread:
 
 ```js
 router.get("/foo", ...requirePermission("foo:read"), handler);
@@ -327,9 +403,10 @@ router.get("/foo", ...requirePermission("foo:read"), handler);
 Propiedades garantizadas:
 
 1. **`authenticateToken` siempre corre primero.** No hay forma de llegar a `authorizePermission` sin JWT válido.
-2. **`loadPermissions` es idempotente por request.** Si varios middlewares requieren permisos en la misma ruta, se consulta la DB una sola vez (se cachea en `req.user.permissionSet`).
-3. **`authorizePermission` falla con 403 si `req.user` o `permissionSet` no existen** — defensa contra casos de mal uso, nunca deja pasar silenciosamente.
-4. **Los errores 401/403 usan las clases en `authErrors.js`** — formato de respuesta consistente.
+2. **`tenantContextMiddleware` + `applyRlsForRequest` fijan el contexto de tenant antes de resolver permisos.** Establecen el `organization_id` de la request y aplican la Row-Level Security de Postgres, de modo que la resolución de permisos y todas las consultas posteriores quedan acotadas a la organización correcta.
+3. **`loadPermissions` es idempotente por request.** Si varios middlewares requieren permisos en la misma ruta, se consulta la DB una sola vez (se cachea en `req.user.permissionSet`).
+4. **`authorizePermission` falla con 403 si `req.user` o `permissionSet` no existen** — defensa contra casos de mal uso, nunca deja pasar silenciosamente.
+5. **Los errores 401/403 usan las clases en `authErrors.js`** — formato de respuesta consistente.
 
 El `requireAuth(roles)` legacy en `authMiddleware.js` **se conserva** y sigue funcionando para código que no se ha migrado o que prefiere cheque por rol. No está deprecado; simplemente hay ahora una opción más granular.
 
@@ -338,7 +415,7 @@ El `requireAuth(roles)` legacy en `authMiddleware.js` **se conserva** y sigue fu
 ## Testing
 
 - **Unit (Jest)**: [`tests/middleware/permissionMiddleware.test.js`](../../../TC3005B.501-Backend/tests/middleware/permissionMiddleware.test.js) — verifica AND/OR, idempotencia de `loadPermissions`, composición con `authenticateToken`, manejo de `req.user` ausente.
-- **E2E (Cypress)**: [`cypress/e2e/permissions.cy.ts`](../../../TC3005B.501-Frontend/cypress/e2e/permissions.cy.ts) — corre contra el stack docker, verifica: resolución por rol para los 6 roles seeded, 401 sin token, 403 sin permiso, CRUD de catálogo, grant/revoke directo a usuario, CRUD de grupos con asignación. Usa `cy.apiLogin(...)` y `cy.apiAs(session, {...})` (en [`cypress/support/commands.ts`](../../../TC3005B.501-Frontend/cypress/support/commands.ts)) que manejan JWT + CSRF automáticamente.
+- **E2E (Cypress)**: [`cypress/e2e/permissions.cy.ts`](../../../TC3005B.501-Frontend/cypress/e2e/permissions.cy.ts) — corre contra el stack docker, verifica: resolución por rol para los 6 roles operativos con login en Cypress (Solicitante, Agencia de viajes, Cuentas por pagar, N1, N2, Administrador; el bootstrap siembra además `Observador`), 401 sin token, 403 sin permiso, CRUD de catálogo, grant/revoke directo a usuario, CRUD de grupos con asignación. Usa `cy.apiLogin(...)` y `cy.apiAs(session, {...})` (en [`cypress/support/commands.ts`](../../../TC3005B.501-Frontend/cypress/support/commands.ts)) que manejan JWT + CSRF automáticamente.
 
 Ejecutar E2E:
 

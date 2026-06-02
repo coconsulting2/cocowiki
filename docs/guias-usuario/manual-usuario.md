@@ -2,8 +2,8 @@
 
 | Metadato                 | Valor                     |
 | ------------------------ | ------------------------- |
-| **Versión del documento** | 1.0.0                    |
-| **Última actualización**  | 2026-05-25               |
+| **Versión del documento** | 1.0.1                    |
+| **Última actualización**  | 2026-06-02               |
 | **Audiencia**             | Usuarios finales del sistema (todos los roles excepto Admin Ditta) |
 
 ---
@@ -24,7 +24,7 @@ CocoAPI es la plataforma de gestión de viajes corporativos desarrollada por **E
 
 ### ¿Cómo obtener acceso?
 
-El acceso a CocoAPI no se obtiene por autoregistro. Su **Administrador de organización** o el equipo de **Ditta Consulting** le creará una cuenta con un usuario (correo electrónico corporativo) y una contraseña inicial. Si no tiene acceso, contacte a su administrador.
+El acceso a CocoAPI no se obtiene por autoregistro. Su **Administrador de organización** o el equipo de **Ditta Consulting** le creará una cuenta con un **nombre de usuario** (por ejemplo, `angel.montemayor`) y una contraseña inicial. Si no tiene acceso, contacte a su administrador.
 
 ---
 
@@ -35,7 +35,7 @@ El acceso a CocoAPI no se obtiene por autoregistro. Su **Administrador de organi
 ![Pantalla de inicio de sesión](./images/manual-usuario/login.png)
 
 1. Abra CocoAPI en su navegador web.
-2. En el panel derecho, ingrese su **Usuario** (correo electrónico corporativo) en el campo correspondiente.
+2. En el panel derecho, ingrese su **nombre de usuario** (por ejemplo, `angel.montemayor`) en el campo correspondiente.
 3. Ingrese su **Contraseña** en el campo siguiente.
 4. Si desea ver la contraseña mientras la escribe, haga clic en el ícono del ojo junto al campo.
 5. Si su administrador le proporcionó un **Id de organización**, ingréselo en el campo opcional. De lo contrario, déjelo vacío.
@@ -78,6 +78,10 @@ Al iniciar sesión, verá su **Dashboard** (panel principal). La interfaz se com
 3. El sistema le redirigirá a la pantalla de inicio de sesión.
 
 > **Importante:** Cierre siempre su sesión si utiliza un equipo compartido.
+
+### 2.6 Sesión expirada
+
+Si su sesión ha caducado mientras trabaja en el sistema, aparecerá un diálogo de advertencia con el mensaje *"Tu sesion ha expirado. Por favor inicia sesion nuevamente."* Al hacer clic en aceptar, el sistema lo redirigirá automáticamente a la pantalla de inicio de sesión. Vuelva a ingresar con sus credenciales para continuar.
 
 ---
 
@@ -182,8 +186,8 @@ Solo es posible editar una solicitud si su estado es **"Primera Revisión"**.
 
 Cuando su viaje haya sido aprobado y se encuentre en el estado *"Comprobación gastos del viaje"*, deberá subir los comprobantes de sus gastos.
 
-1. En su Dashboard, haga clic en el botón **"Comprobar"** junto a la solicitud.
-2. El sistema le llevará a la pantalla de comprobación de gastos.
+1. En su Dashboard, haga clic en el botón **"Comprobar"** junto a la solicitud, **o** abra el detalle de la solicitud donde verá un banner informativo con el botón **"Subir comprobantes"**.
+2. El sistema le llevará a la pantalla de comprobación de gastos (`/subir-comprobante/[id]`).
 
 #### Viajes nacionales (CFDI)
 
@@ -212,7 +216,7 @@ Cuando su viaje haya sido aprobado y se encuentre en el estado *"Comprobación g
 Si el área de Cuentas por Pagar rechaza un comprobante:
 
 1. Revise el motivo del rechazo en el detalle de su solicitud.
-2. Acceda a la pantalla de resubida del comprobante.
+2. Acceda a la pantalla de resubida del comprobante (`/resubir-comprobante/[id]`).
 3. Suba los archivos corregidos siguiendo el mismo procedimiento de la sección 3.5.
 
 ### 3.7 Consultar historial y reembolsos
@@ -237,13 +241,14 @@ Si el área de Cuentas por Pagar rechaza un comprobante:
 
 1. En su Dashboard o historial, haga clic sobre una solicitud para ver su detalle.
 2. Verá la información completa: destino, fechas, rutas, anticipo, observaciones.
-3. La **Línea de tiempo** muestra el recorrido de la solicitud con indicadores visuales:
+3. Si la solicitud se encuentra en estado **"Comprobación gastos del viaje"**, aparecerá un banner en la parte superior con el botón **"Subir comprobantes"**. Al hacer clic, el sistema lo redirige a la pantalla de comprobación.
+4. La **Línea de tiempo** muestra el recorrido de la solicitud con indicadores visuales:
    - ● Verde = etapa completada
    - ● Azul = etapa actual
    - ○ Gris = etapa pendiente
    - ● Rojo = detenido (rechazado)
-4. En la sección de movimientos, podrá ver quién aprobó, rechazó o escaló la solicitud, con fecha y comentarios.
-5. También podrá ver los comprobantes ya subidos y el resumen de tramos del viaje.
+5. En la sección de movimientos, podrá ver quién aprobó, rechazó o escaló la solicitud, con fecha y comentarios.
+6. También podrá ver los comprobantes ya subidos y el resumen de tramos del viaje.
 
 ![timeline_solicitud](./images/manual-usuario/timeline_solicitud.png)
 
@@ -320,7 +325,7 @@ El panel se muestra como **"Por revisar"** con el subtítulo del rol. Las métri
 
 ---
 
-## 6. Cuentas por Pagar (SOI / Finanzas)
+## 6. Cuentas por Pagar
 
 ### Descripción del rol
 
@@ -457,7 +462,7 @@ Al ingresar, verá el panel **"Usuarios del sistema"** con:
 
 ### Menú lateral
 
-DASHBOARD · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO · PLAZO DE REEMBOLSO · IMPORTAR USUARIOS · CATÁLOGO CONTABLE · INDICADORES DE IMPUESTO · MAPEO DE GASTOS · REGLAS DE WORKFLOW · GASTO POR CC
+DASHBOARD · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO · PLAZO DE REEMBOLSO · IMPORTAR USUARIOS · CATÁLOGO CONTABLE · INDICADORES DE IMPUESTO · MAPEO DE GASTOS · REGLAS DE WORKFLOW · LLAVES API · GASTO POR CC
 
 ### 8.1 Crear un usuario
 
@@ -490,10 +495,16 @@ DASHBOARD · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO
 ![importar_usuarios](./images/manual-usuario/importarUsuario_adminOrg.png)
 
 1. Seleccione **"IMPORTAR USUARIOS"** en el menú lateral.
-2. Suba un archivo CSV o Excel con los datos de los usuarios.
-3. El sistema mostrará una vista previa de los usuarios detectados y validados.
-4. Opcionalmente, defina una **contraseña común** para todo el lote.
-5. Confirme la importación.
+2. Arrastre o seleccione un archivo. Los formatos aceptados son **`.json`**, **`.csv`** y **`.txt`** (máx. 2 MB).
+3. El sistema generará una **vista previa** de los usuarios detectados con las siguientes características:
+   - **Badge "auto-detectado"** junto al rol de cada usuario cuando el sistema infirió el rol a partir del archivo.
+   - **Selector de rol por usuario** — puede sobrescribir el rol inferido para cualquier persona antes de importar.
+   - **Campo de contraseña por usuario** — puede definir una contraseña individual. Si lo deja vacío, se aplicará la contraseña global.
+   - Si elige la opción **"Otro (desde base…)"** en el selector de rol, se abrirá un modal para clonar un rol existente y personalizar sus permisos; al importar se creará un rol nuevo exclusivo para ese usuario.
+4. Opcionalmente, ingrese una **contraseña común** para todo el lote en el campo *"Misma contraseña para todo el lote"*.
+5. Confirme la importación haciendo clic en **"Importar N usuarios"**.
+
+**Opción "Crear organización nueva" (solo JSON):** Si está disponible y marca esta casilla antes de subir el archivo, el sistema creará primero la organización descrita en el bloque `organization` del JSON y después importará los usuarios en ella. Esta opción solo está activa cuando **no** está impersonando otra organización.
 
 > **Consejo:** Use la importación masiva cuando necesite dar de alta a muchos usuarios al mismo tiempo, por ejemplo al integrar un departamento completo.
 

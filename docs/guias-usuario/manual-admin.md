@@ -2,8 +2,8 @@
 
 | Metadato                 | Valor                     |
 | ------------------------ | ------------------------- |
-| **Versión del documento** | 1.0.0                    |
-| **Última actualización**  | 2026-05-25               |
+| **Versión del documento** | 1.0.1                    |
+| **Última actualización**  | 2026-06-02               |
 | **Audiencia**             | Super Admin de Ditta Consulting (rol "Admin Ditta") |
 
 ---
@@ -40,13 +40,14 @@ Eres el **super-administrador** de la plataforma CocoAPI. Tu rol existe únicame
 | Indicadores de impuesto | ✅ | ✅ |
 | Mapeo de gastos | ✅ | ✅ |
 | Importar usuarios | ✅ | ✅ |
+| Llaves API | ✅ | ✅ |
 | Impersonar organización | ✅ | ❌ |
 
 ### Tu menú lateral
 
 Después de iniciar sesión, tu sidebar muestra:
 
-DASHBOARD · ORGANIZACIONES · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO · PLAZO DE REEMBOLSO · IMPORTAR USUARIOS · CATÁLOGO CONTABLE · INDICADORES DE IMPUESTO · MAPEO DE GASTOS · GASTO POR CC
+DASHBOARD · ORGANIZACIONES · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO · PLAZO DE REEMBOLSO · IMPORTAR USUARIOS · CATÁLOGO CONTABLE · INDICADORES DE IMPUESTO · MAPEO DE GASTOS · LLAVES API · GASTO POR CC
 
 > **Nota:** Observa que **no** aparece "REGLAS DE WORKFLOW". Esa opción es exclusiva del Administrador de cada organización.
 
@@ -70,7 +71,11 @@ Accede desde **"ORGANIZACIONES"** en el menú lateral. Verás:
   - **RFC** — Registro Federal de Contribuyentes (puede estar vacío).
   - **Tipo** — `ROOT` (Ditta, en morado) o `Cliente`.
   - **Estado** — etiqueta de color según el estado.
-  - **Acciones** — botones contextuales.
+  - **Acciones** — hasta cuatro botones contextuales por fila (solo para organizaciones no ROOT):
+    - **Ver usuarios** — impersona la organización y navega directamente al `/dashboard`, donde verás la tabla de usuarios de ese cliente.
+    - **Ver como** — activa la impersonación sin cambiar de pantalla. Si ya estás impersonando esa org, el botón dice **"Salir"** y la cancela.
+    - **Activar** — visible cuando el estado es *"En configuración"* o *"Suspendida"*. Cambia el estado a *"Activa"*.
+    - **Suspender** — visible cuando el estado es *"Activa"*. Solicita confirmación y cambia el estado a *"Suspendida"*.
 
 - **Filtros** en la parte superior:
   - **Tipo:** Todos · ROOT (Ditta) · Cliente
@@ -242,11 +247,17 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 [IMAGEN: importar_usuarios_admin]
 
 1. Selecciona **"IMPORTAR USUARIOS"** en el menú lateral.
-2. Sube un archivo **CSV o Excel** con los datos de los usuarios.
-3. El sistema validará el archivo y mostrará una **vista previa** de los usuarios detectados.
+2. Arrastra o selecciona un archivo. Los formatos aceptados son **`.json`**, **`.csv`** y **`.txt`** (máx. 2 MB).
+3. El sistema generará una **vista previa** de los usuarios detectados con las siguientes características:
+   - **Badge "auto-detectado"** junto al rol de cada usuario cuando el sistema infirió el rol a partir del archivo.
+   - **Selector de rol por usuario** — puedes sobrescribir el rol inferido para cualquier persona antes de importar.
+   - **Campo de contraseña por usuario** — puedes definir una contraseña individual. Si lo dejas vacío, se aplica la contraseña global del lote.
+   - Si eliges la opción **"Otro (desde base…)"** en el selector de rol, se abre un modal para clonar un rol existente (por ejemplo N1) y marcar o desmarcar permisos del catálogo; al importar se creará un **rol nuevo** exclusivo para ese usuario (nombre tipo `Imp·usuario` si no especificas uno).
 4. Revisa los datos y corrige errores si los hay.
-5. Opcionalmente, activa la opción **"Misma contraseña para todo el lote"** e ingresa una contraseña común en el campo *"Define una contraseña común para todos."*
-6. Confirma la importación.
+5. Opcionalmente, ingresa una contraseña común en el campo *"Misma contraseña para todo el lote"*.
+6. Confirma la importación haciendo clic en **"Importar N usuarios"**.
+
+**Opción "Crear organización nueva" (solo JSON, sin impersonación activa):** Si marcas esta casilla antes de subir el archivo, el sistema creará primero la organización descrita en el bloque `organization` del JSON y después importará los usuarios en ella. Esta opción **solo está disponible cuando no estás impersonando** otra organización; si hay impersonación activa, la casilla aparece deshabilitada.
 
 > **Consejo:** Si estás impersonando una organización, los usuarios se importarán dentro de esa organización. Esto es útil para el onboarding masivo de un cliente nuevo.
 
@@ -386,7 +397,19 @@ Si necesitas dar de alta a un cliente rápidamente:
 
 ---
 
-### 6.4 Escalar a soporte técnico
+### 6.4 Un usuario ve el mensaje "Tu sesion ha expirado"
+
+Cuando el token JWT de una sesión caduca o es inválido, el sistema muestra automáticamente un modal de advertencia y redirige al usuario a `/login`. No se trata de un error del sistema; el usuario solo necesita volver a iniciar sesión.
+
+Si el problema es recurrente (el usuario recibe el mensaje constantemente sin poder trabajar):
+
+1. Verifica que el reloj del servidor y del navegador del usuario estén sincronizados.
+2. Pide al usuario que limpie las cookies del navegador e intente de nuevo.
+3. Si persiste, escala al equipo de desarrollo indicando el `user_id` y el momento aproximado de los incidentes.
+
+---
+
+### 6.5 Escalar a soporte técnico
 
 Cuando necesites escalar un problema al equipo de desarrollo, recopila la siguiente información:
 
@@ -432,7 +455,7 @@ Usa esta lista como guía cada vez que des de alta un nuevo cliente:
 - [ ] **Configurar mapeo de tipos de gasto** — asociar cada tipo de gasto a su cuenta GL.
 - [ ] **Configurar políticas de viáticos** — topes por categoría.
 - [ ] **Configurar categorías de empleado** — si difieren de las estándar.
-- [ ] **Importar usuarios** (si el cliente proporcionó archivo CSV/Excel) o crear manualmente al menos los usuarios clave.
+- [ ] **Importar usuarios** (si el cliente proporcionó archivo `.json`, `.csv` o `.txt`) o crear manualmente al menos los usuarios clave.
 - [ ] **Salir de impersonación**.
 - [ ] **Activar la organización** — cambiar de "En configuración" a "Activa".
 - [ ] **Entregar credenciales** al admin del cliente — email + contraseña temporal.
@@ -476,6 +499,7 @@ Las siguientes funcionalidades existen como componentes en el sistema pero **no 
 | Catálogo contable | `/admin/catalogo-contable` |
 | Indicadores de impuesto | `/admin/indicadores-impuesto` |
 | Mapeo de gastos | `/admin/mapeo-gastos` |
+| Llaves API | `/admin/api-keys` |
 | Gastos por CC | `/reportes/gastos-por-centro` |
 
 ### Glosario rápido

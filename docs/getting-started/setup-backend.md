@@ -15,8 +15,8 @@ Asegúrate de tener instalado lo siguiente antes de continuar:
 |---|---|---|
 | **Node.js** | v18+ | [nodejs.org](https://nodejs.org/) |
 | **Bun** | v1.1+ | [bun.sh](https://bun.sh/) |
-| **PostgreSQL** | 14+ (16 recomendado) | [postgresql.org](https://www.postgresql.org/download/) |
-| **MongoDB** | 6.0+ (7 recomendado) | [mongodb.com](https://www.mongodb.com/docs/manual/installation/) |
+| **PostgreSQL** | **16** | [postgresql.org](https://www.postgresql.org/download/) |
+| **MongoDB** | **7** | [mongodb.com](https://www.mongodb.com/docs/manual/installation/) |
 | **OpenSSL** | — | Incluido en Git Bash / macOS / Linux |
 | **Git** | — | [git-scm.com](https://git-scm.com/) |
 
@@ -132,7 +132,13 @@ bun run empty_db
 ```
 
 > [!NOTE]
-> `dummy_db` y `empty_db` ejecutan `bunx prisma db push --force-reset` y luego el seed: **borran** la base antes de recrearla.
+> `dummy_db` ejecuta `bunx prisma db push --force-reset && node prisma/seed.js dev`. `empty_db` ejecuta `bunx prisma db push --force-reset && node prisma/seed.js` (sin argumento `dev`, solo datos de referencia). Ambos **borran** la base antes de recrearla.
+
+> [!IMPORTANT]
+> `dummy_db` **no** ejecuta `seed-usability.js`. Si necesitas los usuarios de demostración de CocoUAT (`angel.montemayor`, `erick.morales`, `eder.cantero`, `santino.im`, `kevin.esquivel`, `mariano.carretero`, contraseña `Fuego2026!`), ejecútalo por separado:
+> ```sh
+> node prisma/seed-usability.js
+> ```
 
 ---
 
@@ -289,7 +295,11 @@ MAIL_PASSWORD=password
 
 > [!IMPORTANT]
 > - `DATABASE_URL` debe coincidir con el usuario, contraseña, host, puerto y base que configuraste en PostgreSQL (paso 5). Puerto por defecto nativo: `5432`; con el stack Docker: `5434`.
-> - `AES_SECRET_KEY` debe tener **exactamente 32 caracteres**.
+> - `AES_SECRET_KEY` debe tener **exactamente 32 caracteres**. Para generar una clave válida en desarrollo:
+>   ```sh
+>   bun -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+>   ```
+>   El resultado tiene 64 caracteres hex, que cubren los 32 bytes requeridos por AES-256.
 > - `.env.example` incluye además variables **opcionales** para integraciones (AWS S3/LocalStack, Wise, Banxico, SAT, Web Push/VAPID, Duffel). No son necesarias para el desarrollo básico.
 
 ---

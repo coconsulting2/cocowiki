@@ -80,7 +80,8 @@ El sistema se integra con servicios externos para cubrir capacidades de negocio:
 
 | Integración | Archivo principal | Librería / Protocolo | Función |
 |---|---|---|---|
-| SAT (validación CFDI) | `services/cfdiParserService.js` | `soap` + `fast-xml-parser` (SOAP/XML) | Parseo y validación de CFDI 3.3/4.0; extracción de RFC, UUID e impuestos |
+| SAT (parseo de CFDI XML) | `services/cfdiParserService.js` | `fast-xml-parser` (XML) | Parseo de CFDI 3.3/4.0; extracción de RFC, UUID, total, impuestos y sello |
+| SAT (consulta de estado CFDI) | `services/satConsultaService.js` | `soap` (SOAP/HTTPS) | Consulta de estado de CFDI al web service del SAT; reintentos con backoff |
 | Banxico (tipo de cambio) | `services/banxicoService.js` | REST (`fetch`) | Tipo de cambio USD→MXN (serie SF43718); respaldo a DOF |
 | Duffel (vuelos/hospedaje) | `services/duffel.js`, `duffelFlightProvider.js`, `duffelStaysProvider.js` | `@duffel/api` (REST) | Búsqueda y reserva de vuelos y estancias (hoteles) |
 | SMTP / Correo | `services/email/mail.cjs` | `nodemailer` (SMTP) | Notificaciones por correo de cambios de estado |
@@ -97,7 +98,7 @@ La arquitectura de datos combina tres backends de almacenamiento especializados 
 
 El esquema es multi-tenant: las entidades operativas y de configuración están acotadas por `organization_id`, y el aislamiento se refuerza con Row-Level Security (RLS) de PostgreSQL sobre 38 tablas. El puente entre la aplicación y la RLS opera así: el middleware de contexto de tenant coloca la organización activa en `AsyncLocalStorage`; una extensión de Prisma Client (`prisma/tenantExtension.js`) inyecta automáticamente el filtro `organization_id` en lecturas y el valor correspondiente en escrituras para los modelos con scope; y en la conexión se ejecuta `set_config('app.current_organization_id', ...)`, GUC que evalúan las políticas RLS (`tenant_isolation`). Los superadministradores de Ditta (ROOT) pueden operar cross-tenant activando `app.bypass_tenant`, únicamente con el permiso correspondiente.
 
-La separación de almacenamiento distribuye los datos así: PostgreSQL guarda toda la información relacional y la *metadata* de archivos; MongoDB 7 (GridFS) almacena los binarios de comprobantes fiscales —XML y PDF de los CFDI— referenciados desde la tabla `Receipt` mediante los identificadores de GridFS (`pdf_file_id`, `xml_file_id`); y Amazon S3 (con LocalStack como mock en desarrollo) almacena los archivos generales de viaje, cifrados con SSE-S3 y servidos mediante URLs prefirmadas. La evolución del esquema se gestiona con migraciones Prisma versionadas (13 migraciones a la fecha), siendo la más relevante `20260512000000_multi_tenant_baseline`, que introdujo el modelo multi-tenant y la RLS.
+La separación de almacenamiento distribuye los datos así: PostgreSQL guarda toda la información relacional y la *metadata* de archivos; MongoDB 7 (GridFS) almacena los binarios de comprobantes fiscales —XML y PDF de los CFDI— referenciados desde la tabla `Receipt` mediante los identificadores de GridFS (`pdf_file_id`, `xml_file_id`); y Amazon S3 (con LocalStack como mock en desarrollo) almacena los archivos generales de viaje, cifrados con SSE-S3 y servidos mediante URLs prefirmadas. El driver Node.js de MongoDB es `mongodb@5` (`mongodb@^5.0.0`), compatible con el servidor MongoDB 7 en uso; ambas versiones son correctas y coexisten sin inconveniente. La evolución del esquema se gestiona con migraciones Prisma versionadas (13 migraciones a la fecha), siendo la más relevante `20260512000000_multi_tenant_baseline`, que introdujo el modelo multi-tenant y la RLS.
 
 <!-- TODO (Santino Im · Héctor Lugo): integrar el diagrama ER actualizado (49 modelos Prisma, 5 enums). Conteo verificado contra prisma/schema.prisma el 2026-06-02. Fuente del diagrama: arquitectura-datos/modelo-er.md. -->
 <!-- TODO (Santino Im · Héctor Lugo): documentar el esquema multi-tenant con RLS (organization_id + políticas RLS + extensión Prisma + AsyncLocalStorage). Resumen disponible arriba; fuente: arquitectura-datos/multi-tenancy.md. -->
@@ -182,7 +183,7 @@ Mapeo de los RNF contra las pruebas existentes en el repositorio (`cocowiki/docs
 | RNF-08 — aislamiento multi-tenant | `tenantContext.test.js`, `tenantExtension.test.js`, `organizationService.test.js`, `permissions.cy.ts` (criterios de salida XC-07 / XF-07) | ✅ Completado |
 | RNF-14 — autorización RBAC | `permissionMiddleware.test.js`, `permissions.cy.ts` | ✅ Completado |
 | RNF-15 / RNF-16 — caché y fallback de tipo de cambio | `exchangeRate.e2e.test.js` + plan BER (`ber-bmx.e2e.test.md`): `TC-008/009/010-CACHE`, `TC-006/007-ERR`, `TC-005-NF-01` | ✅ Completado |
-| RNF-27 — validación CFDI / SAT | `cfdi.e2e.test.js` | ✅ Completado |
+| RNF-27 — validación CFDI / SAT | `tests/services/CDFI/satConsultaService.e2e.test.js`, `tests/services/CDFI/verification-cfdi.e2e.test.js` | ✅ Completado |
 | RNF-18 / RNF-19 — disponibilidad / SLA / escalamiento | `escalationJob.test.js` (SLA operativo de aprobación) | 🟡 Parcial (cubre el escalamiento de aprobación, no la disponibilidad de infraestructura) |
 | RNF-11 — respuesta < 500 ms | Pendiente: ejecutar prueba de carga | ⬜ Pendiente |
 | RNF-12 — 100 usuarios concurrentes | Pendiente: K6 o Artillery | ⬜ Pendiente |
@@ -270,5 +271,8 @@ Diferencias detectadas entre la documentación o los supuestos previos y la impl
 | Middleware de auth en `auth.js` | El archivo es `authMiddleware.js` | Corregido en §5.3 |
 | RNF-25 menciona MariaDB | La base relacional es PostgreSQL (migración PR #18) | Corregido en RNF-25 |
 | Documento de prueba previo cita "Prisma v7.6" | Versión real: Prisma 6.16 | Se usa la versión real en §2 y §3 |
+
+| Tabla de integraciones: fila SAT atribuida a `cfdiParserService.js` con librería `soap` | `cfdiParserService.js` usa solo `fast-xml-parser` (parseo XML); el cliente SOAP vive en `satConsultaService.js` | Fila SAT dividida en dos: parseo XML (`cfdiParserService.js`) y consulta SOAP (`satConsultaService.js`) |
+| RNF-27 referenciaba `cfdi.e2e.test.js` | El archivo no existe; las pruebas E2E reales son `tests/services/CDFI/satConsultaService.e2e.test.js` y `tests/services/CDFI/verification-cfdi.e2e.test.js` | Corregido en §5.2 |
 
 **Confirmados sin cambios:** rate limit 100 req/15 min y 5 req/min en login; cifrado AES-256-CBC para PII; 5 enums Prisma; versiones Astro 5.7, React 19, Tailwind 4.1, Express 4.18, Node 22; Docker Compose de producción con 3 servicios.

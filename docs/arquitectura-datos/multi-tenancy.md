@@ -10,30 +10,63 @@ El sistema es multi-tenant. **Ditta** es la única organización con `kind=ROOT`
 - **JWT claim `organization_id`** (BigInt como string en payload). Se incluye en el token al hacer login (`services/userService.js`).
 - **Header `X-Organization-Id`** (override para super-admin Ditta). Solo respetado si el JWT tiene `organization_kind=ROOT`. Permite a Ditta ver/operar datos de una org cliente sin necesitar cambiar de usuario.
 
+**Cookies de sesión** (httpOnly, establecidas por `controllers/userController.js` en el login):
+`token`, `role`, `username`, `id`, `department_id`, `no_empleado`.
+
 ### Tres capas de aislamiento (defense in depth)
 
 1. **Prisma Client Extension** (`prisma/tenantExtension.js`)
-   Inyecta `where.organizationId = ctx.orgId` en `findUnique`, `findMany`, `count`, `update*`, `delete*`, y `data.organizationId = ctx.orgId` en `create*`. Lista cerrada de modelos tenant-scoped (`TENANT_SCOPED_MODELS`).
+   Inyecta `where.organizationId = ctx.organizationId` en READ_OPS (`findUnique`, `findUniqueOrThrow`, `findFirst`, `findFirstOrThrow`, `findMany`, `count`, `aggregate`, `groupBy`) y en mutaciones (`update*`, `delete*`). Inyecta `data.organizationId = ctx.organizationId` en `create*` y `upsert`. Lista cerrada de modelos tenant-scoped (`TENANT_SCOPED_MODELS`).
+
+   > La extension NO ejecuta `set_config` ni ningún GUC. Se limita a inyectar filtros de aplicación sobre los args de Prisma. El GUC de RLS lo gestiona el middleware `applyRlsForRequest` (ver punto 2).
 
 2. **Postgres Row-Level Security (RLS)**
-   Cada tabla tenant-scoped tiene `ENABLE ROW LEVEL SECURITY` + política `tenant_isolation`:
+   Cada tabla tenant-scoped tiene `ENABLE ROW LEVEL SECURITY` + política `tenant_isolation` (migration `20260512000000_multi_tenant_baseline`):
    ```sql
-   USING (organization_id = current_setting('app.current_organization_id')::bigint
-          OR current_setting('app.bypass_tenant') = 'on')
+   USING (
+     <col> = NULLIF(current_setting('app.current_organization_id', true), '')::bigint
+     OR current_setting('app.bypass_tenant', true) = 'on'
+   )
+   WITH CHECK (
+     <col> = NULLIF(current_setting('app.current_organization_id', true), '')::bigint
+     OR current_setting('app.bypass_tenant', true) = 'on'
+   )
    ```
-   La política se activa con `SELECT set_config('app.current_organization_id', $orgId, false)` al inicio de cada request HTTP (helper en `database/config/rlsConnection.js`). Aunque la extension de Prisma falle, RLS bloquea queries cross-tenant.
+   El segundo argumento `true` en `current_setting` indica *missing-ok* (evita excepción si el GUC no existe). El `NULLIF(..., '')` protege contra GUC vacío que de otro modo haría fallar el cast a `bigint`.
+
+   El GUC se setea desde `applyRlsSetting` (en `database/config/rlsConnection.js`), que a su vez es invocado por el middleware `applyRlsForRequest`. Este middleware se monta automáticamente en toda ruta protegida a través de `requirePermission`/`requireAnyPermission`.
+
+   **Cadena de ejecución en cada request protegido:**
+   ```
+   authenticateToken → tenantContextMiddleware → applyRlsForRequest → loadPermissions → authorizePermission
+   ```
+
+   `applyRlsForRequest` ejecuta `set_config('app.current_organization_id', $orgId, false)` (session-scoped, no transaccional) y `set_config('app.bypass_tenant', ...)`. Aunque la extension de Prisma falle, RLS bloquea queries cross-tenant.
 
 3. **AsyncLocalStorage** (`middleware/tenantContext.js`)
    El context fluye sin pasar args manualmente. Cualquier código que use el `prisma` cliente del singleton consume `getTenantContext()` automáticamente.
 
-### Bypass de Ditta (super-admin)
-Cuando el JWT viene de la org ROOT y el header `X-Organization-Id` está presente:
-- `tenantContextMiddleware` setea `bypassTenant=true`.
-- La extension NO inyecta filtros.
-- `rlsConnection` setea `app.bypass_tenant=on`.
-- Las queries ven todos los datos de la org especificada.
+### Bypass de Ditta (super-admin) y diseño de dos puertas
+
+El header `X-Organization-Id` solo es respetado si `organization_kind === ROOT` en el JWT (`tenantContext.js`). El middleware establece `bypassTenant = (activeOrgId !== jwtOrgId)`: si un usuario ROOT envía `X-Organization-Id: 1` (su propia org), `bypassTenant` permanece `false` — el bypass solo se activa cuando la org activa difiere de la org del JWT.
+
+La validación del permiso `organization:impersonate` ocurre después, a nivel de route-handler, como segunda puerta. El middleware de tenant solo verifica `organization_kind === ROOT`; la autorización granular la hace el handler.
+
+Flujo completo cuando Ditta impersona una org cliente:
+1. `tenantContextMiddleware` detecta `isRoot=true` + header → `activeOrgId = <orgCliente>`, `bypassTenant = true`.
+2. `applyRlsForRequest` setea `app.bypass_tenant=on`.
+3. La extension de Prisma ve `bypassTenant=true` → no inyecta filtros de `where`.
+4. RLS permite el paso por la cláusula `current_setting('app.bypass_tenant', true) = 'on'`.
+5. El route-handler verifica el permiso `organization:impersonate` como segunda puerta.
 
 Sin header, Ditta opera dentro de su propia org (id=1) como cualquier otra.
+
+### `applyRlsSetting` vs `withRls`
+
+| Helper | Alcance del GUC | Caso de uso |
+|---|---|---|
+| `applyRlsSetting` | Session-scoped (`set_config(..., false)`) | Cada request HTTP via `applyRlsForRequest`. El siguiente request al pool sobrescribe el valor. |
+| `withRls` | Transaccional (`SET LOCAL`, `set_config(..., true)`) | Operaciones cross-org que necesitan aislamiento estricto, p. ej. onboarding: `withRls(1n, { bypass: true }, ...)`. El GUC expira al cerrar la transacción, sin riesgo de filtrado al pool. |
 
 ## Modelo de datos
 
@@ -47,6 +80,8 @@ Sin header, Ditta opera dentro de su propia org (id=1) como cualquier otra.
 - Datos operativos: `User`, `Request`, `Receipt`, `Route`, `RouteRequest`, `GastoTramo`, `CfdiComprobante`, `Alert`, `SolicitudHistorial`, `Notification`, `UserPreference`, `PushSubscription`.
 - Configuración: `Role`, `Department`, `PermissionGroup`, `ReceiptType`, `AlertMessage`, `NotificationTemplate`, `ChartOfAccount`, `AccountingDocType`, `AccountingSociety`, `OrganizationIntegration`.
 - M2-006 (políticas y reembolso): `EmployeeCategory`, `TravelPolicy`, `ReimbursementTimeLimit`, `WorkflowRule`, `PolicyException`.
+- Módulos contables/RRHH: `AccountingPoliza`, `Empleado`, `AnticipoPolizaSnapshot`.
+- Seguridad: `ApiKey`.
 - Otros: `Proveedor`, `ApprovalSubstitute`, `UserPermission`, `UserPermissionGroup`.
 
 ### Herencia vía padre (sin FK directa pero RLS por JOIN)
@@ -165,6 +200,8 @@ Mapeo a criterios de salida: **XC-07** (cero leaks entre orgs), **XF-07** (aisla
 DITTA_ADMIN_INITIAL_PASSWORD=     # Password inicial del super-admin. Rotable post-deploy.
 DITTA_RFC=                        # RFC de Ditta (opcional). Si vacío, null en BD.
 TOKEN_GRACE_PERIOD_END=           # ISO date. Tokens viejos sin organization_id se rechazan tras esta fecha.
+                                  # Si NO se define, el grace period termina 24h después del inicio del proceso
+                                  # (Date.now() + 24h al arrancar). No equivale a "nunca".
 ```
 
 ## Trabajo futuro (post este PR)

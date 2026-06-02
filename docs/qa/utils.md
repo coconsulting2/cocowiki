@@ -41,6 +41,9 @@ Crea un token JWT firmado con el rol especificado y parametros opcionales.
   - `user_id` (number): ID de usuario personalizado (auto incremental si no se envia)
   - `IP` (string): Direccion IP incluida en el token (por defecto "127.0.0.1")
   - `expiresIn` (string): Tiempo de expiracion del token (por defecto "1h")
+  - `organization_id` (number | bigint): ID de organizacion para contexto multi-tenant. Requerido cuando la prueba necesita que el JWT declare un tenant especifico (e.g. `1n` para Ditta / ROOT).
+  - `organization_kind` (string): Tipo de organizacion (`"ROOT"`, `"CUSTOMER"`, etc.). Se inyecta en el payload JWT cuando se proporciona.
+  - `extraClaims` (object): Objeto de claims adicionales que se mezclan directamente en el payload JWT (spread). Util para cubrir campos especiales sin modificar la firma de la funcion.
 
 **Retorna:** (string) Un token JWT firmado
 
@@ -57,6 +60,14 @@ const customToken = createTestJWT(ROLES.TRAVEL_AGENT, {
     user_id: 42,
     IP: "192.168.1.100",
     expiresIn: "24h"
+});
+
+// Crear token multi-tenant (con organization_id y organization_kind)
+const tenantToken = createTestJWT(ROLES.ACCOUNTS_PAYABLE, {
+    user_id: 1,
+    organization_id: 1n,          // Ditta (ROOT)
+    organization_kind: "ROOT",
+    extraClaims: { custom_flag: true }
 });
 ```
 
@@ -129,10 +140,10 @@ const jsonData = await importer.import('test-data.json');
 
 ### 3. **muteConsole.js**
 
-**Proposito:** Suprimir salida de `console.log` durante la ejecucion de pruebas para mantener limpio el output.
+**Proposito:** Suprimir salida de consola durante la ejecucion de pruebas para mantener limpio el output.
 
 **Descripcion:**
-Este modulo ofrece una funcion utilitaria que envuelve la ejecucion de codigo de prueba y hace mock temporal de `console.log`. Es util cuando pruebas codigo con logs verbosos o cuando quieres evitar ruido en los resultados.
+Este modulo ofrece dos funciones utilitarias que envuelven la ejecucion de codigo de prueba y hacen mock temporal de metodos de consola. Son utiles cuando se prueba codigo con logs verbosos o cuando se quiere evitar ruido en resultados de prueba.
 
 **Exports:**
 
@@ -173,6 +184,39 @@ test('debe manejar logging en silencio', async () => {
     });
 
     expect(output).toBeDefined();
+});
+```
+
+#### `mutedConsoleWarnError(fn)`
+
+Ejecuta una funcion asincrona mientras silencia `console.warn` y `console.error`. Disenada para rutas de fallo esperado donde el codigo de produccion registra advertencias/errores pero la prueba no debe contaminar el output con esas trazas.
+
+**Parametros:**
+
+- `fn` (() => Promise<unknown>): Funcion async a ejecutar con warn y error silenciados
+
+**Retorna:** (Promise<unknown>) El valor de retorno de la funcion proporcionada
+
+**Comportamiento:**
+
+- Crea spies de Jest sobre `console.warn` y `console.error`
+- Hace mock de ambos spies para prevenir salida
+- Ejecuta la funcion proporcionada
+- Restaura ambos spies aun si la funcion lanza error (usando `try/finally`)
+
+**Ejemplo:**
+
+```javascript
+import { mutedConsoleWarnError } from './tests/utils/muteConsole.js';
+
+// Suprimir warn/error en rutas de fallo esperado
+test('debe manejar un error conocido sin contaminar output', async () => {
+    const result = await mutedConsoleWarnError(async () => {
+        // Codigo que registra console.error en paths de error esperado
+        return await operacionQueRegistraError();
+    });
+
+    expect(result).toBeDefined();
 });
 ```
 

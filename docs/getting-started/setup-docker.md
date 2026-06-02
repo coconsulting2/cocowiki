@@ -162,4 +162,4 @@ Configura secretos reales en un `.env` junto al compose (`AES_SECRET_KEY`, `JWT_
 
 - [Setup Backend (sin Docker)](setup-backend.md) — flujo histórico con pnpm/MariaDB en host; el equipo prioriza Docker para alinear dependencias.
 - [Setup Frontend (sin Docker)](setup-frontend.md)
-- [Estilo de código y documentación](estiloCodigo-documentacion.md)
+- [Estilo de código y documentación](../desarrollo/estiloCodigo-documentacion.md)

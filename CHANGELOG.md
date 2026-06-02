@@ -4,6 +4,22 @@ Cambios en la documentación publicada en **GitHub Pages** (carpeta `docs/`). La
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.1.0] - 2026-06-01
+
+### Cambiado
+
+- **Reorganización de `docs/` en carpetas temáticas** para mejorar la navegación. Los documentos antes sueltos en la raíz se agruparon en `getting-started/` (setup), `guias-usuario/` (manuales + flujos por rol), `desarrollo/` (estilo, CFDI/SAT, changelog de errores), `qa/` (renombrada desde `tests/`: TESTING, caja negra, casos M2-006, log de defectos, utilidades) y `proyecto/` (nosotros, análisis de esfuerzos). `permisos.md` y `multi-tenancy.md` se movieron a `arquitectura-datos/`.
+- `_sidebar.md` reescrito con 7 grupos alineados a las carpetas.
+- Cross-links internos y rutas relativas al monorepo ajustados a las nuevas ubicaciones.
+
+### Añadido
+
+- Incluidos en la barra lateral tres documentos que existían pero no estaban enlazados: `desarrollo/documentacionAPI-SAT.md`, `qa/m2-006-casos-de-prueba.md` y `qa/log-de-defectos.md`.
+
+### Corregido
+
+- Etiqueta del sidebar: "Manual Técnico" → "Manual Admin Ditta" (apuntaba a `MANUAL_ADMIN.md`, el manual del superadmin Ditta).
+
 ## [1.0.2] - 2026-04-21
 
 ### Añadido

@@ -4,7 +4,7 @@
 |---|---|
 | **Versión** | 1.0.0 |
 | **Última actualización** | 2026-04-22 |
-| **Fuente** | [permissionMiddleware.js](../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [prisma/seed.js](../../TC3005B.501-Backend/prisma/seed.js), [modelo-er.md](arquitectura-datos/modelo-er.md#sistema-de-permisos-granulares-rbac--directo-a-usuario) |
+| **Fuente** | [permissionMiddleware.js](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [prisma/seed.js](../../../TC3005B.501-Backend/prisma/seed.js), [modelo-er.md](modelo-er.md#sistema-de-permisos-granulares-rbac--directo-a-usuario) |
 
 ## TL;DR para agregar un permiso nuevo
 
@@ -48,7 +48,7 @@ Protege rutas:   ...requirePermission("travel_request:authorize")
 
 ### Modelos Prisma involucrados
 
-Ver [`arquitectura-datos/modelo-er.md`](arquitectura-datos/modelo-er.md#sistema-de-permisos-granulares-rbac--directo-a-usuario) para el diagrama Mermaid completo.
+Ver [`modelo-er.md`](modelo-er.md#sistema-de-permisos-granulares-rbac--directo-a-usuario) para el diagrama Mermaid completo.
 
 | Tabla | Propósito |
 |---|---|
@@ -70,7 +70,7 @@ Ver [`arquitectura-datos/modelo-er.md`](arquitectura-datos/modelo-er.md#sistema-
 
 ## Catálogo actual (referencia)
 
-Definido en [`prisma/seed.js`](../../TC3005B.501-Backend/prisma/seed.js) bajo `PERMISSION_CATALOG` y `PERMISSION_GROUPS`.
+Definido en [`prisma/seed.js`](../../../TC3005B.501-Backend/prisma/seed.js) bajo `PERMISSION_CATALOG` y `PERMISSION_GROUPS`.
 
 ### Permisos
 
@@ -191,7 +191,7 @@ En `TC3005B.501-Frontend/cypress/e2e/permissions.cy.ts`, agrega un caso al bloqu
 
 ## Endpoints admin para gestionar permisos en caliente
 
-Todos bajo `/api/admin/*`, todos requieren permisos meta (`permission:read`, `permission:write`, `permission_group:manage`, `role:manage_permissions`, `user:manage_permissions`). Ver [`routes/permissionRoutes.js`](../../TC3005B.501-Backend/routes/permissionRoutes.js).
+Todos bajo `/api/admin/*`, todos requieren permisos meta (`permission:read`, `permission:write`, `permission_group:manage`, `role:manage_permissions`, `user:manage_permissions`). Ver [`routes/permissionRoutes.js`](../../../TC3005B.501-Backend/routes/permissionRoutes.js).
 
 ### Catálogo
 | Método | Ruta | Permiso |
@@ -337,8 +337,8 @@ El `requireAuth(roles)` legacy en `authMiddleware.js` **se conserva** y sigue fu
 
 ## Testing
 
-- **Unit (Jest)**: [`tests/middleware/permissionMiddleware.test.js`](../../TC3005B.501-Backend/tests/middleware/permissionMiddleware.test.js) — verifica AND/OR, idempotencia de `loadPermissions`, composición con `authenticateToken`, manejo de `req.user` ausente.
-- **E2E (Cypress)**: [`cypress/e2e/permissions.cy.ts`](../../TC3005B.501-Frontend/cypress/e2e/permissions.cy.ts) — corre contra el stack docker, verifica: resolución por rol para los 6 roles seeded, 401 sin token, 403 sin permiso, CRUD de catálogo, grant/revoke directo a usuario, CRUD de grupos con asignación. Usa `cy.apiLogin(...)` y `cy.apiAs(session, {...})` (en [`cypress/support/commands.ts`](../../TC3005B.501-Frontend/cypress/support/commands.ts)) que manejan JWT + CSRF automáticamente.
+- **Unit (Jest)**: [`tests/middleware/permissionMiddleware.test.js`](../../../TC3005B.501-Backend/tests/middleware/permissionMiddleware.test.js) — verifica AND/OR, idempotencia de `loadPermissions`, composición con `authenticateToken`, manejo de `req.user` ausente.
+- **E2E (Cypress)**: [`cypress/e2e/permissions.cy.ts`](../../../TC3005B.501-Frontend/cypress/e2e/permissions.cy.ts) — corre contra el stack docker, verifica: resolución por rol para los 6 roles seeded, 401 sin token, 403 sin permiso, CRUD de catálogo, grant/revoke directo a usuario, CRUD de grupos con asignación. Usa `cy.apiLogin(...)` y `cy.apiAs(session, {...})` (en [`cypress/support/commands.ts`](../../../TC3005B.501-Frontend/cypress/support/commands.ts)) que manejan JWT + CSRF automáticamente.
 
 Ejecutar E2E:
 

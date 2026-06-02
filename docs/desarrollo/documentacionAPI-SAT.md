@@ -1,7 +1,7 @@
 # SAT — Validación de CFDI para CocoAPI
 
 **Este archivo es la referencia canónica** para Consulta de Estado de CFDI (M1-002, M1-003, M1-009, M1-011, NT-009).  
-El backend del curso TC3005B mantiene un resumen enlazado en [`TC3005B.501-Backend/middleware/validate.md`](../../TC3005B.501-Backend/middleware/validate.md) (misma cadena `expresionImpresa` y mismos headers).
+El backend del curso TC3005B mantiene un resumen enlazado en [`TC3005B.501-Backend/middleware/validate.md`](../../../TC3005B.501-Backend/middleware/validate.md) (misma cadena `expresionImpresa` y mismos headers).
 
 ---
 

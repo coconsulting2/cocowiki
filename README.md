@@ -2,13 +2,26 @@
 
 Documentación del proyecto (**Docsify**), servida con **GitHub Pages** desde la carpeta `docs/`.
 
+## Organización de `docs/`
+
+La documentación está agrupada en carpetas temáticas (la navegación completa vive en `docs/_sidebar.md`):
+
+| Carpeta | Contenido |
+|---------|-----------|
+| `getting-started/` | Setup de backend, frontend y Docker |
+| `arquitectura-datos/` | Modelo ER, flujos de datos, sistema de permisos, multi-tenant |
+| `guias-usuario/` | Manual de usuario, manual Admin Ditta, flujos de pantallas por rol |
+| `desarrollo/` | Estilo de código, validación CFDI/SAT, changelog de errores resueltos |
+| `qa/` | Documentación de tests, pruebas de caja negra, casos de prueba, log de defectos, utilidades |
+| `proyecto/` | Nosotros, análisis de esfuerzos |
+
 ## Contenido destacado
 
 | Sección | Ruta |
 |---------|------|
 | Arquitectura de datos — modelo ER | [docs/arquitectura-datos/modelo-er.md](docs/arquitectura-datos/modelo-er.md) |
 | Arquitectura de datos — flujos y pantallas | [docs/arquitectura-datos/flujos.md](docs/arquitectura-datos/flujos.md) |
-| Arquitectura de datos — flujos por rol (diagramas) | [docs/flujos-pantallas-por-rol.md](docs/flujos-pantallas-por-rol.md) |
+| Flujos por rol (diagramas) | [docs/guias-usuario/flujos-pantallas-por-rol.md](docs/guias-usuario/flujos-pantallas-por-rol.md) |
 | Resto de guías | [docs/](docs/) (sidebar en `_sidebar.md`) |
 
 ## Versión de la wiki

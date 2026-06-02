@@ -6,7 +6,7 @@ Documentación técnica del ecosistema coconsulting / TC3005B.
 
 - **[Modelo ER — PostgreSQL / Prisma](arquitectura-datos/modelo-er.md)** — tablas, relaciones, CFDI, GridFS.
 - **[Flujos — pantallas, roles, API](arquitectura-datos/flujos.md)** — capas Astro → API → Postgres + Mongo, estados de solicitud.
-- **[Flujos de pantallas por rol](flujos-pantallas-por-rol.md)** — diagramas por los 7 roles y patrones compartidos (M1–M3); mismo nivel que `images/` en `docs/`.
+- **[Flujos de pantallas por rol](guias-usuario/flujos-pantallas-por-rol.md)** — diagramas por los 7 roles y patrones compartidos (M1–M3).
 
 ## Otras guías
 

@@ -146,7 +146,7 @@ Evidencia: [`evidencias/cypress/TI-001-2026-05-27-summary.md`](evidencias/cypres
 
 | Bloque | Resultado | Fuente |
 |---|---|---|
-| M1 (Fiscal) — casos manuales/funcionales | **210/210** | Plan de Pruebas v2.0, Anexo M1 |
+| M1 (Fiscal) — casos manuales/funcionales | **210/210** | Plan de Pruebas v3.0, Anexo M1 |
 | M2-006 (motor de reglas de reembolso) | Casos `M2-006-01..16` diseñados (RF-37..46) | [`m2-006-casos-de-prueba.md`](m2-006-casos-de-prueba.md) |
 | M2 — escenarios manuales de ejecución | **0/4 bloqueados** por seed wipe del e2e | [BUG-M2-004](log-de-defectos.md) |
 | DT-007 — Almacenamiento S3 | `TC-S3-001..005` diseñados | Entregable `Casos_de_prueba/` (pendiente de migrar a wiki) |
@@ -205,5 +205,5 @@ es la fuente de su columna *Estado*.
 - [`cfdi.e2e.test.md`](cfdi.e2e.test.md) y [`ber-bmx.e2e.test.md`](ber-bmx.e2e.test.md) — matrices E2E de integraciones.
 - [`log-de-defectos.md`](log-de-defectos.md) — registro unificado de defectos.
 - [`m2-006-casos-de-prueba.md`](m2-006-casos-de-prueba.md) — casos manuales M2-006 (RF-37..46).
-- `plan-de-pruebas/Plan de Pruebas de Software v2.0.docx` — Plan de Pruebas (Anexo M1, §11 Entregables).
+- `plan-de-pruebas/Plan de Pruebas de Software v3.0.docx` — Plan de Pruebas (Anexo M1 + Anexo M2 + Anexo Tendencias; §1–§14, §11 Entregables).
 - Suites E2E de backend: `TC3005B.501-Backend/tests/routes/apiKeys.e2e.test.js`, `export.e2e.test.js`.

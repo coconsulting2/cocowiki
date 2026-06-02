@@ -5,16 +5,20 @@
 CocoAPI cuenta con una base de pruebas automatizadas distribuida en dos repositorios:
 
 - **Backend (`TC3005B.501-Backend`)**: 51 archivos de test (Jest + Supertest), con foco fuerte en servicios de negocio, middleware de seguridad, migraciones y flujos E2E críticos (CFDI/SAT, BER, exportación contable, reglas de reembolso).
-- **Frontend (`TC3005B.501-Frontend`)**: 39 archivos de test (24 Vitest/RTL + 16 Cypress E2E), con foco en componentes UI, validaciones funcionales y recorridos de usuario por rol.
+- **Frontend (`TC3005B.501-Frontend`)**: 40 archivos de test (25 Vitest/RTL + 16 Cypress E2E), con foco en componentes UI, validaciones funcionales y recorridos de usuario por rol.
 
-### Cobertura total aproximada (estimación operativa)
+### Cobertura total medida (2026-06-02)
 
-> No existe en el repositorio un reporte consolidado versionado (`coverage-summary.json`) para dar un porcentaje exacto global. La siguiente estimación es por inventario y alcance de pruebas observadas.
+> Medición real ejecutada el 2026-06-02 con las herramientas de cobertura de cada repo: `jest --coverage` en backend sobre la suite unitaria (excluyendo `*.e2e.test.*`) y `vitest run --coverage` en frontend. Reemplaza las estimaciones por inventario anteriores.
 
-| Capa | Cobertura aproximada | Lectura ejecutiva |
-|---|---:|---|
-| Backend | 65-80% de lógica crítica | Alta cobertura de reglas de negocio y servicios sensibles (autorización, CFDI/SAT, contabilidad, políticas). |
-| Frontend | 50-70% de UI crítica | Cobertura media-alta de componentes clave y flujos E2E de solicitud/autorización. Hay brechas en hooks y utilidades fuera de `tests/frontend/**`. |
+| Capa | Stmts | Branch | Funcs | Lines | Tests | Meta (Plan) |
+|---|---:|---:|---:|---:|---|---:|
+| Backend | **93.1%** | 87.8% | 94.11% | **93.1%** | 431 (430 ✅, 1 skip, 0 ✗\*) · 47 suites | 80% |
+| Frontend | **87.75%** | 82.73% | 88.69% | **90.28%** | 262 ✅ · 24 archivos | 70% |
+
+\* **Backend:** corrida **verde con el stack Docker levantado** (`docker compose up postgres mongo localstack` + `prisma db push` + seed) — verificada 2026-06-02: **430/431 pasan** (1 skip), **0 fallos**, cobertura 93.1% (**supera** la meta de 80%). Sin el stack, 2 suites de integración (`requestCommentController.test.js`, `cfdiComprobantes.test.js`, ~15 casos) no conectan a Postgres (`PrismaClientInitializationError`); **no son regresiones**, es dependencia del entorno de pruebas.
+
+**Frontend:** tras ampliar las pruebas de los 3 componentes que más pesaban (2026-06-02), la cobertura subió de ~51% a **87.75% stmts / 90.28% lines** — ahora **supera** la meta de 70% y el run pasa el umbral (`exit 0`). Saltos clave: `views/admin/OnboardingImportAdmin.tsx` 14%→**~87%** (archivo de ~2,238 líneas; +33 tests nuevos), `FileDropZone.tsx` 38%→**93%** (+31), `XmlExpenseForm.tsx` 45%→**92%** (+18). Total: **262 tests** en 24 archivos. La cobertura se mide sobre la lista blanca de 16 componentes (`coverage.include` en `vitest.config.ts`); páginas Astro, stores y utils fuera de esa lista no se contabilizan. Nota: `expenseSettlement.test.ts` queda fuera del `include` de ejecución.
 
 ### Frameworks de testing por repositorio
 

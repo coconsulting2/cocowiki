@@ -15,7 +15,7 @@
 | Indicador | Resultado | Meta | Veredicto |
 |---|---|---|---|
 | Cobertura backend (stmts/lines) | **93.1%** | 80% | ✅ Supera |
-| Cobertura frontend (stmts) | **50.67%** (2026-06-02) | 70% | 🟡 En mejora activa |
+| Cobertura frontend (stmts/lines) | **87.75%** / **90.28%** (2026-06-02) | 70% | ✅ Supera |
 | Suite backend (Jest) | **430/431** (1 skip, 0 fallos) con stack arriba | — | ✅ |
 | Newman M2-Authorization | **42/46** assertions (91.3%) | — | 🟡 4 rojas (analizadas) |
 | Newman M3-Integration | **29/29** assertions (100%) | — | ✅ |
@@ -24,8 +24,9 @@
 | Defectos abiertos (log formal) | **6** (2 Alta, 4 Media) + 1 cerrado | — | 🟡 |
 
 > La cobertura y el conteo de tests provienen de la medición real del 2026-06-02 documentada en
-> [`testing.md` §1](testing.md). El frontend está por debajo de meta y en proceso activo de
-> incrementarse (componentes de mayor peso sin cubrir); ver `testing.md` para el valor vigente.
+> [`testing.md` §1](testing.md). El frontend **superó la meta de 70%** tras ampliar las pruebas de
+> `OnboardingImportAdmin` (14%→~87%), `FileDropZone` (38%→93%) y `XmlExpenseForm` (45%→92%);
+> ver `testing.md` para el valor vigente.
 
 ---
 
@@ -136,7 +137,7 @@ Evidencia: [`evidencias/cypress/TI-001-2026-05-27-summary.md`](evidencias/cypres
 
 ### 5.2 Suite Cypress + Vitest
 
-180 tests Vitest ✅ y 16 specs Cypress catalogados en [`testing.md` §4](testing.md). El frontend CI
+262 tests Vitest ✅ (24 archivos) y 16 specs Cypress catalogados en [`testing.md` §4](testing.md). El frontend CI
 **hoy no ejecuta Vitest/Cypress** (solo typecheck/build/audit) — ver §7.
 
 ---

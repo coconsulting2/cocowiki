@@ -302,11 +302,11 @@ Asegúrate de que tanto **PostgreSQL** como **MongoDB** estén corriendo, luego 
 bun run dev    # node --watch index.js, HTTPS en :3000
 ```
 
-Verás el banner ASCII y un mensaje como ` Server running on port 3000 with HTTPS`.
+Verás el banner ASCII y un mensaje como `Server running on port 3000 with HTTPS`.
 
 ---
 
-##  Troubleshooting
+## Troubleshooting
 
 | Problema | Posible solución |
 |---|---|

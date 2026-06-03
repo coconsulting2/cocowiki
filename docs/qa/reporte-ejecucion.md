@@ -21,7 +21,7 @@
 | Newman M3-Integration | **29/29** assertions (100%) | — | ✅ |
 | Cypress TI-001 (cross-module) | **3/5** specs | — | 🟡 2 bloqueados por bug de producto |
 | Casos manuales M1 | **210/210** | — | ✅ |
-| Defectos abiertos (log formal) | **6** (2 Alta, 3 Media, 1 Baja) + 1 cerrado | — | 🟡 |
+| Defectos abiertos (log formal) | **6** (1 Alta, 4 Media, 1 Baja) + 1 cerrado | — | 🟡 |
 
 > La cobertura y el conteo de tests provienen de la medición real del 2026-06-02 documentada en
 > [`testing.md` §1](testing.md). El frontend **superó la meta de 70%** tras ampliar las pruebas de
@@ -62,7 +62,7 @@ regresiones**. Detalle e inventario por carpeta en [`testing.md`](testing.md).
 
 | Assertion roja | Causa raíz | Defecto |
 |---|---|---|
-| `Approve N1` | El servicio no resuelve a `santino.im` como N1 designado para una solicitud de `angel.montemayor` (N2 sí aprueba bien). Bug real de routing. | [BUG-M2-003](log-de-defectos.md) (Alta) |
+| `Approve N1` | **No es bug de backend:** el resolver resuelve santino como N1; el workflow salta N1 para ≤ $50k, y el happy-path Postman usaba $1500 (sin etapa N1) → 400. Drift de fixture, corregido (PR #99, Newman 46/46). | [BUG-M2-003](log-de-defectos.md) (Media) |
 | `Assign permission to role` | Variable `role_id_solicitante` vacía en pre-request → URL `…/roles//permissions` (404). Drift de colección, no del backend. | [BUG-M2-001](log-de-defectos.md) (Media) |
 | `Revoke permission from role` | Misma causa que la anterior, verbo DELETE. | [BUG-M2-002](log-de-defectos.md) (Media) |
 
@@ -167,8 +167,8 @@ Fuente única de verdad: [`log-de-defectos.md`](log-de-defectos.md) (corte M1 + 
 | Severidad | Abiertos | Cerrados | IDs |
 |---|---:|---:|---|
 | Crítica | 0 | 0 | — |
-| Alta | 2 | 0 | BUG-M2-003 (routing N1), BUG-M2-004 (TRUNCATE e2e) |
-| Media | 3 | 1 | BUG-M2-001/002 (vars Postman), BUG-M1-002 (cred drift) · *cerrado:* BUG-M1-001 |
+| Alta | 1 | 0 | BUG-M2-004 (TRUNCATE e2e) |
+| Media | 4 | 1 | BUG-M2-001/002/003 (drift de fixtures Postman; M2-003 fix en PR #99), BUG-M1-002 (cred drift) · *cerrado:* BUG-M1-001 |
 | Baja | 1 | 0 | BUG-M1-003 (SAT real diferido) |
 
 ### 7.2 Defectos detectados pendientes de migrar al log / escalar a producto

@@ -4,7 +4,7 @@
 >
 > **Última actualización:** 2026-06-02 · **Responsable:** Erick Morales (QA)
 >
-> **Pendientes de ratificación trivial (no bloquean la matriz):** (a) el Plan §2.2 se titula "US-01 a US-17" pero enumera 25 US — se toman 25 (nota 3); (b) confirmar si el backlog tiene criterios de aceptación más finos que el Plan §2.2. *(NT-003 localizado y transcrito — ver §Cambios al sistema legado.)*
+> **Ratificado (2026-06-02):** son **25 US** — el "US-01 a US-17" del §2.2 era typo de encabezado, corregido en `Plan de Pruebas v3.0.docx` (cuerpo; el índice se regenera con F9 en Word). **Pendiente trivial:** confirmar si el backlog tiene criterios de aceptación más finos que el Plan §2.2. *(NT-003 localizado y transcrito — ver §Cambios al sistema legado.)*
 
 Este documento enlaza cada historia de usuario (US-01..US-25) y cada cambio al sistema legado con las pruebas automatizadas y manuales que los cubren. La fuente de los requisitos es el `Plan de Pruebas de Software v3.0` (§1 Objetivos, §2 Alcance). La fuente de las pruebas es el inventario de [`testing.md`](testing.md) y el estado de ejecución consolidado de [`reporte-ejecucion.md`](reporte-ejecucion.md).
 
@@ -90,7 +90,7 @@ Los 10 cambios provienen del Plan §2.1. Su ejecución vive en [`documentacion-p
 
 1. **Esquema de IDs:** `US-01..US-25` es el universo canónico (Plan §1, §2.2, §2.3). **No existe catálogo `RF-NN` formal ni SRS** en el repositorio (verificado). Los tags `M<n>-<NNN>` y `RF-<NN>` son sub-IDs de módulo/card; el crosswalk de M2-006 (`RF-37/38/39 → US-06`, `RF-42..46 → US-12`, `RF-35 → US-23`) está en [`m2-006-casos-de-prueba.md`](m2-006-casos-de-prueba.md).
 2. **Alcance por módulo:** la columna "Módulo" sigue el Plan §2.3. **US-09 no aparece en §2.3** (sí en §2.2; §2.4 la declara "interfaz, no reservación real"); se deja sin módulo asignado.
-3. **Conteo de US:** el Plan tiene una inconsistencia de encabezado — §2.2 dice "US-01 a US-17" pero la tabla, los objetivos y §2.3 enumeran US-01..US-25. Se toman las **25** historias como universo de requisitos.
+3. **Conteo de US (ratificado 2026-06-02):** el §2.2 del Plan decía "US-01 a US-17" (typo de encabezado) mientras la tabla, los objetivos (§1) y §2.3 enumeran US-01..US-25. **El equipo ratificó 25 US** como universo de requisitos y se corrigió el encabezado del `Plan v3.0.docx` a "US-01 a US-25" (el índice se regenera con F9 en Word).
 4. **Estado de ejecución:** la columna *Estado* resume [`reporte-ejecucion.md`](reporte-ejecucion.md) (corte 2026-06-02), que a su vez cita evidencia versionada (Newman, Cypress, planes E2E, log de defectos, Anexo M1). No se inventan resultados pass/fail.
 5. **Cobertura medida (2026-06-02):** backend **93.1%** (supera meta 80%); frontend **~88%** statements / **~90%** lines tras ampliar pruebas de `OnboardingImportAdmin`, `FileDropZone` y `XmlExpenseForm` (supera meta 70%). Detalle vivo en [`testing.md`](testing.md).
 6. **Cambios al sistema legado:** el pass/fail detallado de `TC-01..TC-09` se consolida en NT-003 ([`documentacion-pruebas-caja-negra.md`](documentacion-pruebas-caja-negra.md)); las celdas reflejan además la cobertura colateral de la suite automatizada vigente.

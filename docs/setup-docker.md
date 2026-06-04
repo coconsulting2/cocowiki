@@ -97,6 +97,8 @@ Variantes útiles:
 | `bun run docker:dev:build` | `up --build` (reconstruye imágenes). |
 | `bun run docker:dev:down` | Apaga contenedores y red. |
 | `bun run docker:dev:clean` | `down -v` — **borra volúmenes** (Postgres, Mongo, certs, `node_modules` del contenedor, sentinel de seed). Usar para reset completo. |
+| `bun run docker:data:reset` | Recrea la BD con datos de prueba sin borrar volúmenes (wipe Postgres + re-seed, mantiene contenedores arriba). |
+| `bun run docker:permissions:sync` | Ejecuta el seed de referencia (permisos idempotentes). Útil tras hacer pull de un PR que agrega permisos. |
 
 **Primera ejecución:** el servicio `migrate` instala dependencias, genera Prisma, hace `db push` y ejecuta **seed** una sola vez (marcador en volumen). Si necesitas volver a sembrar desde cero, usa `docker:dev:clean` y vuelve a subir el stack.
 
@@ -160,6 +162,6 @@ Configura secretos reales en un `.env` junto al compose (`AES_SECRET_KEY`, `JWT_
 
 ## 7. Enlaces relacionados en esta wiki
 
-- [Setup Backend (sin Docker)](setup-backend.md) — flujo histórico con pnpm/MariaDB en host; el equipo prioriza Docker para alinear dependencias.
+- [Setup Backend (sin Docker)](setup-backend.md) — flujo histórico con Bun/PostgreSQL en host; el equipo prioriza Docker para alinear dependencias.
 - [Setup Frontend (sin Docker)](setup-frontend.md)
 - [Estilo de código y documentación](estiloCodigo-documentacion.md)

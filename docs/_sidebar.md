@@ -19,6 +19,8 @@
   * [Changelog de errores resueltos](desarrollo/changelog-errores-resueltos.md "Seguimiento de incidencias corregidas")
 * **QA y pruebas**
   * [Documentación integral de tests](qa/testing.md "Documentacion Pruebas del sistema")
+  * [Matriz de trazabilidad](qa/matriz-trazabilidad.md "Requisitos US-01..25 + cambios legado ↔ casos ↔ estado ↔ evidencia")
+  * [Reporte de ejecución](qa/reporte-ejecucion.md "Estado consolidado de ejecución M1/M2/M3 — corte 2026-06-02")
   * [Pruebas de caja negra](qa/documentacion-pruebas-caja-negra.md "NT-003 — pruebas del sistema legado")
   * [CFDI [E2E]](qa/cfdi.e2e.test.md "Pruebas de integracion CFDI")
   * [BER [E2E]](qa/ber-bmx.e2e.test.md "Pruebas de integracion BER")

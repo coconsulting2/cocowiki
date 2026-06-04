@@ -1,2 +1,6 @@
 bun.lock
 node_modules
+
+# Office/Word temporales y de bloqueo (no deben commitearse)
+~$*
+*.tmp

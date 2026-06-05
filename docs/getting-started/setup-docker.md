@@ -15,7 +15,7 @@ Guía para levantar **TC3005B.501-Backend** y **TC3005B.501-Frontend** con Docke
 | **Bun** (opcional pero recomendado) | Los `package.json` exponen atajos como `bun run docker:dev`. Sin Bun, puedes usar los mismos comandos sustituyendo por `docker compose ...` como se indica abajo. | [bun.sh](https://bun.sh/docs/installation) |
 
 > [!IMPORTANT]
-> No hace falta instalar **Node**, **pnpm**, **Postgres** ni **Mongo** en el host para desarrollar con Docker: van dentro de los contenedores. El backend usa **Bun** dentro de la imagen para `install` / `prisma`; el runtime del API en dev es **Node 22** (imagen base del Dockerfile del backend).
+> No hace falta instalar **Node**, **Bun**, **Postgres** ni **Mongo** en el host para desarrollar con Docker: van dentro de los contenedores. El backend usa **Bun** dentro de la imagen para `install` / `prisma`; el runtime del API en dev es **Node 22** (imagen base del Dockerfile del backend).
 
 Verifica:
 
@@ -57,10 +57,10 @@ Relacionado con PR: `chore/dockerize-and-bun-migration` (merge en historial del 
 | Archivo | Propósito |
 |---------|-----------|
 | `Dockerfile` | Targets **`deps`** (dev: Bun + Node 22 + Prisma generate) y **`production`** (imagen publicada en GHCR). |
-| `docker-compose.dev.yml` | **Desarrollo:** Postgres 16, Mongo 7, job **`migrate`** (bun install → prisma generate → db push → seed la primera vez), servicio **`backend`** con hot-reload (`node --watch`), certificados HTTPS en volumen `certs`, `node_modules` en volumen Linux. |
+| `docker-compose.dev.yml` | **Desarrollo:** Postgres 16, Mongo 7, **LocalStack S3 v3.5** (`:4566`), one-shot **`s3-init`** (crea el bucket `coco-consulting-local`), job **`migrate`** (bun install → prisma generate → db push → `node prisma/seed.js dev` → `node prisma/seed-usability.js`, idempotente en cada `up`), servicio **`backend`** con hot-reload (`node --watch`), certificados HTTPS en volumen `certs`, `node_modules` en volumen Linux. |
 | `docker-compose.yml` | **Release / demo:** levanta imagen `ghcr.io/coconsulting2/tc3005b-501-backend:latest`, Postgres y Mongo (sin montar el código fuente del host). |
 
-Puertos típicos en dev: **3000** (API HTTPS), **5432** (Postgres), **27017** (Mongo).
+Puertos típicos en dev: **3000** (API HTTPS), **5434** (Postgres — host:5434 → contenedor:5432), **27017** (Mongo), **4566** (LocalStack S3).
 
 ### Frontend
 
@@ -72,7 +72,7 @@ Puertos típicos en dev: **3000** (API HTTPS), **5432** (Postgres), **27017** (M
 Puerto: **4321**.
 
 > [!NOTE]
-> El compose del frontend **no** incluye el backend. El navegador llama a `https://localhost:3000`; las peticiones SSR desde *dentro* del contenedor usan `INTERNAL_API_BASE_URL` apuntando a `host.docker.internal` (ver `docker-compose.dev.yml` del frontend).
+> El compose del frontend **no** incluye el backend. El navegador llama a `https://localhost:3000`; las peticiones SSR desde *dentro* del contenedor usan `API_URL_SSR` apuntando a `host.docker.internal` (ver `docker-compose.dev.yml` del frontend).
 
 ---
 
@@ -96,11 +96,11 @@ Variantes útiles:
 |---------|--------|
 | `bun run docker:dev:build` | `up --build` (reconstruye imágenes). |
 | `bun run docker:dev:down` | Apaga contenedores y red. |
-| `bun run docker:dev:clean` | `down -v` — **borra volúmenes** (Postgres, Mongo, certs, `node_modules` del contenedor, sentinel de seed). Usar para reset completo. |
+| `bun run docker:dev:clean` | `down -v` — **borra volúmenes** (Postgres, Mongo, LocalStack, certs, `node_modules` del contenedor). Usar para reset completo. |
 | `bun run docker:data:reset` | Recrea la BD con datos de prueba sin borrar volúmenes (wipe Postgres + re-seed, mantiene contenedores arriba). |
 | `bun run docker:permissions:sync` | Ejecuta el seed de referencia (permisos idempotentes). Útil tras hacer pull de un PR que agrega permisos. |
 
-**Primera ejecución:** el servicio `migrate` instala dependencias, genera Prisma, hace `db push` y ejecuta **seed** una sola vez (marcador en volumen). Si necesitas volver a sembrar desde cero, usa `docker:dev:clean` y vuelve a subir el stack.
+**Seeding:** el servicio `migrate` corre `bun install → prisma generate → prisma db push → node prisma/seed.js dev → node prisma/seed-usability.js` en **cada** `up`. Tanto el seed de referencia como el de CocoUAT son idempotentes, por lo que no hay riesgo de duplicados. Si necesitas un reset total de datos, usa `docker:dev:clean` y vuelve a subir el stack.
 
 **Tests y Prisma dentro del contenedor** (con el stack ya en marcha):
 
@@ -120,18 +120,20 @@ bun run docker:dev
 docker compose -f docker-compose.dev.yml up
 ```
 
-Variantes: `docker:dev:build`, `docker:dev:down`, `docker:dev:clean` (misma convención que el backend).
+Variantes del ciclo de vida del frontend:
 
-Abre el sitio en **http://localhost:4321** (o la URL que muestre Astro). El backend debe estar accesible en **https://localhost:3000** en el host.
+| Comando | Efecto |
+|---------|--------|
+| `bun run docker:dev:build` | `up --build` (reconstruye imagen). |
+| `bun run docker:dev:down` | Apaga contenedores y red. |
+| `bun run docker:dev:clean` | `down -v` — borra volúmenes (`node_modules_dev`). |
+| `bun run docker:dev:logs` | Muestra y sigue los logs del contenedor `frontend`. |
+| `bun run docker:dev:restart` | Recrea el contenedor `frontend` sin detener el stack. |
 
-**Con el contenedor `frontend` ya en marcha** (`docker:dev` en primer plano o en segundo plano), puedes validar el proyecto sin instalar dependencias en el host:
+Abre el sitio en **https://localhost:4321**. El backend debe estar accesible en **https://localhost:3000** en el host.
 
-```sh
-bun run docker:build      # astro build dentro del contenedor
-bun run docker:typecheck  # astro check
-```
-
-(Requieren que el servicio `frontend` esté corriendo; si el contenedor no existe aún, levanta antes con `bun run docker:dev`.)
+> [!NOTE]
+> `bun run build` y `bun run typecheck` son comandos del **host** (ejecutan `astro build` y `astro check` localmente con las dependencias del host, no dentro del contenedor).
 
 ---
 
@@ -153,15 +155,15 @@ Configura secretos reales en un `.env` junto al compose (`AES_SECRET_KEY`, `JWT_
 | Problema | Posible causa / solución |
 |----------|---------------------------|
 | `docker compose` no encontrado | Instala Docker Desktop o el plugin `docker-compose-plugin`. En versiones antiguas existía el binario `docker-compose` separado; el proyecto asume **Compose V2** (`docker compose`). |
-| Frontend no llega al API | Asegúrate de que el backend dev esté **levantado** y escuchando en el puerto 3000 del host. Revisa `PUBLIC_API_BASE_URL` e `INTERNAL_API_BASE_URL` en el compose del frontend. |
+| Frontend no llega al API | Asegúrate de que el backend dev esté **levantado** y escuchando en el puerto 3000 del host. Revisa `PUBLIC_API_BASE_URL` (browser) y `API_URL_SSR` (SSR dentro del contenedor) en el compose del frontend. |
 | Seed duplicado o BD “rara” | `bun run docker:dev:clean` en el backend y vuelve a levantar. |
 | Certificados HTTPS en dev | El backend dev genera certs en el volumen `certs` al arrancar. Si falla en Windows, revisa que los scripts en imagen no tengan CRLF (rama `fix/back/docker-windows-crlf`). |
-| Puerto 5432 o 27017 ocupado | Otro Postgres/Mongo local choca con los puertos publicados. Para el servicio local o cambia los mapeos en el compose (solo con cuidado en equipo). |
+| Puerto 5434 o 27017 ocupado | Otro Postgres/Mongo local choca con los puertos publicados. Para Postgres, el host escucha en **5434** (mapeo 5434:5432); para Mongo en **27017**. Detén el servicio nativo (`brew services stop postgresql@16` / `brew services stop mongodb-community`) o cambia los mapeos en el compose. |
 
 ---
 
 ## 7. Enlaces relacionados en esta wiki
 
-- [Setup Backend (sin Docker)](setup-backend.md) — flujo histórico con Bun/PostgreSQL en host; el equipo prioriza Docker para alinear dependencias.
+- [Setup Backend (sin Docker)](setup-backend.md) — flujo nativo con Bun/Postgres en el host; el equipo prioriza Docker para alinear dependencias.
 - [Setup Frontend (sin Docker)](setup-frontend.md)
-- [Estilo de código y documentación](estiloCodigo-documentacion.md)
+- [Estilo de código y documentación](../desarrollo/estilo-codigo-documentacion.md)

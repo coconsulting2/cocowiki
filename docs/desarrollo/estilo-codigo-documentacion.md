@@ -8,7 +8,7 @@
 | Funciones JS/TS | camelCase | `getUserData()`, `handleSubmit()` | Convención estándar de JavaScript (ECMAScript). Toda la documentación oficial de Node.js, Express y React usa camelCase. Mantiene consistencia con el ecosistema. |
 | Variables | camelCase | `formData`, `userId` | Misma razón que funciones. Al usar el mismo estilo para variables y funciones, el código se lee de forma uniforme sin mezclar convenciones. |
 | Constantes globales | UPPER_SNAKE_CASE | `MAX_FILE_SIZE`, `JWT_SECRET` | Convención universal para valores que **nunca cambian**. Al verlas en mayúsculas, sabes inmediatamente que es una constante y no debes reasignarla. |
-| Campos de BD | snake_case | `user_id`, `beginning_date` | Estándar de SQL (MariaDB/MySQL/PostgreSQL). Los motores de BD son case-insensitive por defecto, y `snake_case` evita ambigüedades con columnas como `userId` vs `userid`. |
+| Campos de BD | snake_case | `user_id`, `beginning_date` | Estándar de SQL (PostgreSQL). Los motores de BD son case-insensitive por defecto, y `snake_case` evita ambigüedades con columnas como `userId` vs `userid`. |
 | Rutas API | kebab-case | `/travel-agent`, `/accounts-payable` | Estándar de URLs según RFC 3986. Los navegadores y proxies tratan las URLs como case-insensitive, así que `/TravelAgent` y `/travelagent` podrían ser lo mismo. `kebab-case` elimina esa ambigüedad y es más legible en URLs. |
 
 ### Lenguajes por Capa — `.js` (Backend) vs `.tsx/.ts` (Frontend)
@@ -222,8 +222,10 @@ Backend/                    Frontend/
 |---------|----------|
 | Node.js + Express | Astro 5 + React 19 |
 | PostgreSQL + MongoDB | Tailwind CSS 4 |
-| JWT + bcrypt | TypeScript |
-| Nodemailer | Cypress (testing) |
+| Prisma 6 (ORM) | TypeScript |
+| Bun (gestor de paquetes) | Cypress (testing) |
+| JWT + bcrypt | |
+| Nodemailer | |
 
 ---
 

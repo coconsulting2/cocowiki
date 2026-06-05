@@ -2,39 +2,82 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión del documento** | 1.1.0 |
-| **Última actualización** | 2026-04-21 |
+| **Versión del documento** | 1.2.0 |
+| **Última actualización** | 2026-06-02 |
 | **Fuente** | [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma) (monorepo, ruta relativa desde este repo) |
 
 ## Alcance
 
-Este diagrama describe las tablas creadas a partir del esquema **Prisma** en **PostgreSQL** (base `CocoScheme` en desarrollo). Los archivos PDF/XML de comprobantes **no** se guardan en PostgreSQL: los campos `pdf_file_id` y `xml_file_id` de `Receipt` almacenan identificadores **ObjectId** de **MongoDB GridFS** (ver [flujos.md](flujos.md)).
+Este documento describe las tablas creadas a partir del esquema **Prisma** en **PostgreSQL** (base `CocoScheme` en desarrollo). Los archivos PDF/XML de comprobantes **no** se guardan en PostgreSQL: los campos `pdf_file_id` y `xml_file_id` de `Receipt` almacenan identificadores **ObjectId** de **MongoDB GridFS** (ver [flujos.md](flujos.md)).
 
-## Diagrama ER (Mermaid)
+A partir del refactor multi-tenant (Q2 2026) el esquema es **multi-organización**: prácticamente toda entidad de negocio (usuarios, roles, solicitudes, catálogos, políticas, contabilidad, notificaciones) está acotada por una columna `organization_id` con FK hacia `organizaciones`. La organización **ROOT** es **Ditta** (`id = 1`); las organizaciones cliente (`kind = CLIENT`) se siembran bajo ella. Las únicas tablas que permanecen como **catálogos globales** (sin `organization_id`) son `Permission`, `Country`, `City` y `Request_status`.
+
+> Por su tamaño (43 modelos), el ER se presenta dividido en un **diagrama núcleo** (organización, RBAC, ciclo de vida de la solicitud y comprobantes/CFDI) y varios **sub-diagramas por dominio** (políticas/workflow, contabilidad, notificaciones, API/auth, auditoría/historial). Cada entidad referenciada en una relación está declarada en el diagrama correspondiente.
+
+## Diagrama ER — Núcleo (organización, RBAC, solicitud, comprobantes)
 
 ```mermaid
 erDiagram
+    Organization {
+        bigint id PK
+        varchar nombre
+        varchar razon_social
+        varchar rfc
+        text logo_url
+        varchar timezone
+        varchar base_currency
+        enum kind
+        enum status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     Role {
         int role_id PK
-        varchar role_name UK
+        bigint organization_id FK
+        varchar role_name "UK(organization_id, role_name)"
+        float max_approval_amount
+        bool is_system
     }
 
     Department {
         int department_id PK
-        varchar department_name UK
+        bigint organization_id FK
+        varchar department_name "UK(organization_id, department_name)"
         varchar costs_center
         bool active
+        bigint society_id FK
+    }
+
+    Empleado {
+        int empleado_id PK
+        bigint organization_id FK
+        varchar no_empleado "UK(organization_id, no_empleado)"
+        varchar nombre
+        varchar email
+        varchar jefe_inmediato
+        varchar proveedor
+        varchar ceco
+        varchar status
+        date fecha_alta
+        datetime fecha_ultima_modificacion
+        varchar usuario_ultima_modificacion
+        bigint society_id FK
+        int department_id FK
     }
 
     User {
         int user_id PK
+        bigint organization_id FK
         int role_id FK
         int department_id FK
-        varchar user_name UK
+        int manager_user_id FK
+        varchar no_empleado FK
+        varchar user_name "UK(organization_id, user_name)"
         varchar password
         varchar workstation
         varchar email UK
-        varchar phone_number
+        varchar phone_number "nullable"
         float wallet
         datetime creation_date
         datetime last_mod_date
@@ -48,26 +91,38 @@ erDiagram
 
     Request {
         int request_id PK
+        bigint organization_id FK
         int user_id FK
         int request_status_id FK
         text notes
         float requested_fee
         float imposed_fee
         float request_days
+        date trip_end_date
+        json workflow_pre_snapshot
+        json workflow_post_snapshot
+        json policy_evaluation_snapshot
+        json selected_flight_offer
+        json selected_hotel_offer
         datetime creation_date
         datetime last_mod_date
         bool active
+        bool is_exported
+        datetime exported_at
     }
 
     AlertMessage {
         int message_id PK
+        bigint organization_id FK
         varchar message_text
+        bool is_system
     }
 
     Alert {
         int alert_id PK
-        int request_id FK
-        int message_id FK
+        bigint organization_id FK
+        int request_id FK "nullable"
+        int message_id FK "nullable"
         datetime alert_date
     }
 
@@ -83,6 +138,7 @@ erDiagram
 
     Route {
         int route_id PK
+        bigint organization_id FK
         int id_origin_country FK
         int id_origin_city FK
         int id_destination_country FK
@@ -98,17 +154,23 @@ erDiagram
 
     Route_Request {
         int route_request_id PK
+        bigint organization_id FK
         int request_id FK
         int route_id FK
     }
 
     Receipt_Type {
         int receipt_type_id PK
-        varchar receipt_type_name UK
+        bigint organization_id FK
+        varchar receipt_type_name "UK(organization_id, receipt_type_name)"
+        bool is_system
+        varchar gasto_gl_account_code
+        varchar iva_gl_account_code
     }
 
     Receipt {
         int receipt_id PK
+        bigint organization_id FK
         int receipt_type_id FK
         int request_id FK
         enum validation
@@ -120,11 +182,19 @@ erDiagram
         varchar pdf_file_name
         varchar xml_file_id
         varchar xml_file_name
+        varchar cfdi_uuid UK
+        varchar cfdi_version
+        varchar cfdi_emisor_rfc
+        varchar cfdi_receptor_rfc
+        datetime cfdi_fecha
+        float cfdi_total
+        text cfdi_impuestos
     }
 
     cfdi_comprobantes {
         int cfdi_id PK
-        int receipt_id FK
+        int receipt_id FK,UK
+        bigint organization_id FK
         varchar uuid UK
         datetime fecha_timbrado
         varchar rfc_pac
@@ -142,6 +212,8 @@ erDiagram
         float subtotal
         float descuento
         float iva
+        json impuestos
+        float total_retenidos
         float total
         varchar rfc_emisor
         varchar nombre_emisor
@@ -159,6 +231,15 @@ erDiagram
         datetime created_at
     }
 
+    GastoTramo {
+        int gasto_tramo_id PK
+        bigint organization_id FK
+        int viaje_id FK
+        int tramo_id FK
+        int comprobante_id FK,UK
+        datetime created_at
+    }
+
     Permission {
         int permission_id PK
         varchar code UK
@@ -172,9 +253,11 @@ erDiagram
 
     PermissionGroup {
         int group_id PK
-        varchar group_name UK
+        bigint organization_id FK
+        varchar group_name "UK(organization_id, group_name)"
         varchar description
         bool active
+        bool is_system
         datetime creation_date
         datetime last_mod_date
     }
@@ -200,21 +283,42 @@ erDiagram
     User_Permission {
         int user_id PK
         int permission_id PK
+        bigint organization_id FK
         datetime creation_date
     }
 
     User_Permission_Group {
         int user_id PK
         int group_id PK
+        bigint organization_id FK
         datetime creation_date
     }
 
+    Organization ||--o{ Role : "scopes"
+    Organization ||--o{ Department : "scopes"
+    Organization ||--o{ Empleado : "scopes"
+    Organization ||--o{ User : "scopes"
+    Organization ||--o{ Request : "scopes"
+    Organization ||--o{ AlertMessage : "scopes"
+    Organization ||--o{ Alert : "scopes"
+    Organization ||--o{ Route : "scopes"
+    Organization ||--o{ Route_Request : "scopes"
+    Organization ||--o{ Receipt_Type : "scopes"
+    Organization ||--o{ Receipt : "scopes"
+    Organization ||--o{ cfdi_comprobantes : "scopes"
+    Organization ||--o{ GastoTramo : "scopes"
+    Organization ||--o{ PermissionGroup : "scopes"
+    Organization ||--o{ User_Permission : "scopes"
+    Organization ||--o{ User_Permission_Group : "scopes"
+
     Role ||--o{ User : "assigned"
     Department ||--o{ User : "belongs"
+    User ||--o{ User : "manager"
+    Empleado ||--o{ User : "rh_link"
     User ||--o{ Request : "creates"
     Request_status ||--o{ Request : "state"
-    Request ||--o{ Alert : "triggers"
-    AlertMessage ||--o{ Alert : "template"
+    Request |o--o{ Alert : "triggers"
+    AlertMessage |o--o{ Alert : "template"
     Request ||--o{ Route_Request : "includes"
     Route ||--o{ Route_Request : "segment"
     Country ||--o{ Route : "origin_country"
@@ -224,6 +328,9 @@ erDiagram
     Receipt_Type ||--o{ Receipt : "type"
     Request ||--o{ Receipt : "expense_proof"
     Receipt ||--o| cfdi_comprobantes : "zero_or_one_cfdi"
+    Request ||--o{ GastoTramo : "trip_leg"
+    Route ||--o{ GastoTramo : "leg_route"
+    Receipt ||--o| GastoTramo : "leg_receipt"
 
     Role ||--o{ Role_Permission : "grants"
     Permission ||--o{ Role_Permission : "granted_to_role"
@@ -237,26 +344,544 @@ erDiagram
     Permission ||--o{ Permission_Group_Item : "member_of"
 ```
 
-## Enum `ValidationStatus` (columna `Receipt.validation`)
+## Diagrama ER — Políticas y reglas de workflow
 
-Valores en base de datos (Prisma): `Pendiente`, `Aprobado`, `Rechazado`.
+Modelos del motor de reglas de reembolso/aprobación (M2-004 / M2-006) y la política de viáticos (TF-009). Las columnas físicas `org_id` se exponen en Prisma como `organizationId` vía `@map`.
+
+```mermaid
+erDiagram
+    Organization {
+        bigint id PK
+        varchar nombre
+        enum kind
+        enum status
+    }
+
+    Receipt_Type {
+        int receipt_type_id PK
+        bigint organization_id FK
+        varchar receipt_type_name
+    }
+
+    User {
+        int user_id PK
+        bigint organization_id FK
+        varchar user_name
+    }
+
+    Department {
+        int department_id PK
+        bigint organization_id FK
+        varchar department_name
+    }
+
+    Request {
+        int request_id PK
+        bigint organization_id FK
+    }
+
+    Receipt {
+        int receipt_id PK
+        bigint organization_id FK
+    }
+
+    employee_category {
+        int category_id PK
+        bigint org_id FK
+        varchar code "UK(org_id, code)"
+        varchar name
+        varchar description
+        bool active
+        datetime created_at
+    }
+
+    travel_policy {
+        int policy_id PK
+        bigint org_id FK
+        varchar name
+        int category_id FK
+        varchar destination_scope
+        varchar costs_center
+        decimal daily_per_diem
+        varchar currency
+        date valid_from
+        date valid_to
+        bool active
+        datetime created_at
+        datetime updated_at
+    }
+
+    policy_expense_cap {
+        int cap_id PK
+        int policy_id FK
+        int receipt_type_id FK
+        decimal cap_amount
+        varchar cap_unit
+        varchar currency
+    }
+
+    policy_exception {
+        int exception_id PK
+        bigint organization_id FK
+        int request_id FK
+        int receipt_id FK
+        int policy_id FK
+        int cap_id
+        decimal amount_claimed
+        decimal amount_allowed
+        decimal excess_amount
+        text justification
+        enum status
+        int requested_by_id FK
+        int decided_by_id FK
+        datetime decided_at
+        text decision_note
+        datetime created_at
+    }
+
+    reimbursement_time_limit {
+        int limit_id PK
+        bigint org_id FK,UK
+        int days_after_trip
+        int grace_days
+        bool block_on_expiry
+        bool active
+        datetime updated_at
+        int updated_by_id FK
+    }
+
+    workflow_rules {
+        bigint id PK
+        bigint org_id FK
+        varchar rule_type
+        varchar param_type
+        decimal threshold
+        varchar param_value
+        int approval_level
+        decimal skip_if_below
+        int priority
+        bool active
+        datetime created_at
+        int department_id FK
+        int manager_steps
+        varchar target_role
+    }
+
+    viaticos_policies {
+        int id PK
+        bigint org_id FK,UK
+        decimal max_hotel
+        decimal max_meal
+        varchar currency
+        bool active
+        datetime created_at
+        datetime updated_at
+    }
+
+    Organization ||--o{ employee_category : "scopes"
+    Organization ||--o{ travel_policy : "scopes"
+    Organization ||--o{ policy_exception : "scopes"
+    Organization ||--|| reimbursement_time_limit : "one_per_org"
+    Organization ||--o{ workflow_rules : "scopes"
+    Organization ||--|| viaticos_policies : "one_per_org"
+
+    employee_category ||--o{ travel_policy : "categorizes"
+    travel_policy ||--o{ policy_expense_cap : "caps"
+    Receipt_Type ||--o{ policy_expense_cap : "capped_type"
+    travel_policy |o--o{ policy_exception : "exception_of"
+    Request ||--o{ policy_exception : "raises"
+    Receipt |o--o{ policy_exception : "for_receipt"
+    User ||--o{ policy_exception : "requested_by"
+    User |o--o{ policy_exception : "decided_by"
+    User |o--o{ reimbursement_time_limit : "updated_by"
+    Department |o--o{ workflow_rules : "scoped_to_dept"
+```
+
+## Diagrama ER — Contabilidad
+
+Catálogos contables per-org (RF-74) y artefactos de generación/exportación de pólizas (AV/GV).
+
+```mermaid
+erDiagram
+    Organization {
+        bigint id PK
+        varchar nombre
+        enum kind
+    }
+
+    Request {
+        int request_id PK
+        bigint organization_id FK
+    }
+
+    Department {
+        int department_id PK
+        bigint organization_id FK
+        bigint society_id FK
+    }
+
+    Empleado {
+        int empleado_id PK
+        bigint organization_id FK
+        bigint society_id FK
+    }
+
+    chart_of_accounts {
+        bigint account_id PK
+        bigint organization_id FK
+        varchar account_code "UK(organization_id, account_code)"
+        varchar account_name
+        varchar account_type
+        bigint parent_account_id FK
+        bool active
+        bool is_system
+        timestamptz created_at
+    }
+
+    accounting_doc_types {
+        bigint doc_type_id PK
+        bigint organization_id FK
+        varchar code "UK(organization_id, code)"
+        varchar name
+        bool is_system
+    }
+
+    accounting_societies {
+        bigint society_id PK
+        bigint organization_id FK
+        varchar code "UK(organization_id, code)"
+        varchar name
+        bool is_system
+    }
+
+    accounting_poliza {
+        string id PK
+        bigint organization_id FK
+        int request_id FK
+        int poliza_index
+        varchar doc_type
+        json payload
+        bool request_marked_exported
+        datetime created_at
+    }
+
+    anticipo_poliza_snapshot {
+        int id PK
+        bigint organization_id FK
+        int request_id FK
+        varchar phase "UK(request_id, phase)"
+        json payload
+        timestamptz created_at
+    }
+
+    Organization ||--o{ chart_of_accounts : "scopes"
+    Organization ||--o{ accounting_doc_types : "scopes"
+    Organization ||--o{ accounting_societies : "scopes"
+    Organization ||--o{ accounting_poliza : "scopes"
+    Organization ||--o{ anticipo_poliza_snapshot : "scopes"
+
+    chart_of_accounts ||--o{ chart_of_accounts : "parent_of"
+    accounting_societies ||--o{ Department : "society_of_dept"
+    accounting_societies ||--o{ Empleado : "society_of_empleado"
+    Request ||--o{ accounting_poliza : "generates_poliza"
+    Request ||--o{ anticipo_poliza_snapshot : "anticipo_snapshot"
+```
+
+## Diagrama ER — Notificaciones e integraciones
+
+Notificaciones in-app, preferencias por usuario, suscripciones push (Web Push), plantillas de notificación y credenciales de integración (SMTP, Wise, SAT, Banxico, VAPID).
+
+```mermaid
+erDiagram
+    Organization {
+        bigint id PK
+        varchar nombre
+        enum kind
+    }
+
+    User {
+        int user_id PK
+        bigint organization_id FK
+        varchar user_name
+    }
+
+    notification {
+        int notification_id PK
+        int user_id FK
+        bigint organization_id FK
+        varchar message
+        bool is_read
+        datetime created_at
+    }
+
+    user_preference {
+        int user_id PK,FK
+        bigint organization_id FK
+        bool email_notif
+        bool app_notif
+        bool browser_notif
+    }
+
+    push_subscription {
+        int id PK
+        int user_id FK
+        bigint organization_id FK
+        text endpoint "UK(user_id, endpoint)"
+        text p256dh
+        text auth
+    }
+
+    notification_templates {
+        bigint template_id PK
+        bigint organization_id FK
+        varchar code "UK(organization_id, code, channel, locale)"
+        varchar channel
+        varchar subject
+        text body
+        varchar locale
+        bool is_system
+        bool active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    organization_integrations {
+        bigint integration_id PK
+        bigint organization_id FK
+        varchar provider "UK(organization_id, provider)"
+        text config
+        bool active
+        timestamptz created_at
+        timestamptz updated_at
+        int updated_by_id
+    }
+
+    Organization ||--o{ notification : "scopes"
+    Organization ||--o{ user_preference : "scopes"
+    Organization ||--o{ push_subscription : "scopes"
+    Organization ||--o{ notification_templates : "scopes"
+    Organization ||--o{ organization_integrations : "scopes"
+
+    User ||--o{ notification : "receives"
+    User ||--|| user_preference : "prefers"
+    User ||--o{ push_subscription : "subscribes"
+```
+
+## Diagrama ER — API keys, proveedores y sustitutos
+
+Claves API por organización con su auditoría de consumo (M3-004), proveedores per-org y sustitutos de aprobadores.
+
+```mermaid
+erDiagram
+    Organization {
+        bigint id PK
+        varchar nombre
+        enum kind
+    }
+
+    User {
+        int user_id PK
+        bigint organization_id FK
+        varchar user_name
+    }
+
+    api_keys {
+        int id PK
+        bigint org_id FK
+        varchar name
+        varchar key_hash UK
+        json scope
+        datetime expires_at
+        datetime revoked_at
+        int created_by FK
+        datetime created_at
+    }
+
+    api_key_logs {
+        bigint id PK
+        int key_id FK
+        text endpoint
+        int response_code
+        datetime timestamp
+    }
+
+    proveedores {
+        bigint proveedor_id PK
+        bigint org_id FK
+        varchar nombre "UK(org_id, nombre)"
+        varchar razon_social
+        varchar rfc
+        varchar email
+        bool active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    approval_substitutes {
+        bigint substitute_id PK
+        bigint organization_id FK
+        int primary_user_id FK
+        int backup_user_id FK
+        date effective_from
+        date effective_to
+        text reason
+        bool active
+        timestamptz created_at
+    }
+
+    Organization ||--o{ api_keys : "scopes"
+    Organization ||--o{ proveedores : "scopes"
+    Organization ||--o{ approval_substitutes : "scopes"
+
+    api_keys ||--o{ api_key_logs : "audited_by"
+    User ||--o{ api_keys : "creates"
+    User ||--o{ approval_substitutes : "primary"
+    User ||--o{ approval_substitutes : "backup"
+```
+
+## Diagrama ER — Auditoría e historial
+
+Bitácora de logs (Pino), historial de decisiones sobre solicitudes y comentarios de solicitud.
+
+```mermaid
+erDiagram
+    Organization {
+        bigint id PK
+        varchar nombre
+        enum kind
+    }
+
+    User {
+        int user_id PK
+        bigint organization_id FK
+        varchar user_name
+    }
+
+    Request {
+        int request_id PK
+        bigint organization_id FK
+    }
+
+    Log_Level {
+        int id PK
+        varchar level
+        varchar description
+    }
+
+    Log {
+        int id PK
+        varchar service
+        int level_id FK
+        varchar message
+        json context
+        datetime at
+    }
+
+    solicitud_historial {
+        int historial_id PK
+        int request_id FK
+        int user_id FK
+        bigint organization_id FK
+        enum accion
+        text comentario
+        datetime created_at
+    }
+
+    Request_Comment {
+        int id PK
+        text content
+        datetime at
+        int user_id FK
+        int request_id FK
+    }
+
+    Log_Level ||--o{ Log : "classifies"
+    Organization ||--o{ solicitud_historial : "scopes"
+    Request ||--o{ solicitud_historial : "history_of"
+    User ||--o{ solicitud_historial : "acted_by"
+    Request ||--o{ Request_Comment : "commented"
+    User ||--o{ Request_Comment : "authored"
+```
+
+## Enums
+
+| Enum | Mapeo SQL | Valores | Uso |
+|------|-----------|---------|-----|
+| `OrganizationKind` | `organization_kind` | `ROOT`, `CLIENT` | `Organization.kind`. Solo Ditta es `ROOT`. |
+| `OrganizationStatus` | `organization_status` | `CONFIGURING`, `ACTIVE`, `SUSPENDED` | `Organization.status`. Ciclo de alta/baja del tenant. |
+| `ValidationStatus` | — | `Pendiente`, `Aprobado`, `Rechazado` | `Receipt.validation`. Estado de validación del comprobante. |
+| `SolicitudHistorialAccion` | `solicitud_historial_accion` | `APROBADO`, `RECHAZADO`, `ESCALADO`, `REASIGNADO` | `solicitud_historial.accion`. Tipo de decisión registrada. |
+| `PolicyExceptionStatus` | `policy_exception_status` | `PENDING`, `APPROVED`, `REJECTED` | `policy_exception.status`. Resolución de la excepción de política. |
+
+## Catálogo `Request_status` (global)
+
+Tabla global (sin `organization_id`); los IDs están **hard-coded** en código como máquina de estados de la solicitud. Valores sembrados (`prisma/seed.js` → `seedGlobalRequestStatus`), en orden de inserción:
+
+| ID | `status` |
+|----|----------|
+| 1 | Borrador |
+| 2 | Primera Revisión |
+| 3 | Segunda Revisión |
+| 4 | Cotización del Viaje |
+| 5 | Atención Agencia de Viajes |
+| 6 | Comprobación gastos del viaje |
+| 7 | Validación de comprobantes |
+| 8 | Finalizado |
+| 9 | Cancelado |
+| 10 | Rechazado |
+
+## Multi-tenancy: `organization_id` y catálogos globales
+
+Casi todo modelo de negocio incluye `organization_id` (FK → `organizaciones`) y, en producción, queda protegido por **RLS** de PostgreSQL (ver [multi-tenancy](../multi-tenancy/README.md) si aplica y `prisma/tenantExtension.js`). Las claves únicas que antes eran globales pasaron a ser **por organización**:
+
+- `Role` → `@@unique([organization_id, role_name])` (NO global).
+- `User` → `@@unique([organization_id, user_name])`. El `email` sí permanece único global.
+- `Department` → `@@unique([organization_id, department_name])`.
+- `Receipt_Type` → `@@unique([organization_id, receipt_type_name])`.
+- `PermissionGroup` → `@@unique([organization_id, group_name])`.
+- `Empleado` → `@@unique([organization_id, no_empleado])`.
+
+**Catálogos globales (sin `organization_id`):** `Permission`, `Country`, `City` y `Request_status`. Se comparten entre todas las organizaciones.
+
+La bandera `is_system` (presente en `Role`, `Receipt_Type`, `AlertMessage`, `PermissionGroup`, `chart_of_accounts`, `accounting_doc_types`, `accounting_societies`, `notification_templates`) marca los registros sembrados por bootstrap que no deben editarse/borrarse desde la UI.
 
 ## Relación 1:0..1 `Receipt` ↔ `cfdi_comprobantes`
 
 - Cada fila en `cfdi_comprobantes` exige un `receipt_id` único (una factura CFDI por comprobante).
 - Un `Receipt` puede existir **sin** registro CFDI hasta que se registre vía API (ver `POST /api/comprobantes/:receipt_id`).
+- **Doble almacenamiento del CFDI:** los datos fiscales viven **dos veces**. En `Receipt` hay campos *inline* de acceso rápido (`cfdi_uuid` —único—, `cfdi_version`, `cfdi_emisor_rfc`, `cfdi_receptor_rfc`, `cfdi_fecha`, `cfdi_total`, `cfdi_impuestos`) para consultas/listados sin join; y en `cfdi_comprobantes` está el detalle completo del comprobante (emisor, receptor, desglose de impuestos, datos SAT, etc.).
+
+## Solicitud (`Request`): snapshots y campos de exportación
+
+Más allá de los importes (`requested_fee` / `imposed_fee`) y fechas, `Request` persiste varios JSON de auditoría/decisión y banderas de exportación contable:
+
+- `workflow_pre_snapshot` / `workflow_post_snapshot` — estado del workflow de aprobación antes/después de evaluar las reglas.
+- `policy_evaluation_snapshot` — resultado de la evaluación de políticas de viáticos/topes.
+- `selected_flight_offer` / `selected_hotel_offer` — oferta de vuelo/hospedaje elegida por la Agencia de viajes (Duffel / Duffel Stays o mock normalizado).
+- `trip_end_date` — fecha de fin de viaje (base para el límite de comprobación, `reimbursement_time_limit`).
+- `is_exported` / `exported_at` — marca y momento de exportación contable de la solicitud.
+
+La pista de decisiones se complementa con `solicitud_historial` (acciones APROBADO/RECHAZADO/ESCALADO/REASIGNADO por usuario) y los comentarios libres en `Request_Comment`. Las pólizas contables generadas se guardan en `accounting_poliza` y los anticipos en `anticipo_poliza_snapshot` (uno por `request_id` + `phase`).
+
+## Usuario (`User`): jerarquía y vínculo con RH
+
+- `manager_user_id` — auto-referencia (`User` ⟶ `User`, relación `UserManager`) que modela la cadena de mando; se usa en reglas de workflow tipo `manager_steps`.
+- `no_empleado` + `organization_id` — FK compuesta hacia `empleado` (catálogo sincronizado desde RH/SAP). Permite enlazar la cuenta de acceso con el registro de empleado.
+- `phone_number` es **nullable**; `email` es único a nivel global.
 
 ## Sistema de permisos granulares (RBAC + directo a usuario)
 
-A partir de v1.1.0 el modelo incluye un sistema de permisos tipo IAM compuesto por:
+El modelo incluye un sistema de permisos tipo IAM. El catálogo `Permission` es **global**; los grupos y todas las asignaciones (a rol y a usuario) son **per-org**:
 
-- **`Permission`** — permiso atómico con código único `resource:action` (p.ej. `travel_request:authorize`).
-- **`PermissionGroup`** — bundle reutilizable de permisos.
+- **`Permission`** — permiso atómico con código único `resource:action` (p.ej. `travel_request:authorize`). **Global.**
+- **`PermissionGroup`** — bundle reutilizable de permisos. Per-org (`@@unique([organization_id, group_name])`, con `is_system`).
 - **`Permission_Group_Item`** — membresía grupo ↔ permiso.
 - **`Role_Permission`** — grant directo de un permiso a un rol.
 - **`Role_Permission_Group`** — grant de un grupo completo a un rol (los permisos del grupo se "expanden" al resolver).
-- **`User_Permission`** — grant directo de un permiso a un usuario (aditivo sobre los del rol).
-- **`User_Permission_Group`** — grant de un grupo a un usuario (aditivo).
+- **`User_Permission`** — grant directo de un permiso a un usuario (aditivo sobre los del rol). Lleva `organization_id`.
+- **`User_Permission_Group`** — grant de un grupo a un usuario (aditivo). Lleva `organization_id`.
+
+Además, `Role` incorpora `max_approval_amount` (tope de `requested_fee` que el rol puede aprobar en un paso; `null` = sin tope explícito).
 
 **Resolución de permisos efectivos de un usuario** (unión de 4 conjuntos):
 

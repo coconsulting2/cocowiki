@@ -1,4 +1,4 @@
-# 🚀 Setup del Backend
+# Setup del Backend
 
 Guía completa para echar a andar el proyecto **TC3005B.501-Backend** en tu máquina local.
 
@@ -14,9 +14,9 @@ Asegúrate de tener instalado lo siguiente antes de continuar:
 | Herramienta | Versión mínima | Enlace |
 |---|---|---|
 | **Node.js** | v18+ | [nodejs.org](https://nodejs.org/) |
-| **Bun** | v1+ | [bun.sh](https://bun.sh/) |
-| **PostgreSQL** | 14+ | [postgresql.org](https://www.postgresql.org/download/) |
-| **MongoDB** | 6.0+ | [mongodb.com](https://www.mongodb.com/docs/manual/installation/) |
+| **Bun** | v1.1+ | [bun.sh](https://bun.sh/) |
+| **PostgreSQL** | **16** | [postgresql.org](https://www.postgresql.org/download/) |
+| **MongoDB** | **7** | [mongodb.com](https://www.mongodb.com/docs/manual/installation/) |
 | **OpenSSL** | — | Incluido en Git Bash / macOS / Linux |
 | **Git** | — | [git-scm.com](https://git-scm.com/) |
 
@@ -40,22 +40,18 @@ cd TC3005B.501-Backend
 
 ## 3. Instalar Bun
 
-Si aún no tienes **Bun**, instálalo con alguna de estas opciones:
+Si aún no tienes **Bun**, instálalo:
 
-### Opción A — Script de instalación (recomendado)
+### macOS / Linux
 
 ```sh
-# macOS / Linux
 curl -fsSL https://bun.sh/install | bash
-
-# Windows (PowerShell)
-powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
-### Opción B — Con npm
+### Windows (PowerShell)
 
 ```sh
-npm install -g bun
+powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
 Verifica la instalación:
@@ -75,17 +71,19 @@ bun install
 ```
 
 > [!NOTE]
-> También puedes usar `npm install`, pero se recomienda **Bun** para mantener consistencia con el equipo.
+> El proyecto usa **Bun** como gestor de paquetes y runner de scripts (lockfile `bun.lock`). Bun se usa para instalar y para tooling (`bunx prisma`, `bun run`); el servidor en sí arranca con Node (`node --watch`, ver paso 9).
 
 ---
 
 ## 5. Instalar y configurar PostgreSQL
 
+El almacén relacional es **PostgreSQL** (base `CocoScheme` en desarrollo), accedido vía **Prisma** (esquema en `prisma/schema.prisma`).
+
 ### 5.1 Descargar PostgreSQL
 
 | SO | Instrucción |
 |---|---|
-| **Windows** | Descarga el instalador desde [postgresql.org/download/windows](https://www.postgresql.org/download/windows/). Durante la instalación, **anota el usuario y la contraseña** que configures. |
+| **Windows** | Instalador desde [postgresql.org/download/windows](https://www.postgresql.org/download/windows/). **Anota la contraseña** del usuario `postgres`. |
 | **macOS** | `brew install postgresql@16` |
 | **Linux (Debian/Ubuntu)** | `sudo apt install postgresql` |
 
@@ -100,46 +98,47 @@ sudo systemctl enable postgresql   # para que inicie con el sistema
 brew services start postgresql@16
 
 # Windows
-# El servicio se inicia automáticamente si lo activaste en el instalador.
-# También puedes iniciarlo desde "Servicios" de Windows o con:
-net start postgresql-x64-16
+# El servicio se inicia automáticamente tras la instalación.
 ```
 
-### 5.3 Crear la base de datos y un usuario para el proyecto
+### 5.3 Crear la base de datos y un usuario
 
-Conéctate a PostgreSQL con el usuario administrador:
+Conéctate como superusuario y crea la base y un usuario dedicado:
 
 ```sh
-# Linux / macOS
-sudo -u postgres psql
-
-# Windows (usa la contraseña del instalador)
 psql -U postgres
 ```
 
 ```sql
-CREATE USER tu_usuario WITH PASSWORD 'tu_contraseña';
-CREATE DATABASE "CocoScheme" OWNER tu_usuario;
-GRANT ALL PRIVILEGES ON DATABASE "CocoScheme" TO tu_usuario;
+CREATE DATABASE "CocoScheme";
+CREATE USER cocoscheme WITH PASSWORD 'cocoscheme_dev';
+GRANT ALL PRIVILEGES ON DATABASE "CocoScheme" TO cocoscheme;
 \q
 ```
 
 > [!IMPORTANT]
-> El **usuario** y **contraseña** que crees aquí son los que usarás en la variable `DATABASE_URL` del archivo `.env`.
+> El usuario, contraseña y nombre de base que uses aquí van en la variable `DATABASE_URL` del `.env` (paso 8).
 
-### 5.4 Inicializar la base de datos
+### 5.4 Inicializar el esquema y los datos
 
-Desde la raíz del repositorio:
+Desde la raíz del repositorio, con `DATABASE_URL` ya configurada en el `.env`:
 
 ```sh
-# Con datos de prueba (recomendado para desarrollo)
+# Esquema + datos de referencia + datos de prueba (recomendado para desarrollo)
 bun run dummy_db
 
-# Solo estructura + datos de referencia (sin datos dummy)
+# Solo esquema + datos de referencia (sin datos de prueba)
 bun run empty_db
 ```
 
-Estos scripts aplican el schema de Prisma (`prisma/schema.prisma`) y ejecutan los seeds correspondientes.
+> [!NOTE]
+> `dummy_db` ejecuta `bunx prisma db push --force-reset && node prisma/seed.js dev`. `empty_db` ejecuta `bunx prisma db push --force-reset && node prisma/seed.js` (sin argumento `dev`, solo datos de referencia). Ambos **borran** la base antes de recrearla.
+
+> [!IMPORTANT]
+> `dummy_db` **no** ejecuta `seed-usability.js`. Si necesitas los usuarios de demostración de CocoUAT (`angel.montemayor`, `erick.morales`, `eder.cantero`, `santino.im`, `kevin.esquivel`, `mariano.carretero`, contraseña `Fuego2026!`), ejecútalo por separado:
+> ```sh
+> node prisma/seed-usability.js
+> ```
 
 ---
 
@@ -276,28 +275,32 @@ PORT=3000
 NODE_ENV=development
 
 # PostgreSQL (usado por Prisma)
-DATABASE_URL=postgresql://tu_usuario:tu_contraseña@localhost:5432/CocoScheme?schema=public
+# Nativo: Postgres local en :5432. Con el stack Docker se publica en el host como :5434.
+DATABASE_URL=postgresql://cocoscheme:cocoscheme_dev@localhost:5432/CocoScheme?schema=public
+
+# MongoDB (GridFS para PDF/XML de comprobantes)
+MONGO_URI=mongodb://localhost:27017
 
 # Orígenes permitidos para CORS (separados por coma)
 CORS_ORIGIN=http://localhost:4321,https://localhost:4321
 
-# MongoDB
-MONGO_URI=mongodb://localhost:27017
-
-# Llaves de encriptación
-# Reemplaza con las llaves del SharePoint o genera las tuyas para desarrollo
-AES_SECRET_KEY=<llave_de_32_caracteres>
+# Llaves de encriptación (usa las del SharePoint o genera unas para desarrollo)
+AES_SECRET_KEY=<llave_de_32_caracteres>   # exactamente 32 caracteres
 JWT_SECRET=<llave_secreta>
 
-# Correo (usa las credenciales del SharePoint para las reales)
+# Correo (credenciales reales en el SharePoint)
 MAIL_USER=test.mail@outlook.com
 MAIL_PASSWORD=password
 ```
 
 > [!IMPORTANT]
-> - `DATABASE_URL` sigue el formato `postgresql://USUARIO:CONTRASEÑA@HOST:PUERTO/BASEDEDATOS?schema=public`. El usuario y contraseña deben coincidir con los que configuraste al [instalar PostgreSQL](#51-descargar-postgresql). El puerto por defecto de PostgreSQL es `5432`.
-> - Las llaves `AES_SECRET_KEY` y `JWT_SECRET` las puedes encontrar en el SharePoint del equipo, o para desarrollo local puedes usar cualquier texto con la longitud indicada.
-> - Consulta `.env.example` en el repositorio para ver todas las variables disponibles (AWS S3, Wise, Banxico, VAPID, etc.).
+> - `DATABASE_URL` debe coincidir con el usuario, contraseña, host, puerto y base que configuraste en PostgreSQL (paso 5). Puerto por defecto nativo: `5432`; con el stack Docker: `5434`.
+> - `AES_SECRET_KEY` debe tener **exactamente 32 caracteres**. Para generar una clave válida en desarrollo:
+>   ```sh
+>   bun -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+>   ```
+>   El resultado tiene 64 caracteres hex, que cubren los 32 bytes requeridos por AES-256.
+> - `.env.example` incluye además variables **opcionales** para integraciones (AWS S3/LocalStack, Wise, Banxico, SAT, Web Push/VAPID, Duffel). No son necesarias para el desarrollo básico.
 
 ---
 
@@ -306,14 +309,10 @@ MAIL_PASSWORD=password
 Asegúrate de que tanto **PostgreSQL** como **MongoDB** estén corriendo, luego ejecuta:
 
 ```sh
-# Con Bun (recomendado)
-bun run dev
-
-# O con npm
-npm run dev
+bun run dev    # node --watch index.js, HTTPS en :3000
 ```
 
-Deberías ver un mensaje de confirmación indicando que el servidor está corriendo en el puerto configurado y que la conexión a la base de datos fue exitosa.
+Verás el banner ASCII y un mensaje como `Server running on port 3000 with HTTPS`.
 
 ---
 
@@ -339,13 +338,13 @@ El backend incluye documentación interactiva de la API con Swagger UI.
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 | Problema | Posible solución |
 |---|---|
 | `bun: command not found` | Revisa la [sección de instalación de Bun](#3-instalar-bun). |
-| `password authentication failed for user` | Tu usuario o contraseña de PostgreSQL en `DATABASE_URL` no coinciden. Verifica con `psql -U tu_usuario -d CocoScheme`. |
-| `P1001: Can't reach database server` | PostgreSQL no está corriendo o el puerto/host en `DATABASE_URL` es incorrecto. Inicia el servicio con `systemctl start postgresql` o `brew services start postgresql@16`. |
+| `password authentication failed` / `database "CocoScheme" does not exist` | Tu `DATABASE_URL` no coincide con el usuario/contraseña/base de PostgreSQL (paso 5). |
+| `P1001: Can't reach database server` | PostgreSQL no está corriendo o el host/puerto en `DATABASE_URL` es incorrecto. Inícialo con `systemctl start postgresql` o `brew services start postgresql@16`. |
 | `MongoServerError: connect ECONNREFUSED` | MongoDB no está corriendo. Inicia el servicio con `systemctl start mongod` o `net start MongoDB`. |
 | Error al ejecutar `create_certs.sh` | Asegúrate de tener `openssl.cnf` en `/certs` y de usar Git Bash en Windows. |
 | `EADDRINUSE: port already in use` | Otro proceso usa el puerto. Cambia `PORT` en `.env` o cierra el proceso conflictivo. |

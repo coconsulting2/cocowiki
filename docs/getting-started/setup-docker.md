@@ -97,6 +97,8 @@ Variantes útiles:
 | `bun run docker:dev:build` | `up --build` (reconstruye imágenes). |
 | `bun run docker:dev:down` | Apaga contenedores y red. |
 | `bun run docker:dev:clean` | `down -v` — **borra volúmenes** (Postgres, Mongo, LocalStack, certs, `node_modules` del contenedor). Usar para reset completo. |
+| `bun run docker:data:reset` | Recrea la BD con datos de prueba sin borrar volúmenes (wipe Postgres + re-seed, mantiene contenedores arriba). |
+| `bun run docker:permissions:sync` | Ejecuta el seed de referencia (permisos idempotentes). Útil tras hacer pull de un PR que agrega permisos. |
 
 **Seeding:** el servicio `migrate` corre `bun install → prisma generate → prisma db push → node prisma/seed.js dev → node prisma/seed-usability.js` en **cada** `up`. Tanto el seed de referencia como el de CocoUAT son idempotentes, por lo que no hay riesgo de duplicados. Si necesitas un reset total de datos, usa `docker:dev:clean` y vuelve a subir el stack.
 

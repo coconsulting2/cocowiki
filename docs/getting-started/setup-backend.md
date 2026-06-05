@@ -26,10 +26,10 @@ Asegúrate de tener instalado lo siguiente antes de continuar:
 
 ```sh
 # Con git
-git clone https://github.com/101-Coconsulting/TC3005B.501-Backend
+git clone https://github.com/coconsulting2/TC3005B.501-Backend
 
 # O con GitHub CLI
-gh repo clone 101-Coconsulting/TC3005B.501-Backend
+gh repo clone coconsulting2/TC3005B.501-Backend
 ```
 
 ```sh
@@ -316,12 +316,35 @@ Verás el banner ASCII y un mensaje como `Server running on port 3000 with HTTPS
 
 ---
 
+## 10. Documentación de la API (Swagger)
+
+El backend incluye documentación interactiva de la API con Swagger UI.
+
+### 10.1 Acceder a la documentación
+
+1. Levanta el backend (`bun run dev` o con Docker).
+2. Abre en tu navegador: **https://localhost:3000/api-docs**
+
+### 10.2 Módulos documentados
+
+| Módulo | Contenido |
+|--------|-----------|
+| **M1** | CFDI XML parser, tipo de cambio (Wise/Banxico), export contable |
+| **M2** | Roles y permisos granulares, workflow rules engine |
+| **M3** | Organizaciones, API keys, notificaciones push |
+
+> [!NOTE]
+> La documentación usa `swagger-ui-express` con el título "CocoAPI Docs" y sirve el archivo consolidado `openapi/swagger.yaml`. La configuración se encuentra en `app.js`.
+
+---
+
 ## Troubleshooting
 
 | Problema | Posible solución |
 |---|---|
 | `bun: command not found` | Revisa la [sección de instalación de Bun](#3-instalar-bun). |
 | `password authentication failed` / `database "CocoScheme" does not exist` | Tu `DATABASE_URL` no coincide con el usuario/contraseña/base de PostgreSQL (paso 5). |
+| `P1001: Can't reach database server` | PostgreSQL no está corriendo o el host/puerto en `DATABASE_URL` es incorrecto. Inícialo con `systemctl start postgresql` o `brew services start postgresql@16`. |
 | `MongoServerError: connect ECONNREFUSED` | MongoDB no está corriendo. Inicia el servicio con `systemctl start mongod` o `net start MongoDB`. |
 | Error al ejecutar `create_certs.sh` | Asegúrate de tener `openssl.cnf` en `/certs` y de usar Git Bash en Windows. |
 | `EADDRINUSE: port already in use` | Otro proceso usa el puerto. Cambia `PORT` en `.env` o cierra el proceso conflictivo. |

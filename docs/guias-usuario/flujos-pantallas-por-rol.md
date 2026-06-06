@@ -2,8 +2,8 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión del documento** | 1.0.2 |
-| **Última actualización** | 2026-06-02 |
+| **Versión del documento** | 1.0.3 |
+| **Última actualización** | 2026-06-05 |
 | **Relacionado** | [Flujos — arquitectura de datos y navegación](../arquitectura-datos/flujos.md) |
 
 Las imágenes se enlazan en markdown como **`./images/diagrams/pantallas/…`**. Aunque este archivo vive en **`docs/guias-usuario/`**, un plugin de Docsify (en `index.html`) reescribe los prefijos `./images/` y `/images/` a rutas absolutas desde la raíz del sitio, por lo que esa forma funciona desde cualquier subcarpeta sin usar `../images/…`.
@@ -79,6 +79,47 @@ Super-admin del sistema. Consultor Ditta encargado del onboarding de empresas, c
 Su sidebar incluye la opción **LLAVES API** (`/admin/api-keys`). A diferencia del Administrador de organización, no tiene acceso a **REGLAS DE WORKFLOW**.
 
 ![Flujo de pantallas del Admin Ditta](./images/diagrams/pantallas/07_admin_ditta.png)
+
+---
+
+## Matriz de rutas por rol
+
+Permisos de navegación tal como están definidos en el frontend (`src/config/routeAccess.ts`). El middleware de Astro (`src/middleware.ts`) valida cada ruta SSR contra esta tabla; lo que un rol no tiene permitido, no aparece en su menú ni es accesible por URL directa (RBAC estricto, US-14).
+
+Columnas: **Sol** = Solicitante · **AV** = Agencia de viajes · **CPP** = Cuentas por pagar · **N1** / **N2** = aprobadores · **Adm** = Administrador de organización · **Ditta** = Admin Ditta.
+
+| Ruta | Sol | AV | CPP | N1 | N2 | Adm | Ditta |
+|------|:---:|:--:|:---:|:--:|:--:|:---:|:-----:|
+| `/dashboard` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/perfil-usuario` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/crear-solicitud` | ✓ |  |  | ✓ | ✓ |  |  |
+| `/historial` | ✓ |  |  | ✓ | ✓ |  |  |
+| `/reembolso` | ✓ |  |  | ✓ | ✓ |  |  |
+| `/solicitudes-draft` | ✓ |  |  | ✓ | ✓ |  |  |
+| `/comprobar-gastos` | ✓ |  | ✓ | ✓ | ✓ |  |  |
+| `/solicitudes-autorizador` |  |  |  | ✓ | ✓ |  |  |
+| `/autorizaciones` · `/aprobaciones` |  |  |  | ✓ | ✓ |  |  |
+| `/atenciones` |  | ✓ |  |  |  |  |  |
+| `/todas-las-solicitudes` |  |  | ✓ |  |  |  |  |
+| `/cotizaciones` |  |  | ✓ |  |  |  |  |
+| `/comprobaciones` |  |  | ✓ |  |  |  |  |
+| `/exportar-contable` |  |  | ✓ |  |  |  |  |
+| `/reportes/gastos-por-centro` |  |  | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/crear-usuario` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/expense-policies` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/employee-categories` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/refund-time-limits` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/organizations` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/onboarding-import` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/catalogo-contable` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/indicadores-impuesto` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/mapeo-gastos` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/api-keys` |  |  |  |  |  | ✓ | ✓ |
+| `/admin/workflow-rules` |  |  |  |  |  | ✓ |  |
+
+> Las rutas de detalle dinámicas (`/detalles-solicitud/[id]`, `/editar-solicitud/[id]`, `/autorizar-solicitud/[id]`, `/comprobar-solicitud/[id]`, `/atender-solicitud/[id]`, `/cotizar-solicitud/[id]`, `/subir-comprobante/[id]`, `/resubir-comprobante/[id]`) heredan el mismo gating por rol que su flujo correspondiente.
+>
+> **Única diferencia entre los dos perfiles de admin:** `/admin/workflow-rules` (Reglas de Workflow) solo la tiene el **Administrador** de organización; el **Admin Ditta** no. El resto del panel de administración es idéntico para ambos.
 
 ---
 

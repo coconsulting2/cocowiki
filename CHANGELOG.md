@@ -4,6 +4,20 @@ Cambios en la documentación publicada en **GitHub Pages** (carpeta `docs/`). La
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.3.0] - 2026-06-05
+
+Documentación enfocada en el frontend para la entrega final.
+
+### Añadido
+
+- **`desarrollo/estilo-codigo-frontend.md`** (v1.0.0) — guía de convenciones específicas del frontend: extensiones por capa, estructura de `src/`, alias de ruta, patrones de componentes React/islas Astro, cliente `apiRequest` (Bearer + CSRF + `X-Organization-Id`), manejo de errores/avisos, estilos Tailwind, formularios, RBAC (`routeAccess` + `middleware` + `menu-config`) y testing. Entrada en la barra lateral y cross-link desde el estilo de código general.
+
+### Cambiado
+
+- **`getting-started/setup-frontend.md`**: documentada la capa de tests unitarios/de componentes con **Vitest** (ubicación, MSW, umbral 70%); nueva tabla de **scripts** (`bun run …`); nota sobre el HMR deshabilitado; el stack ahora lista Vitest además de Cypress y enlaza al estilo de código del frontend.
+- **`guias-usuario/flujos-pantallas-por-rol.md`** (v1.0.3): añadida la **matriz de rutas × rol** derivada de `src/config/routeAccess.ts`, con la única diferencia entre Administrador y Admin Ditta (`/admin/workflow-rules`).
+- **`desarrollo/estilo-codigo-documentacion.md`**: el stack del frontend ahora lista Vitest + Cypress y enlaza a la nueva guía de estilo del frontend.
+
 ## [1.2.0] - 2026-06-02
 
 Sincronización integral del contenido con el estado actual del código (backend + frontend) tras el refactor multi-tenant y el trabajo reciente de onboarding-import y API keys / export ERP. Se auditaron 17 documentos y se actualizaron 16 (`qa/ber-bmx.e2e.test.md` ya estaba al día).

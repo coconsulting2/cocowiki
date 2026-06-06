@@ -88,9 +88,33 @@ bun run dev    # astro dev, HTTPS en :4321
 
 El servidor de Astro queda escuchando en `https://localhost:4321`. Abre esa URL y deberías ver el dashboard.
 
+> [!NOTE]
+> El HMR (hot-reload) está deshabilitado a propósito en `astro.config.mjs` por una incompatibilidad del polyfill HTTP/2 de Bun con el dev server sobre HTTPS. Tras editar un archivo, **recarga el navegador manualmente** para ver los cambios.
+
 ---
 
-## 6. Sesiones y roles
+## 6. Scripts disponibles
+
+Todos se ejecutan con `bun run <script>` (definidos en `package.json`):
+
+| Script | Qué hace |
+|--------|----------|
+| `dev` | Servidor de desarrollo de Astro (HTTPS en `:4321`). |
+| `build` | Build de producción (`astro build`). |
+| `preview` | Sirve localmente el build de producción. |
+| `start` | Arranca el servidor SSR ya compilado (`dist/server/entry.mjs`). |
+| `typecheck` | Chequeo de tipos con `astro check`. |
+| `test` | Suite unitaria/de componentes con Vitest (una pasada). |
+| `test:watch` | Vitest en modo watch. |
+| `test:coverage` | Vitest con reporte de cobertura. |
+| `docker:dev*` | Flujos de desarrollo con Docker (ver [Setup Docker](setup-docker.md)). |
+
+> [!NOTE]
+> El chequeo de tipos (`bun run typecheck`) hoy reporta algunos warnings preexistentes; el gate real de CI es `bun run build`. Cypress no tiene script propio: se invoca con `bunx cypress` (ver §9).
+
+---
+
+## 7. Sesiones y roles
 
 El frontend no usa cookies simuladas ni configuración de rol manual. Las sesiones son gestionadas por el **backend**:
 
@@ -104,7 +128,7 @@ Para probar distintos roles localmente, inicia sesión con los usuarios del seed
 
 ---
 
-## 7. Stack Tecnológico
+## 8. Stack Tecnológico
 
 | Tecnología | Uso |
 |---|---|
@@ -112,11 +136,29 @@ Para probar distintos roles localmente, inicia sesión con los usuarios del seed
 | **React 19** | Componentes interactivos |
 | **TypeScript** | Tipado estático |
 | **Tailwind CSS 4** | Estilos utility-first |
+| **Vitest + Testing Library** | Tests unitarios / de componentes |
 | **Cypress** | Testing E2E |
+
+> Para las convenciones de código del frontend (aliases, estructura de `src/`, patrones de componentes, API y testing) ver [Estilo de código — Frontend](../desarrollo/estilo-codigo-frontend.md).
 
 ---
 
-## 8. Tests E2E con Cypress
+## 9. Tests
+
+### 9.1 Unitarios y de componentes (Vitest)
+
+Las pruebas unitarias y de componentes usan **Vitest** + **Testing Library** sobre `jsdom`, con **MSW** para mockear el backend. Los archivos viven en `tests/frontend/**/*.test.{ts,tsx}` y el setup global está en `tests/setup.ts`.
+
+```sh
+bun run test            # una pasada (modo CI)
+bun run test:watch      # modo watch durante el desarrollo
+bun run test:coverage   # con reporte de cobertura (umbral 70%)
+```
+
+> [!NOTE]
+> La cobertura está limitada a la lista de archivos en `vitest.config.ts` (`coverage.include`) con un umbral del **70%** en líneas, funciones, ramas y statements.
+
+### 9.2 End-to-end (Cypress)
 
 Las pruebas E2E usan **Cypress** con seis perfiles de usuario (uno por rol). Las credenciales se leen de variables de entorno con prefijo `CYPRESS_*`.
 

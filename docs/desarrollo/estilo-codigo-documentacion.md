@@ -223,9 +223,11 @@ Backend/                    Frontend/
 | Node.js + Express | Astro 5 + React 19 |
 | PostgreSQL + MongoDB | Tailwind CSS 4 |
 | Prisma 6 (ORM) | TypeScript |
-| Bun (gestor de paquetes) | Cypress (testing) |
+| Bun (gestor de paquetes) | Vitest + Cypress (testing) |
 | JWT + bcrypt | |
 | Nodemailer | |
+
+> Para las convenciones específicas del frontend (alias de ruta, estructura de `src/`, patrones de componentes, API y testing), ver [Estilo de código — Frontend](estilo-codigo-frontend.md).
 
 ---
 

@@ -15,6 +15,7 @@
   * [Flujos de pantallas por rol](guias-usuario/flujos-pantallas-por-rol.md "Diagramas por rol, M1–M3")
 * **Desarrollo**
   * [Estilo de Código y Documentación](desarrollo/estilo-codigo-documentacion.md "Estilo de Codigo y Documentacion")
+  * [Estilo de código — Frontend](desarrollo/estilo-codigo-frontend.md "Convenciones del frontend: aliases, componentes, API y testing")
   * [Validación CFDI / SAT](desarrollo/documentacion-api-sat.md "Consulta de estado de CFDI ante el SAT")
   * [Changelog de errores resueltos](desarrollo/changelog-errores-resueltos.md "Seguimiento de incidencias corregidas")
 * **QA y pruebas**

@@ -212,3 +212,17 @@ TOKEN_GRACE_PERIOD_END=           # ISO date. Tokens viejos sin organization_id 
 - Refactor de schedulers (`approvalSubstituteCron` y otros) a `runForEachOrg`.
 - Pantallas frontend para configurar el catálogo contable, plantillas de notificación, integraciones desde el admin de cada org.
 - Frontend org switcher integrado al topbar (hoy solo está en `/admin/organizations`).
+
+---
+
+## Nomenclatura
+
+| Término | Significado |
+|---------|-------------|
+| **ALS** | AsyncLocalStorage — contexto de Node.js que propaga `organization_id` por petición. |
+| **GUC** | Grand Unified Configuration — variable de sesión PostgreSQL (`app.current_organization_id`) usada por RLS. |
+| **JWT** | JSON Web Token — incluye contexto de usuario; tokens legacy sin org entran en grace period. |
+| **Prisma** | ORM con extensión de tenant que inyecta filtros `organization_id`. |
+| **RLS** | Row-Level Security — políticas `tenant_isolation` en 38 tablas PostgreSQL. |
+| **ROOT** | Organización Ditta (`kind=ROOT`) con bypass cross-tenant controlado. |
+| **S3** | Amazon Simple Storage Service — archivos de viaje; prefijo por org planificado. |

@@ -6,9 +6,11 @@
 * **Arquitectura**
   * [Modelo ER](arquitectura-datos/modelo-er.md "PostgreSQL / Prisma")
   * [Flujos y pantallas](arquitectura-datos/flujos.md "Capas, roles, API, estados")
-  * [Arquitectura de Aplicación](arquitectura-datos/arquitectura-aplicacion.md "Servicios Express/Prisma, permisos, jerarquía de aprobación")
+  * [Arquitectura de Aplicación](arquitectura-datos/arquitectura-aplicacion.md "Servicios Express/Prisma, permisos, jerarquía de aprobación") — ver también [Diagramas C4](arquitectura-datos/diagramas-c4.md)
   * [Sistema de permisos](arquitectura-datos/permisos.md "RBAC granular + grupos + asignación directa")
   * [Multi-tenant (Ditta como ROOT)](arquitectura-datos/multi-tenancy.md "Aislamiento por organización + RLS Postgres + Prisma extension")
+  * [Service Blueprint](arquitectura-datos/service-blueprint.md "Mapa Global de Operaciones — actores, macro-procesos, swimlanes")
+  * [Diagramas C4](arquitectura-datos/diagramas-c4.md "Context, Container, Component — arquitectura formal")
   * [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md "Negocio, Aplicación, Datos, Infraestructura, RNF y Continuidad")
 * **Guías de usuario**
   * [Manual de Usuario](guias-usuario/manual-usuario.md "Manual de Usuario")

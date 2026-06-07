@@ -4,7 +4,7 @@
 |----------|--------|
 | **Versión del documento** | 1.0.0 |
 | **Última actualización** | 2026-06-06 |
-| **Referencias** | [app.js](../../../TC3005B.501-Backend/app.js), [permissionMiddleware.js](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [permissionService.js](../../../TC3005B.501-Backend/services/permissionService.js), [approverResolver.js](../../../TC3005B.501-Backend/services/approverResolver.js), [employeeHierarchyService.js](../../../TC3005B.501-Backend/services/employeeHierarchyService.js), [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma) |
+| **Referencias** | [app.js](../../../TC3005B.501-Backend/app.js), [permissionMiddleware.js](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [permissionService.js](../../../TC3005B.501-Backend/services/permissionService.js), [approverResolver.js](../../../TC3005B.501-Backend/services/approverResolver.js), [employeeHierarchyService.js](../../../TC3005B.501-Backend/services/employeeHierarchyService.js), [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma), [diagramas-c4.md](diagramas-c4.md) (C4 Level 3) |
 
 ## 1. Diagrama de capas y servicios
 
@@ -25,19 +25,19 @@ flowchart TD
         MW5[applyRlsForRequest RLS PG]
         MW6[loadPermissions + authorizePermission]
 
-        subgraph rutas [Rutas /api/*]
-            R1[/api/applicant]
-            R2[/api/authorizer]
-            R3[/api/solicitudes]
-            R4[/api/user]
-            R5[/api/admin + permissionRoutes]
-            R6[/api/travel-agent]
-            R7[/api/accounts-payable]
-            R8[/api/files]
-            R9[/api/comprobantes]
-            R10[/api/notifications]
-            R11[/api/organizations]
-            R12[otros: policies, refunds, export, reports, ...]
+        subgraph rutas [Rutas API]
+            R1["/api/applicant"]
+            R2["/api/authorizer"]
+            R3["/api/solicitudes"]
+            R4["/api/user"]
+            R5["/api/admin"]
+            R6["/api/travel-agent"]
+            R7["/api/accounts-payable"]
+            R8["/api/files"]
+            R9["/api/comprobantes"]
+            R10["/api/notifications"]
+            R11["/api/organizations"]
+            R12["policies, refunds, export, ..."]
         end
 
         subgraph servicios [Servicios]
@@ -101,9 +101,9 @@ flowchart TD
 
 ## 2. Sistema de permisos
 
-### 2.1 Modelo de datos RBAC
+### 2.1 Modelo de datos (RBAC)
 
-El sistema usa **RBAC granular por organización**. El catálogo de `Permission` es global; los grupos y asignaciones son per-org.
+El sistema usa **RBAC** (control de acceso basado en roles) **granular por organización**. El catálogo de `Permission` es global; los grupos y asignaciones son per-org.
 
 ```mermaid
 erDiagram
@@ -161,17 +161,17 @@ erDiagram
         int group_id FK
     }
 
-    Permission ||--o{ PermissionGroupItem : "member"
-    PermissionGroup ||--o{ PermissionGroupItem : "contains"
-    Role ||--o{ RolePermission : "direct grant"
-    Role ||--o{ RolePermissionGroup : "group grant"
-    RolePermission }o--|| Permission : ""
-    RolePermissionGroup }o--|| PermissionGroup : ""
-    User ||--o{ UserPermission : "override grant"
-    User ||--o{ UserPermissionGroup : "override group"
-    UserPermission }o--|| Permission : ""
-    UserPermissionGroup }o--|| PermissionGroup : ""
-    User }o--|| Role : "assigned"
+    Permission ||--o{ PermissionGroupItem : member
+    PermissionGroup ||--o{ PermissionGroupItem : contains
+    Role ||--o{ RolePermission : direct_grant
+    Role ||--o{ RolePermissionGroup : group_grant
+    RolePermission }o--|| Permission : grants
+    RolePermissionGroup }o--|| PermissionGroup : includes
+    User ||--o{ UserPermission : override_grant
+    User ||--o{ UserPermissionGroup : override_group
+    UserPermission }o--|| Permission : grants
+    UserPermissionGroup }o--|| PermissionGroup : includes
+    User }o--|| Role : assigned
 ```
 
 ### 2.2 Resolución de permisos efectivos en runtime
@@ -322,7 +322,22 @@ sequenceDiagram
 | Documento | Qué complementa |
 |-----------|-----------------|
 | [Modelo ER](modelo-er.md) | Tablas `Permission`, `PermissionGroup`, `Role`, `User` (con `manager_user_id`) |
-| [Flujos y pantallas](flujos.md) | Capas del sistema (§1), rutas REST (§6), estados de solicitud (§5) |
+| [Flujos y pantallas](flujos.md) | Capas del sistema, rutas REST, estados de solicitud |
 | [Flujos de pantallas por rol](../flujos-pantallas-por-rol.md) | Qué pantallas son accesibles por rol en el frontend |
 
 > **Nota:** La lógica de adjacency list (`managerUserId`) está documentada también en el modelo Prisma `User` (`schema.prisma`, campo `manager_user_id`). `approverResolver.js` y `employeeHierarchyService.js` son los únicos consumidores en runtime.
+
+---
+
+## Nomenclatura
+
+| Término | Significado |
+|---------|-------------|
+| **API** | Application Programming Interface — endpoints HTTP `/api/*` de CocoAPI. |
+| **BFS** | Breadth-First Search — recorrido en anchura usado para subordinados transitivos. |
+| **JWT** | JSON Web Token — token de sesión verificado en `authenticateToken`. |
+| **N1 / N2** | Autorizador de primer y segundo nivel en la cadena de aprobación. |
+| **ORM** | Object-Relational Mapping — capa Prisma entre servicios y PostgreSQL. |
+| **RBAC** | Role-Based Access Control — permisos atómicos (`resource:action`) unidos por roles, grupos y asignación directa a usuario. |
+| **RLS** | Row-Level Security — filtrado de filas en PostgreSQL por organización activa. |
+| **REST** | Representational State Transfer — API HTTP JSON consumida por el frontend. |

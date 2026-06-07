@@ -234,14 +234,36 @@ sequenceDiagram
   API->>PG: insert_cfdi_comprobantes
 ```
 
-## 8. Documentación obsoleta
+## 8. Documentación relacionada
 
-No usar como fuente del despliegue actual (en el monorepo padre, si está clonado junto a este repo):
+| Documento | Contenido |
+|-----------|-----------|
+| [Service Blueprint](service-blueprint.md) | Actores, macro-procesos, swimlanes, integraciones |
+| [Diagramas C4](diagramas-c4.md) | Context, Container, Component |
+| [Documento de Arquitectura](documento-arquitectura.md) | Visión unificada y requerimientos no funcionales |
+| [Modelo ER](modelo-er.md) | Esquema PostgreSQL / Prisma |
+| [Multi-tenant](multi-tenancy.md) | Aislamiento por organización |
+| [Setup Docker](../getting-started/setup-docker.md) | Arranque local del stack |
 
-- `BLUEPRINT_SISTEMA.md` — describía el stack con MariaDB; **eliminado** del repo. El modelo vigente es PostgreSQL + Prisma + GridFS (ver [modelo-er.md](modelo-er.md)).
-- `DIAGRAMA_SISTEMA_DETALLADO.md` — mismo desfase respecto a PostgreSQL + Prisma + GridFS; también **eliminado**.
-- [20260409000000_create_cfdi_comprobantes.up.sql](../../../TC3005B.501-Backend/database/migrations/20260409000000_create_cfdi_comprobantes.up.sql) — esquema alternativo (`organizaciones`, `viajes`) no alineado con el modelo Prisma `CfdiComprobante` ↔ `Receipt`.
-
-**Operativo:** [docker-compose.dev.yml](../../../TC3005B.501-Backend/docker-compose.dev.yml), `prisma db push`, [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma) y el ER en [modelo-er.md](modelo-er.md).
+Fuentes operativas de código: [docker-compose.dev.yml](../../../TC3005B.501-Backend/docker-compose.dev.yml), [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma).
 
 > **GitHub Pages:** este sitio publica solo `cocowiki/docs`. Los enlaces `../../../TC3005B...` sirven cuando el wiki y el backend/frontend están en el mismo clon (monorepo). En la web publicada pueden no resolverse; usa el repositorio del producto para abrir el código.
+
+---
+
+## Nomenclatura
+
+| Término | Significado |
+|---------|-------------|
+| **API** | Application Programming Interface — endpoints REST `/api/*` montados en [app.js](../../../TC3005B.501-Backend/app.js). |
+| **CFDI** | Comprobante Fiscal Digital por Internet — XML/PDF fiscal almacenado en GridFS y metadata en PostgreSQL. |
+| **CSRF** | Cross-Site Request Forgery — token requerido en mutaciones autenticadas por cookie. |
+| **GridFS** | Subsistema de MongoDB para guardar archivos binarios (PDF/XML de comprobantes). |
+| **HTTPS** | HTTP con TLS — protocolo entre navegador Astro y CocoAPI. |
+| **JWT** | JSON Web Token — autenticación en cookie `token` o header Bearer. |
+| **N1 / N2** | Autorizador de primer y segundo nivel. |
+| **ORM** | Object-Relational Mapping — acceso a datos vía Prisma. |
+| **REST** | Estilo de API HTTP JSON documentado en la sección 6. |
+| **RLS** | Row-Level Security — filtrado por organización en PostgreSQL (ver [multi-tenancy.md](multi-tenancy.md)). |
+| **SAT** | Servicio de Administración Tributaria — validación de comprobantes fiscales. |
+| **SSR** | Server-Side Rendering — frontend Astro con render en servidor. |

@@ -425,3 +425,17 @@ Ejecutar E2E:
 cd TC3005B.501-Frontend
 bunx cypress run --spec "cypress/e2e/permissions.cy.ts"
 ```
+
+---
+
+## Nomenclatura
+
+| Término | Significado |
+|---------|-------------|
+| **AND / OR** | Semántica de `requirePermission` (todos los códigos) vs `requireAnyPermission` (al menos uno). |
+| **CSRF** | Cross-Site Request Forgery — token en mutaciones; ver `GET /api/user/csrf-token`. |
+| **E2E** | End-to-End — prueba de extremo a extremo (Cypress contra stack Docker). |
+| **JWT** | JSON Web Token — credencial de sesión en cookie httpOnly o header Bearer. |
+| **RBAC** | Role-Based Access Control — control de acceso basado en roles; permisos atómicos unidos a roles, grupos y usuarios. |
+| **RLS** | Row-Level Security — políticas PostgreSQL que limitan filas por `organization_id`. |
+| **TL;DR** | Too Long; Didn't Read — resumen rápido al inicio del documento. |

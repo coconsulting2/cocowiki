@@ -38,13 +38,15 @@ db_uses_localdb() {
 
 REPOS=(cocowiki TC3005B.501-Backend TC3005B.501-Frontend)
 
+# La caja clona los repos como ec2-user; este script corre como root (systemd),
+# así que git marcaría "dubious ownership". Se marca a nivel SYSTEM (/etc/gitconfig,
+# sin depender de HOME) una sola vez; `--global` no aplica bajo systemd.
+git config --system --add safe.directory '*' 2>/dev/null || true
+
 changed=0
 for repo in "${REPOS[@]}"; do
 	dir="${COCO_HOME}/${repo}"
 	[ -d "${dir}/.git" ] || { log "${repo}: no clonado; lo salto."; continue; }
-	# La caja clona los repos como ec2-user; este script corre como root, así que
-	# git marcaría "dubious ownership" sin esto.
-	git config --global --add safe.directory "$dir" 2>/dev/null || true
 	# Sigue la rama desplegada (main por defecto; o la rama de prueba si se
 	# desplegó una con BRANCH_*).
 	branch="$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)"

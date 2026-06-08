@@ -482,6 +482,9 @@ install_redeploy_timer() {
 		return
 	fi
 	sudo chmod +x "$script" 2>/dev/null || true
+	# El timer corre redeploy.sh como root sobre repos de ec2-user → git daría
+	# "dubious ownership". Se marca seguro a nivel system (no depende de HOME).
+	sudo git config --system --add safe.directory '*' 2>/dev/null || true
 	log "Instalando auto-redeploy (timer systemd cada ${interval})..."
 	sudo tee /etc/systemd/system/coco-redeploy.service >/dev/null <<EOF
 [Unit]

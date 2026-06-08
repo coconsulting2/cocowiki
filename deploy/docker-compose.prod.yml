@@ -24,8 +24,10 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      # Dominio real para Let's Encrypt; vacío => TLS interno auto-firmado.
-      SITE_ADDRESS: ${SITE_ADDRESS:-}
+      # Dominio real para Let's Encrypt; sin definir => ":443" (TLS interno
+      # auto-firmado). OJO: debe quedar NO-vacío, porque un SITE_ADDRESS vacío
+      # hace que Caddy lea el bloque como "global options" y rompe el parseo.
+      SITE_ADDRESS: ${SITE_ADDRESS:-:443}
       ACME_EMAIL: ${ACME_EMAIL:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

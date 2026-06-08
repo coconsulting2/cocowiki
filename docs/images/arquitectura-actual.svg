@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 660" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9aa7b4"/>
+    </marker>
+    <style>
+      .lbl{fill:#e6edf3;font-size:13px}
+      .sub{fill:#cdd9e5;font-size:11px}
+      .muted{fill:#9aa7b4;font-size:11px}
+      .grp{fill:none;stroke-width:1.5}
+      .grpt{font-size:12px;font-weight:700}
+      .tile{rx:9}
+      .tt{fill:#fff;font-size:13.5px;font-weight:700}
+      .ts{fill:#f2f2f2;font-size:11px;opacity:.92}
+      .edge{stroke:#9aa7b4;stroke-width:1.6;fill:none;marker-end:url(#arr)}
+      .edged{stroke:#9aa7b4;stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#arr)}
+      .el{fill:#0d1622;font-size:10.5px}
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="920" height="660" rx="16" fill="#0f1622"/>
+  <text x="24" y="34" fill="#e6edf3" font-size="17" font-weight="700">Arquitectura actual — un solo EC2 (auto-setup)</text>
+
+  <!-- Internet -->
+  <rect x="360" y="48" width="200" height="38" rx="19" fill="#1c2530" stroke="#6b7785"/>
+  <text x="460" y="72" text-anchor="middle" class="lbl">Internet / Usuario</text>
+
+  <!-- AWS account -->
+  <rect x="24" y="104" width="872" height="540" rx="14" class="grp" stroke="#ff9900"/>
+  <text x="40" y="128" class="grpt" fill="#ffb84d">AWS · us-east-1</text>
+
+  <!-- VPC -->
+  <rect x="44" y="140" width="560" height="486" rx="12" class="grp" stroke="#a371f7"/>
+  <text x="60" y="162" class="grpt" fill="#c9b6ff">VPC 10.0.0.0/24 · 1 Availability Zone</text>
+
+  <!-- EIP -->
+  <rect x="380" y="176" width="160" height="50" rx="9" fill="#8C4FFF"/>
+  <text x="460" y="198" text-anchor="middle" class="tt">Elastic IP</text>
+  <text x="460" y="214" text-anchor="middle" class="ts">IP pública fija</text>
+
+  <!-- Subnet -->
+  <rect x="64" y="246" width="520" height="362" rx="10" class="grp" stroke="#2dd4bf"/>
+  <text x="80" y="267" class="grpt" fill="#8ce8df">Subnet pública 10.0.0.0/25</text>
+
+  <!-- EC2 -->
+  <rect x="84" y="280" width="480" height="312" rx="10" class="grp" stroke="#ff9900" stroke-dasharray="6 4"/>
+  <text x="100" y="301" class="grpt" fill="#ffce8a">EC2 t4g.small · AL2023 arm64 · Docker Compose "coco"</text>
+
+  <!-- caddy -->
+  <rect x="104" y="312" width="440" height="50" rx="9" fill="#8C4FFF"/>
+  <text x="324" y="334" text-anchor="middle" class="tt">caddy — reverse proxy + TLS :443</text>
+  <text x="324" y="350" text-anchor="middle" class="ts">tls internal (auto-firmado) o ACME con dominio</text>
+
+  <!-- frontend -->
+  <rect x="104" y="384" width="210" height="66" rx="9" fill="#ED7100"/>
+  <text x="209" y="412" text-anchor="middle" class="tt">frontend</text>
+  <text x="209" y="430" text-anchor="middle" class="ts">Astro SSR · :4321</text>
+
+  <!-- backend -->
+  <rect x="334" y="384" width="210" height="110" rx="9" fill="#ED7100"/>
+  <text x="439" y="418" text-anchor="middle" class="tt">backend</text>
+  <text x="439" y="436" text-anchor="middle" class="ts">Express · HTTPS :3000</text>
+  <text x="439" y="452" text-anchor="middle" class="ts">rutas /api</text>
+
+  <!-- postgres -->
+  <rect x="334" y="512" width="210" height="62" rx="9" fill="#2E73B8"/>
+  <text x="439" y="538" text-anchor="middle" class="tt">PostgreSQL :5432</text>
+  <text x="439" y="555" text-anchor="middle" class="ts">perfil localdb · vol pgdata</text>
+
+  <!-- S3 -->
+  <rect x="640" y="160" width="234" height="92" rx="9" fill="#3FA037"/>
+  <text x="757" y="190" text-anchor="middle" class="tt">Amazon S3 (bucket privado)</text>
+  <text x="757" y="208" text-anchor="middle" class="ts">SSE-S3 · Block Public Access</text>
+  <text x="757" y="224" text-anchor="middle" class="ts">coco-consulting-prod-&lt;acct&gt;</text>
+
+  <!-- IAM -->
+  <rect x="640" y="284" width="234" height="62" rx="9" fill="#DD344C"/>
+  <text x="757" y="310" text-anchor="middle" class="tt">IAM instance role</text>
+  <text x="757" y="327" text-anchor="middle" class="ts">acceso S3 least-priv (IMDSv2)</text>
+
+  <!-- edges -->
+  <path class="edge" d="M460,86 V176"/>
+  <rect x="486" y="118" width="92" height="18" rx="4" fill="#0f1622"/>
+  <text x="532" y="131" text-anchor="middle" class="el" fill="#cdd9e5">HTTPS :443</text>
+
+  <path class="edge" d="M460,226 V312"/>
+
+  <path class="edge" d="M209,362 V384"/>
+  <rect x="186" y="366" width="46" height="16" rx="3" fill="#0f1622"/>
+  <text x="209" y="378" text-anchor="middle" class="el" fill="#cdd9e5">resto</text>
+
+  <path class="edge" d="M439,362 V384"/>
+  <rect x="414" y="366" width="50" height="16" rx="3" fill="#0f1622"/>
+  <text x="439" y="378" text-anchor="middle" class="el" fill="#cdd9e5">/api/*</text>
+
+  <path class="edge" d="M314,417 H334"/>
+  <rect x="300" y="396" width="34" height="16" rx="3" fill="#0f1622"/>
+  <text x="317" y="408" text-anchor="middle" class="el" fill="#cdd9e5">SSR</text>
+
+  <path class="edge" d="M439,494 V512"/>
+  <rect x="446" y="495" width="96" height="16" rx="3" fill="#0f1622"/>
+  <text x="494" y="507" text-anchor="middle" class="el" fill="#cdd9e5">DATABASE_URL</text>
+
+  <!-- backend -> S3 -->
+  <path class="edge" d="M544,408 H614 V206 H640"/>
+  <rect x="556" y="384" width="118" height="16" rx="3" fill="#0f1622"/>
+  <text x="615" y="396" text-anchor="middle" class="el" fill="#cdd9e5">AWS SDK (sin llaves)</text>
+
+  <!-- IAM -> backend (grant) -->
+  <path class="edged" d="M640,322 H596 V452 H544"/>
+  <rect x="556" y="444" width="74" height="16" rx="3" fill="#0f1622"/>
+  <text x="593" y="456" text-anchor="middle" class="el" fill="#cdd9e5">asume rol</text>
+
+  <!-- legend -->
+  <g transform="translate(40,624)">
+    <rect x="0" y="-10" width="14" height="14" rx="3" fill="#ED7100"/><text x="20" y="1" class="muted">Cómputo</text>
+    <rect x="96" y="-10" width="14" height="14" rx="3" fill="#8C4FFF"/><text x="116" y="1" class="muted">Red / proxy</text>
+    <rect x="210" y="-10" width="14" height="14" rx="3" fill="#3FA037"/><text x="230" y="1" class="muted">Almacenamiento</text>
+    <rect x="356" y="-10" width="14" height="14" rx="3" fill="#2E73B8"/><text x="376" y="1" class="muted">Base de datos</text>
+    <rect x="476" y="-10" width="14" height="14" rx="3" fill="#DD344C"/><text x="496" y="1" class="muted">Seguridad / IAM</text>
+  </g>
+</svg>

@@ -237,6 +237,9 @@ if "${AWS[@]}" ec2 describe-key-pairs --key-names "$KEY_NAME" >/dev/null 2>&1; t
 	fi
 else
 	log "Creando key pair ${KEY_NAME} → ${KEY_FILE}..."
+	# Un .pem viejo (de un ciclo anterior) suele estar en modo 400 (solo lectura):
+	# quítalo antes para no fallar al re-escribir la nueva clave.
+	rm -f "$KEY_FILE"
 	"${AWS[@]}" ec2 create-key-pair --key-name "$KEY_NAME" \
 		--tag-specifications "ResourceType=key-pair,Tags=[{Key=Project,Value=${PROJECT}}]" \
 		--query 'KeyMaterial' > "$KEY_FILE"

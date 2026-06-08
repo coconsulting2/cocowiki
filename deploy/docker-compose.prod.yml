@@ -28,6 +28,9 @@ services:
       # lo fija al host público. Un valor vacío rompe el parseo de Caddy (lee el
       # bloque como "global options") y sin host `tls internal` no puede emitir cert.
       SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS requerido (IP/DNS público o dominio)}
+      # Dirección extra a servir también (p.ej. la IP elástica, para entrar sin
+      # el subdominio). Vacía/ausente => Caddy cae a `localhost` (inocuo).
+      SITE_ALT_ADDRESS: ${SITE_ALT_ADDRESS:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

@@ -297,6 +297,18 @@ configure_env() {
 	# genera uno auto-firmado para este host; con dominio real haría ACME.
 	set_env SITE_ADDRESS        "$pub_host"
 
+	# IP pública (IMDSv2) para servirla TAMBIÉN en Caddy → entrar por IP sin el
+	# subdominio. Si no se detecta, `localhost` (inocuo).
+	local pub_ip imds_token
+	imds_token="$(curl -fsS -X PUT "http://169.254.169.254/latest/api/token" \
+		-H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || true)"
+	pub_ip="${SITE_ALT_ADDRESS:-}"
+	if [ -z "$pub_ip" ] && [ -n "$imds_token" ]; then
+		pub_ip="$(curl -fsS -H "X-aws-ec2-metadata-token: $imds_token" \
+			"http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null || true)"
+	fi
+	set_env SITE_ALT_ADDRESS "${pub_ip:-localhost}"
+
 	# --- S3 ---
 	local aws_region aws_bucket
 	aws_region="$(ask AWS_REGION "AWS_REGION [us-east-1]: " us-east-1)"

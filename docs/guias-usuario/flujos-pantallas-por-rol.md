@@ -90,32 +90,32 @@ Columnas: **Sol** = Solicitante · **AV** = Agencia de viajes · **CPP** = Cuent
 
 | Ruta | Sol | AV | CPP | N1 | N2 | Adm | Ditta |
 |------|:---:|:--:|:---:|:--:|:--:|:---:|:-----:|
-| `/dashboard` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `/perfil-usuario` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `/crear-solicitud` | ✓ |  |  | ✓ | ✓ |  |  |
-| `/historial` | ✓ |  |  | ✓ | ✓ |  |  |
-| `/reembolso` | ✓ |  |  | ✓ | ✓ |  |  |
-| `/solicitudes-draft` | ✓ |  |  | ✓ | ✓ |  |  |
-| `/comprobar-gastos` | ✓ |  | ✓ | ✓ | ✓ |  |  |
-| `/solicitudes-autorizador` |  |  |  | ✓ | ✓ |  |  |
-| `/autorizaciones` · `/aprobaciones` |  |  |  | ✓ | ✓ |  |  |
-| `/atenciones` |  | ✓ |  |  |  |  |  |
-| `/todas-las-solicitudes` |  |  | ✓ |  |  |  |  |
-| `/cotizaciones` |  |  | ✓ |  |  |  |  |
-| `/comprobaciones` |  |  | ✓ |  |  |  |  |
-| `/exportar-contable` |  |  | ✓ |  |  |  |  |
-| `/reportes/gastos-por-centro` |  |  | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `/crear-usuario` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/expense-policies` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/employee-categories` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/refund-time-limits` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/organizations` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/onboarding-import` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/catalogo-contable` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/indicadores-impuesto` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/mapeo-gastos` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/api-keys` |  |  |  |  |  | ✓ | ✓ |
-| `/admin/workflow-rules` |  |  |  |  |  | ✓ |  |
+| `/dashboard` | | | | | | | |
+| `/perfil-usuario` | | | | | | | |
+| `/crear-solicitud` | | | | | | | |
+| `/historial` | | | | | | | |
+| `/reembolso` | | | | | | | |
+| `/solicitudes-draft` | | | | | | | |
+| `/comprobar-gastos` | | | | | | | |
+| `/solicitudes-autorizador` | | | | | | | |
+| `/autorizaciones` · `/aprobaciones` | | | | | | | |
+| `/atenciones` | | | | | | | |
+| `/todas-las-solicitudes` | | | | | | | |
+| `/cotizaciones` | | | | | | | |
+| `/comprobaciones` | | | | | | | |
+| `/exportar-contable` | | | | | | | |
+| `/reportes/gastos-por-centro` | | | | | | | |
+| `/crear-usuario` | | | | | | | |
+| `/admin/expense-policies` | | | | | | | |
+| `/admin/employee-categories` | | | | | | | |
+| `/admin/refund-time-limits` | | | | | | | |
+| `/admin/organizations` | | | | | | | |
+| `/admin/onboarding-import` | | | | | | | |
+| `/admin/catalogo-contable` | | | | | | | |
+| `/admin/indicadores-impuesto` | | | | | | | |
+| `/admin/mapeo-gastos` | | | | | | | |
+| `/admin/api-keys` | | | | | | | |
+| `/admin/workflow-rules` | | | | | | | |
 
 > Las rutas de detalle dinámicas (`/detalles-solicitud/[id]`, `/editar-solicitud/[id]`, `/autorizar-solicitud/[id]`, `/comprobar-solicitud/[id]`, `/atender-solicitud/[id]`, `/cotizar-solicitud/[id]`, `/subir-comprobante/[id]`, `/resubir-comprobante/[id]`) heredan el mismo gating por rol que su flujo correspondiente.
 >

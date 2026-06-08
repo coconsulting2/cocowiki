@@ -239,7 +239,7 @@ Cada equipo tiene un **Owner** (responsable técnico de su área) y un **Lead** 
 
 ---
 
-#### 🔧 Backend
+#### Backend
 
 | Rol | Responsabilidad |
 |-----|-----------------|
@@ -251,7 +251,7 @@ Cada equipo tiene un **Owner** (responsable técnico de su área) y un **Lead** 
 
 ---
 
-#### 🎨 Frontend
+#### Frontend
 
 | Rol | Responsabilidad |
 |-----|-----------------|
@@ -263,7 +263,7 @@ Cada equipo tiene un **Owner** (responsable técnico de su área) y un **Lead** 
 
 ---
 
-#### 🧪 QA / Testing
+#### QA / Testing
 
 | Rol | Responsabilidad |
 |-----|-----------------|
@@ -275,7 +275,7 @@ Cada equipo tiene un **Owner** (responsable técnico de su área) y un **Lead** 
 
 ---
 
-#### 📝 Docs
+#### Docs
 
 | Rol | Responsabilidad |
 |-----|-----------------|

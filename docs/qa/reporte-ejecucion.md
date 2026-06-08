@@ -14,14 +14,14 @@
 
 | Indicador | Resultado | Meta | Veredicto |
 |---|---|---|---|
-| Cobertura backend (stmts/lines) | **93.1%** | 80% | ✅ Supera |
-| Cobertura frontend (stmts/lines) | **87.75%** / **90.28%** (2026-06-02) | 70% | ✅ Supera |
-| Suite backend (Jest) | **430/431** (1 skip, 0 fallos) con stack arriba | — | ✅ |
-| Newman M2-Authorization | **46/46** assertions (100%) | — | ✅ Corregido en PR #99 (run original 42/46) |
-| Newman M3-Integration | **29/29** assertions (100%) | — | ✅ |
-| Cypress TI-001 (cross-module) | **3/5** specs verdes | — | ✅ F3/F4/F5 verdes; F1/F2 desbloqueados tras PR #96 (F1 resuelto), re-ejecución pendiente de merge |
-| Casos manuales M1 | **210/210** | — | ✅ |
-| Defectos (log formal) | **9** total · **5 abiertos** / **4 resueltos-cerrados** | — | ✅ 0 Crítica/Alta de producto abierta |
+| Cobertura backend (stmts/lines) | **93.1%** | 80% | Supera |
+| Cobertura frontend (stmts/lines) | **87.75%** / **90.28%** (2026-06-02) | 70% | Supera |
+| Suite backend (Jest) | **430/431** (1 skip, 0 fallos) con stack arriba | — | |
+| Newman M2-Authorization | **46/46** assertions (100%) | — | Corregido en PR #99 (run original 42/46) |
+| Newman M3-Integration | **29/29** assertions (100%) | — | |
+| Cypress TI-001 (cross-module) | **3/5** specs verdes | — | F3/F4/F5 verdes; F1/F2 desbloqueados tras PR #96 (F1 resuelto), re-ejecución pendiente de merge |
+| Casos manuales M1 | **210/210** | — | |
+| Defectos (log formal) | **9** total · **5 abiertos** / **4 resueltos-cerrados** | — | 0 Crítica/Alta de producto abierta |
 
 > La cobertura y el conteo de tests provienen de la medición real del 2026-06-02 documentada en
 > [`testing.md` §1](testing.md). El frontend **superó la meta de 70%** tras ampliar las pruebas de
@@ -42,13 +42,13 @@ regresiones**. Detalle e inventario por carpeta en [`testing.md`](testing.md).
 
 | Suite | Cubre | Resultado | Evidencia |
 |---|---|---|---|
-| `apiKeys.e2e.test.js` | Ciclo de vida de API Keys (M3) | **2/2** ✅ | `tests/routes/apiKeys.e2e.test.js` (rama `test/qa/m3-qa2-api-keys-export`, pendiente de merge) |
-| `accountingExport.e2e.test.js` | Exportación contable + gate RBAC (M3) | **5/5** ✅ | `tests/services/accountingExport/accountingExport.e2e.test.js` |
-| `refundRules.e2e.test.js` | Reglas de reembolso, políticas, inbox (M2-006) | Pasa en aislamiento ⚠️ | Ver [BUG-M2-004](log-de-defectos.md) |
+| `apiKeys.e2e.test.js` | Ciclo de vida de API Keys (M3) | **2/2** | `tests/routes/apiKeys.e2e.test.js` (rama `test/qa/m3-qa2-api-keys-export`, pendiente de merge) |
+| `accountingExport.e2e.test.js` | Exportación contable + gate RBAC (M3) | **5/5** | `tests/services/accountingExport/accountingExport.e2e.test.js` |
+| `refundRules.e2e.test.js` | Reglas de reembolso, políticas, inbox (M2-006) | Pasa en aislamiento | Ver [BUG-M2-004](log-de-defectos.md) |
 | `verification-cfdi.e2e.test.js` | Verificación CFDI con mock SAT (M1) | Realizado | Ver §4 (matriz CFDI) |
 | `exchangeRate.e2e.test.js` | Tipo de cambio Banxico/BER (M1) | Realizado | Ver §4 (matriz BER) |
 
-> ⚠️ **`refundRules.e2e.test.js`** ejecuta `TRUNCATE … RESTART IDENTITY CASCADE` en su ciclo de
+> **`refundRules.e2e.test.js`** ejecuta `TRUNCATE … RESTART IDENTITY CASCADE` en su ciclo de
 > vida y **destruye el seed CocoUAT**, bloqueando cualquier flujo posterior basado en login HTTP.
 > Es deuda de **proceso de pruebas** (aislamiento de BD), no de producto. Ver [BUG-M2-004](log-de-defectos.md).
 
@@ -79,13 +79,13 @@ Cobertura por criterio de aceptación (API Keys + exportación contable, M3):
 
 | Criterio | Resultado | Evidencia |
 |---|---|---|
-| Ciclo de vida API Key (generar → consumir → logs → revocar → 401) | ✅ OK | Folder Postman "API Keys lifecycle" + `apiKeys.e2e.test.js` |
-| Listar / auditar API Keys por organización | ✅ OK | `GET /api/keys/org/:orgId`, `GET /api/keys/:id/logs` |
-| Export contable JSON/XML (`/api/export/contable`) | ✅ OK | Folder "Export contable" + `export.e2e.test.js` |
-| Gate `requireAuth(["Cuentas por pagar"])` (admin → 403) | ✅ OK | Postman + `export.e2e.test.js` |
-| Re-export con `status=Sincronizado` | ✅ OK | `export.e2e.test.js` |
-| External export con `X-API-Key` (key revocada → 401) | ✅ OK | Folder "External export" |
-| **Catálogo contable CRUD por organización** | ✅ 5/5 e2e | Nueva API `/api/chart-of-accounts` (PR #97); [BUG-M3-001](log-de-defectos.md) resuelto, cierra US-24 |
+| Ciclo de vida API Key (generar → consumir → logs → revocar → 401) | OK | Folder Postman "API Keys lifecycle" + `apiKeys.e2e.test.js` |
+| Listar / auditar API Keys por organización | OK | `GET /api/keys/org/:orgId`, `GET /api/keys/:id/logs` |
+| Export contable JSON/XML (`/api/export/contable`) | OK | Folder "Export contable" + `export.e2e.test.js` |
+| Gate `requireAuth(["Cuentas por pagar"])` (admin → 403) | OK | Postman + `export.e2e.test.js` |
+| Re-export con `status=Sincronizado` | OK | `export.e2e.test.js` |
+| External export con `X-API-Key` (key revocada → 401) | OK | Folder "External export" |
+| **Catálogo contable CRUD por organización** | 5/5 e2e | Nueva API `/api/chart-of-accounts` (PR #97); [BUG-M3-001](log-de-defectos.md) resuelto, cierra US-24 |
 
 > **Resuelto (2026-06-02):** se expuso el CRUD del catálogo contable como API REST
 > `/api/chart-of-accounts` (servicio, controlador y rutas) bajo permisos `accounting_catalog:read|write`,
@@ -126,11 +126,11 @@ Evidencia: [`evidencias/cypress/TI-001-2026-05-27-summary.md`](evidencias/cypres
 
 | Spec | Resultado |
 |---|---|
-| F1 — Admin Ditta crea organización | ⚠️→✅ Bug de producto **resuelto** (PR #96); desbloqueado |
-| F2 — Impersonación de la org nueva | ⚠️→✅ Dependía de F1; **desbloqueado** tras PR #96 |
-| F3 — Sync de empleados consultable | ✅ |
-| F4 — Solicitante crea solicitud + parsea CFDI | ✅ |
-| F5 — N1 aprueba → N2 finaliza → CxP consulta export | ✅ |
+| F1 — Admin Ditta crea organización | → Bug de producto **resuelto** (PR #96); desbloqueado |
+| F2 — Impersonación de la org nueva | → Dependía de F1; **desbloqueado** tras PR #96 |
+| F3 — Sync de empleados consultable | |
+| F4 — Solicitante crea solicitud + parsea CFDI | |
+| F5 — N1 aprueba → N2 finaliza → CxP consulta export | |
 
 > **F1 fue un defecto de producto crítico, ya RESUELTO (PR backend #96):** `POST /api/organizations`
 > devolvía 500 porque la cadena de bootstrap recibía la instancia global de Prisma en lugar del cliente
@@ -142,7 +142,7 @@ Evidencia: [`evidencias/cypress/TI-001-2026-05-27-summary.md`](evidencias/cypres
 
 ### 5.2 Suite Cypress + Vitest
 
-262 tests Vitest ✅ (24 archivos) y 16 specs Cypress catalogados en [`testing.md` §4](testing.md). El frontend CI
+262 tests Vitest (24 archivos) y 16 specs Cypress catalogados en [`testing.md` §4](testing.md). El frontend CI
 **hoy no ejecuta Vitest/Cypress** (solo typecheck/build/audit) — ver §7.
 
 ---
@@ -185,8 +185,8 @@ Los dos defectos de seguimiento posteriores al corte M2 ya están **resueltos**:
 
 | ID | Severidad | Descripción | Estado |
 |---|---|---|---|
-| **F1** (producto) | **Crítica** | `POST /api/organizations` → 500 (cliente Prisma global fuera de la tx de bootstrap → roles fuera de RLS) | ✅ **Resuelto** (PR backend #96); restablece onboarding |
-| **BUG-M3-001** | Media | Catálogo contable sin CRUD expuesto por API | ✅ **Resuelto** (PR backend #97, API `/api/chart-of-accounts`, 5/5 e2e, cierra US-24) |
+| **F1** (producto) | **Crítica** | `POST /api/organizations` → 500 (cliente Prisma global fuera de la tx de bootstrap → roles fuera de RLS) | **Resuelto** (PR backend #96); restablece onboarding |
+| **BUG-M3-001** | Media | Catálogo contable sin CRUD expuesto por API | **Resuelto** (PR backend #97, API `/api/chart-of-accounts`, 5/5 e2e, cierra US-24) |
 
 ### 7.3 Deuda de proceso (no son defectos de producto)
 

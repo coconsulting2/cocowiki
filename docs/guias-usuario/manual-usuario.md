@@ -1,10 +1,10 @@
 # Manual de Usuario — CocoAPI
 
-| Metadato                 | Valor                     |
+| Metadato | Valor |
 | ------------------------ | ------------------------- |
-| **Versión del documento** | 1.0.1                    |
-| **Última actualización**  | 2026-06-02               |
-| **Audiencia**             | Usuarios finales del sistema (todos los roles excepto Admin Ditta) |
+| **Versión del documento** | 1.0.1 |
+| **Última actualización** | 2026-06-02 |
+| **Audiencia** | Usuarios finales del sistema (todos los roles excepto Admin Ditta) |
 
 ---
 
@@ -175,7 +175,7 @@ Solo es posible editar una solicitud si su estado es **"Primera Revisión"**.
 ### 3.4 Cancelar una solicitud
 
 1. En su Dashboard, identifique la solicitud que desea cancelar.
-2. Haga clic en el ícono de eliminar (🗑️) junto a la solicitud.
+2. Haga clic en el ícono de eliminar () junto a la solicitud.
 3. Confirme la cancelación en la ventana de diálogo.
 
 > **Importante:** No es posible cancelar solicitudes que se encuentren en los estados *"Comprobación gastos del viaje"* o *"Validación de comprobantes"*.

@@ -13,8 +13,8 @@ CocoAPI cuenta con una base de pruebas automatizadas distribuida en dos reposito
 
 | Capa | Stmts | Branch | Funcs | Lines | Tests | Meta (Plan) |
 |---|---:|---:|---:|---:|---|---:|
-| Backend | **93.1%** | 87.8% | 94.11% | **93.1%** | 431 (430 ✅, 1 skip, 0 ✗\*) · 47 suites | 80% |
-| Frontend | **87.75%** | 82.73% | 88.69% | **90.28%** | 262 ✅ · 24 archivos | 70% |
+| Backend | **93.1%** | 87.8% | 94.11% | **93.1%** | 431 (430 , 1 skip, 0 \*) · 47 suites | 80% |
+| Frontend | **87.75%** | 82.73% | 88.69% | **90.28%** | 262 · 24 archivos | 70% |
 
 \* **Backend:** corrida **verde con el stack Docker levantado** (`docker compose up postgres mongo localstack` + `prisma db push` + seed) — verificada 2026-06-02: **430/431 pasan** (1 skip), **0 fallos**, cobertura 93.1% (**supera** la meta de 80%). Sin el stack, 2 suites de integración (`requestCommentController.test.js`, `cfdiComprobantes.test.js`, ~15 casos) no conectan a Postgres (`PrismaClientInitializationError`); **no son regresiones**, es dependencia del entorno de pruebas.
 

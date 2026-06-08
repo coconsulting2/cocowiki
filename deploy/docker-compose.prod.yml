@@ -57,6 +57,11 @@ services:
       # Cifrado de comentarios/chat (requerido en producción): 64 hex chars c/u.
       CHAT_CURSOR_SECRET: ${CHAT_CURSOR_SECRET:?CHAT_CURSOR_SECRET requerido (64 hex chars)}
       CHAT_MESSAGE_SECRET: ${CHAT_MESSAGE_SECRET:?CHAT_MESSAGE_SECRET requerido (64 hex chars)}
+      # El frontend (Astro SSR) llama al backend DESDE el contenedor, con una IP
+      # distinta a la del navegador donde se hizo login. El JWT está ligado a la
+      # IP de emisión, así que sin esto las páginas SSR autenticadas (p. ej. el
+      # panel de admin) fallan con TOKEN_MISMATCH. Requerido en este modelo SSR.
+      JWT_SKIP_IP_CHECK: ${JWT_SKIP_IP_CHECK:-true}
       # S3 / almacenamiento. En EC2 las credenciales las provee el IAM
       # instance role automáticamente; AWS_ACCESS_KEY_ID/SECRET solo se pasan
       # si están definidas en .env (uso local fuera de EC2).

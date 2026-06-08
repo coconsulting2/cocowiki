@@ -485,6 +485,12 @@ Las siguientes funcionalidades existen como componentes en el sistema pero **no 
 
 ## 9. Referencia rápida
 
+### Llaves API
+
+Desde **LLAVES API** (`/admin/api-keys`) puedes generar, listar y revocar claves por organización. Cada clave lleva un `scope` con permisos (p. ej. `accounting:export`) y una fecha de expiración; el secreto `cck_...` se muestra **una sola vez** al crearla. El sistema ERP del cliente usa ese secreto en la cabecera `X-API-Key` para consumir pólizas en `/api/external/*`.
+
+Guía técnica completa (endpoints, ejemplos `curl`, formato de pólizas): [API integración ERP](../desarrollo/api-integracion-erp.md).
+
 ### Atajos de navegación
 
 | Acción | Ruta |

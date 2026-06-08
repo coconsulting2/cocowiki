@@ -207,7 +207,7 @@ Todos los prefijos están montados en [app.js](../../../TC3005B.501-Backend/app.
 | `/api/employee-categories` | Categorías de empleado que parametrizan las políticas. |
 | `/api/refunds` | Reembolsos evaluados contra el motor de políticas. |
 | `/api/keys` | API keys por organización (panel admin). |
-| `/api/external` | Endpoints externos para integraciones ERP (autenticación por `X-API-Key`, exento de CSRF). |
+| `/api/external` | Endpoints externos para integraciones ERP (autenticación por `X-API-Key`, exento de CSRF). Ver [API integración ERP](../desarrollo/api-integracion-erp.md). |
 | `/api/organizations` | Multi-tenant: gestión de organizaciones (crear/listar solo Ditta; cada admin lee/edita la propia). |
 | `/api/onboarding/import` | Importación masiva de usuarios en el onboarding (JSON/CSV, patrón strategy). |
 | `/api/export` | Exportación contable al ERP (pólizas AV/GV). |

@@ -335,6 +335,8 @@ El backend incluye documentación interactiva de la API con Swagger UI.
 
 > [!NOTE]
 > La documentación usa `swagger-ui-express` con el título "CocoAPI Docs" y sirve el archivo consolidado `openapi/swagger.yaml`. La configuración se encuentra en `app.js`.
+>
+> Swagger documenta la **administración** de API keys (`/api/keys/*`). El **consumo ERP** (`/api/external/*`) no está en OpenAPI; ver [API integración ERP](../desarrollo/api-integracion-erp.md).
 
 ---
 

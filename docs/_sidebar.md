@@ -20,6 +20,7 @@
   * [Estilo de Código y Documentación](desarrollo/estilo-codigo-documentacion.md "Estilo de Codigo y Documentacion")
   * [Estilo de código — Frontend](desarrollo/estilo-codigo-frontend.md "Convenciones del frontend: aliases, componentes, API y testing")
   * [Validación CFDI / SAT](desarrollo/documentacion-api-sat.md "Consulta de estado de CFDI ante el SAT")
+  * [API integración ERP](desarrollo/api-integracion-erp.md "API Key + export contable M2M para sistemas ERP")
   * [Changelog de errores resueltos](desarrollo/changelog-errores-resueltos.md "Seguimiento de incidencias corregidas")
 * **QA y pruebas**
   * [Documentación integral de tests](qa/testing.md "Documentacion Pruebas del sistema")

@@ -3,6 +3,8 @@
   * [Setup con Docker](getting-started/setup-docker.md "Backend + Frontend con Docker y Bun")
   * [Setup Backend](getting-started/setup-backend.md "Guía de instalación del Backend")
   * [Setup Frontend](getting-started/setup-frontend.md "Guía de instalación del Frontend")
+* **Despliegue**
+  * [Despliegue en AWS](getting-started/deploy-aws.md "Producción en EC2 con Docker Compose, Caddy TLS y S3")
 * **Arquitectura**
   * [Modelo ER](arquitectura-datos/modelo-er.md "PostgreSQL / Prisma")
   * [Flujos y pantallas](arquitectura-datos/flujos.md "Capas, roles, API, estados")

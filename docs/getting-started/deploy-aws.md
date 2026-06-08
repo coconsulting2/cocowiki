@@ -35,10 +35,10 @@ contenedores con Docker Compose. Solo Caddy se expone a Internet (80/443).
 
 ![Arquitectura del despliegue — un solo EC2](./images/arquitectura-actual.svg)
 
-> Este es el despliegue **actual** (un solo EC2, por presupuesto). El diagrama de
-> la arquitectura **recomendada para producción** (multi-AZ, Route 53/DNS, WAF,
-> CloudFront, RDS Multi-AZ, Secrets Manager, subnets privadas) y la comparativa
-> con specs están en **[Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md)**.
+> Este es el despliegue **actual** (un solo EC2, por el presupuesto del proyecto
+> ~\$56). Más abajo está la arquitectura **recomendada para producción**; la
+> comparativa completa y las fuentes citadas están en
+> **[Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md)**.
 
 - **caddy** termina TLS. Por defecto usa un certificado **auto-firmado**
   (`tls internal`, funciona con solo la IP/DNS de EC2). Enruta `/api/*` al
@@ -49,6 +49,28 @@ contenedores con Docker Compose. Solo Caddy se expone a Internet (80/443).
 - **postgres** es opcional (perfil `localdb`); puedes usar una BD externa.
 - **S3** guarda los archivos. El backend obtiene credenciales del **IAM
   instance role** de la EC2 — sin llaves estáticas.
+
+### Arquitectura recomendada para producción
+
+Lo de arriba es lo que cabe en el presupuesto del proyecto (~\$56) y por eso corre
+**todo co-locado en un solo EC2**. Para producción real (alta disponibilidad,
+DNS propio y seguridad) la arquitectura recomendada es **multi-AZ**:
+
+![Arquitectura recomendada — Multi-AZ, segura (producción)](./images/arquitectura-recomendada.svg)
+
+- **Borde (DNS + seguridad):** Route 53 (DNS + health checks) → CloudFront (CDN) →
+  **AWS WAF** (reglas L7), con TLS válido de **ACM**.
+- **Cómputo:** Application Load Balancer repartiendo entre **2 AZ**; apps en
+  **subnets privadas** (ECS Fargate o EC2 Auto Scaling Group).
+- **Datos:** **RDS PostgreSQL Multi-AZ** (primary + standby, failover automático) +
+  S3 privado servido vía CloudFront (OAC).
+- **Seguridad / operación:** Secrets Manager (rotación), IAM por tarea
+  (least-privilege), Security Groups por capa (ALB→App→RDS), CloudWatch.
+
+Qué queda **conscientemente pendiente** hoy por presupuesto: HA multi-AZ, BD
+gestionada con failover, DNS propio + TLS válido, WAF/seguridad perimetral y
+subnets privadas. Comparativa completa, specs y fuentes citadas en
+**[Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md)**.
 
 ---
 

@@ -67,6 +67,8 @@ services:
       # Migraciones + seed al arrancar (entrypoint del backend).
       RUN_MIGRATIONS: "true"
       SEED_DUMMY_DATA: ${SEED_DUMMY_DATA:-false}
+      # Password inicial del admin Ditta (seed.js). Si vacío, el seed usa su default.
+      DITTA_ADMIN_INITIAL_PASSWORD: ${DITTA_ADMIN_INITIAL_PASSWORD:-}
       # Integraciones opcionales (pasan solo si están definidas en .env).
       MAIL_USER: ${MAIL_USER:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}

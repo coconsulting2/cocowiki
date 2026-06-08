@@ -8,14 +8,22 @@
 #
 # Uso:
 #   curl -fsSL https://raw.githubusercontent.com/coconsulting2/cocowiki/main/deploy/install.sh -o install.sh
-#   bash install.sh
+#   bash install.sh [--seed=demo|admin|none] [--force-seed]
 #
-# Variables de entorno opcionales:
-#   COCO_HOME          directorio base (default /opt/coco)
-#   BRANCH_COCOWIKI    rama a clonar de cocowiki  (default: rama por defecto/main)
-#   BRANCH_BACKEND     rama a clonar del backend  (default: rama por defecto/main)
-#   BRANCH_FRONTEND    rama a clonar del frontend (default: rama por defecto/main)
-#   (usa las BRANCH_* para desplegar una PR antes de mergear; vacías = main)
+# Flags:
+#   --seed=demo   (default) reference + admin + TODOS los seeders demo
+#                 (seed.js dev + seed-usability.js + seed.demo.js)
+#   --seed=admin  solo reference + admin (sin datos demo/UAT)
+#   --seed=none   solo el esquema (sin datos; no habrá admin para login)
+#   --force-seed  re-corre los seeders demo aunque el .env ya exista (re-deploy)
+#
+# Variables de entorno (opcionales) — se escriben al .env si están presentes:
+#   COCO_HOME, BRANCH_COCOWIKI, BRANCH_BACKEND, BRANCH_FRONTEND
+#   Secretos/integraciones (si no se pasan quedan vacías y se pueden editar en
+#   el .env luego): MAIL_USER, MAIL_PASSWORD, MAIL_SMTP_HOST, MAIL_SMTP_PORT,
+#   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_MAILTO, BANXICO_API_KEY,
+#   DUFFEL_ACCESS_TOKEN, FLIGHT_PROVIDER, DITTA_ADMIN_INITIAL_PASSWORD,
+#   SCHEDULER_ENABLED. AES_SECRET_KEY/JWT_SECRET se autogeneran si van vacías.
 
 set -euo pipefail
 
@@ -32,6 +40,19 @@ BRANCH_BACKEND="${BRANCH_BACKEND:-}"
 BRANCH_FRONTEND="${BRANCH_FRONTEND:-}"
 DEPLOY_DIR="${COCO_HOME}/cocowiki/deploy"
 COMPOSE_FILE="docker-compose.prod.yml"
+
+# Integraciones opcionales que se propagan del entorno → .env (si vienen seteadas).
+OPTIONAL_ENV_KEYS=(
+	MAIL_USER MAIL_PASSWORD MAIL_SMTP_HOST MAIL_SMTP_PORT
+	VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_MAILTO
+	BANXICO_API_KEY DUFFEL_ACCESS_TOKEN FLIGHT_PROVIDER
+	DITTA_ADMIN_INITIAL_PASSWORD SCHEDULER_ENABLED
+)
+
+# Flags (se parsean en main).
+SEED_MODE="demo"        # demo | admin | none
+FORCE_SEED="false"
+FRESH_INSTALL="false"   # true cuando configure_env crea el .env por primera vez
 
 log()  { printf '\033[1;34m[install]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[install]\033[0m %s\n' "$*" >&2; }
@@ -139,7 +160,8 @@ clone_or_pull() {
 			git -C "$dir" fetch --depth 1 origin "$branch"
 			git -C "$dir" checkout -B "$branch" FETCH_HEAD
 		else
-			git -C "$dir" pull --ff-only
+			git -C "$dir" fetch --depth 1 origin HEAD
+			git -C "$dir" checkout -B main FETCH_HEAD
 		fi
 	else
 		log "Clonando $(basename "$dir")${branch:+ (rama ${branch})}..."
@@ -181,7 +203,6 @@ set_env() {
 	local key="$1" val="$2" file="${DEPLOY_DIR}/.env" tmp
 	tmp="$(mktemp)"
 	if grep -qE "^${key}=" "$file" 2>/dev/null; then
-		# Reemplaza línea existente preservando el resto.
 		while IFS= read -r line || [ -n "$line" ]; do
 			if [[ "$line" == "${key}="* ]]; then
 				printf '%s=%s\n' "$key" "$val"
@@ -218,6 +239,7 @@ configure_env() {
 		log ".env ya existe en ${DEPLOY_DIR} — se conservan los valores actuales."
 		return
 	fi
+	FRESH_INSTALL="true"
 	log "Generando .env interactivo en ${DEPLOY_DIR}..."
 	cp "${DEPLOY_DIR}/.env.example" "$file"
 
@@ -272,48 +294,58 @@ configure_env() {
 	set_env AWS_REGION    "$aws_region"
 	set_env AWS_S3_BUCKET "$aws_bucket"
 
-	# --- Secretos ---
+	# --- Secretos (autogenerados criptográficamente con openssl rand) ---
+	# Se generan SIEMPRE si no se proveen por entorno y se persisten en el .env
+	# (chmod 600) para que sobrevivan reinicios/redeploys.
 	local aes jwt
-	read -rp "AES_SECRET_KEY (32 chars; vacío = autogenerar): " aes
+	aes="${AES_SECRET_KEY:-}"
 	if [ -z "$aes" ]; then
-		aes="$(openssl rand -hex 16)"  # 32 chars hex
-		log "AES_SECRET_KEY autogenerado (32 chars)."
+		aes="$(openssl rand -hex 16)"  # 16 bytes => 32 chars hex (requerido: 32)
+		log "AES_SECRET_KEY autogenerado (cripto, 32 chars)."
 	fi
 	set_env AES_SECRET_KEY "$aes"
 
-	read -rp "JWT_SECRET (vacío = autogenerar): " jwt
+	jwt="${JWT_SECRET:-}"
 	if [ -z "$jwt" ]; then
-		jwt="$(openssl rand -base64 48 | tr -d '\n')"
-		log "JWT_SECRET autogenerado."
+		jwt="$(openssl rand -base64 48 | tr -d '\n')"  # 48 bytes aleatorios
+		log "JWT_SECRET autogenerado (cripto)."
 	fi
 	set_env JWT_SECRET "$jwt"
 
-	# Secretos de cifrado de comentarios/chat: 64 hex chars (32 bytes) c/u.
-	# Requeridos en producción; se auto-generan siempre (sin prompt).
-	set_env CHAT_CURSOR_SECRET  "$(openssl rand -hex 32)"
-	set_env CHAT_MESSAGE_SECRET "$(openssl rand -hex 32)"
-	log "CHAT_CURSOR_SECRET y CHAT_MESSAGE_SECRET autogenerados (64 hex)."
+	# Cifrado de comentarios/chat: 64 hex chars (32 bytes) c/u. Requeridos en prod.
+	set_env CHAT_CURSOR_SECRET  "${CHAT_CURSOR_SECRET:-$(openssl rand -hex 32)}"
+	set_env CHAT_MESSAGE_SECRET "${CHAT_MESSAGE_SECRET:-$(openssl rand -hex 32)}"
+	log "CHAT_CURSOR_SECRET y CHAT_MESSAGE_SECRET autogenerados (cripto, 64 hex)."
 
-	# --- Seed ---
-	local seed ans
-	read -rp "¿Sembrar datos demo? (y/N): " ans
-	case "$ans" in
-		[yY]*) seed="true" ;;
-		*)     seed="false" ;;
+	# --- Integraciones opcionales: se toman del entorno si vienen seteadas ---
+	local k
+	for k in "${OPTIONAL_ENV_KEYS[@]}"; do
+		if [ -n "${!k:-}" ]; then
+			set_env "$k" "${!k}"
+			log "Integración ${k} tomada del entorno."
+		fi
+	done
+
+	# --- Seeding según modo ---
+	# SEED_DUMMY_DATA controla el seed base (reference + admin) en el entrypoint
+	# del backend. Los seeders demo (usability + demo) corren post-up.
+	case "$SEED_MODE" in
+		none) set_env SEED_DUMMY_DATA "false"; set_env SEED_DEMO "false" ;;
+		admin) set_env SEED_DUMMY_DATA "true"; set_env SEED_DEMO "false" ;;
+		demo|*) set_env SEED_DUMMY_DATA "true"; set_env SEED_DEMO "true" ;;
 	esac
-	set_env SEED_DUMMY_DATA "$seed"
 
 	chmod 600 "$file"
-	log ".env generado."
+	log ".env generado (chmod 600)."
 }
 
 # ──────────────────────────────────────────────────────────────────────────
 # 5/6. Perfil de Postgres + build + up
 # ──────────────────────────────────────────────────────────────────────────
+env_get() { grep -E "^$1=" "${DEPLOY_DIR}/.env" 2>/dev/null | head -n1 | cut -d= -f2-; }
+
 db_uses_localdb() {
-	local host
-	host="$(grep -E '^POSTGRES_HOST=' "${DEPLOY_DIR}/.env" | head -n1 | cut -d= -f2-)"
-	case "${host:-}" in
+	case "$(env_get POSTGRES_HOST)" in
 		postgres|localhost|127.0.0.1|"") return 0 ;;
 		*) return 1 ;;
 	esac
@@ -344,13 +376,50 @@ build_and_up() {
 }
 
 # ──────────────────────────────────────────────────────────────────────────
+# 6.5. Seeders demo (todos): usability + demo. El base (seed.js dev) lo hace
+#      el entrypoint del backend cuando SEED_DUMMY_DATA=true.
+# ──────────────────────────────────────────────────────────────────────────
+wait_backend_healthy() {
+	local i
+	for i in $(seq 1 36); do
+		if [ "$(sudo docker inspect -f '{{.State.Health.Status}}' coco-backend-1 2>/dev/null || echo none)" = "healthy" ]; then
+			return 0
+		fi
+		sleep 5
+	done
+	return 1
+}
+
+maybe_seed_demo() {
+	cd "$DEPLOY_DIR"
+	if [ "$(env_get SEED_DEMO)" != "true" ]; then
+		log "Seeding demo desactivado (modo ${SEED_MODE}) — solo reference + admin."
+		return
+	fi
+	# Por defecto los seeders demo solo corren en la instalación inicial; en
+	# re-deploys (CI/CD) se omiten salvo --force-seed, para no resetear datos.
+	if [ "$FRESH_INSTALL" != "true" ] && [ "$FORCE_SEED" != "true" ]; then
+		log "Seeders demo omitidos (no es instalación inicial; usa --force-seed para forzar)."
+		return
+	fi
+	log "Esperando a que el backend esté saludable para sembrar datos demo..."
+	wait_backend_healthy || { warn "Backend no saludable a tiempo; omito seeders demo (puedes correrlos luego)."; return; }
+	log "Sembrando datos demo (TODOS los seeders): seed-usability.js + seed.demo.js ..."
+	# seed.js dev ya corrió en el entrypoint (reference + admin + orgs cliente).
+	dc exec -T backend node prisma/seed-usability.js || warn "seed-usability.js terminó con avisos."
+	dc exec -T backend node prisma/seed.demo.js       || warn "seed.demo.js terminó con avisos."
+	log "Seeders demo completados."
+}
+
+# ──────────────────────────────────────────────────────────────────────────
 # 7. Health + resumen
 # ──────────────────────────────────────────────────────────────────────────
 wait_health() {
-	local i pub_host
-	log "Esperando a que el origen responda en https://localhost/ ..."
+	local i host
+	host="$(env_get PUBLIC_HOST)"
+	log "Esperando a que el origen responda en https://${host}/ ..."
 	for i in $(seq 1 30); do
-		if curl -fsSk -o /dev/null "https://localhost/"; then
+		if curl -fsSk -o /dev/null "https://${host}/" 2>/dev/null || curl -fsSk -o /dev/null "https://localhost/" 2>/dev/null; then
 			log "Origen arriba."
 			break
 		fi
@@ -360,23 +429,23 @@ wait_health() {
 	cd "$DEPLOY_DIR"
 	dc ps || true
 
-	pub_host="$(grep -E '^PUBLIC_HOST=' "${DEPLOY_DIR}/.env" | head -n1 | cut -d= -f2-)"
 	cat <<EOF
 
 ──────────────────────────────────────────────────────────────────────────
  Stack coco desplegado.
 
-   URL:  https://${pub_host}
+   URL:  https://${host}
 
  NOTA TLS: por defecto el certificado es AUTO-FIRMADO (Caddy internal). El
  navegador mostrará una advertencia — acéptala (click-through) para entrar.
- Para TLS válido: define un dominio real en ${DEPLOY_DIR}/.env
-   SITE_ADDRESS=tudominio.com
- apunta su DNS a la IP elástica, comenta 'tls internal' en deploy/Caddyfile
- y vuelve a ejecutar este script (Caddy emite Let's Encrypt automáticamente).
+ Para TLS válido: define un dominio real (SITE_ADDRESS) en ${DEPLOY_DIR}/.env,
+ apunta su DNS a la IP elástica y vuelve a ejecutar este script.
 
- Datos demo: si elegiste sembrar, revisa los seeds del backend para las
- credenciales de prueba (prisma/seed*.js).
+ Seeding (modo ${SEED_MODE}):
+   - admin Ditta:  admin_ditta / \${DITTA_ADMIN_INITIAL_PASSWORD:-Ditta!Admin#2026}
+   - demo UAT:     angel.montemayor / Fuego2026!  (si modo demo)
+
+ Variables de entorno: ${DEPLOY_DIR}/.env  (chmod 600; .env.example documenta cada una)
 
  Troubleshooting:
    cd ${DEPLOY_DIR} && sudo docker compose -f ${COMPOSE_FILE} logs -f
@@ -387,13 +456,28 @@ EOF
 # ──────────────────────────────────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────────────────────────────────
+parse_args() {
+	for arg in "$@"; do
+		case "$arg" in
+			--seed=demo|--seed=admin|--seed=none) SEED_MODE="${arg#--seed=}" ;;
+			--no-demo)    SEED_MODE="admin" ;;
+			--force-seed) FORCE_SEED="true" ;;
+			-h|--help) grep -E '^#( |$)' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+			*) warn "Flag desconocido: $arg (ignorado)" ;;
+		esac
+	done
+}
+
 main() {
+	parse_args "$@"
+	log "Modo de seeding: ${SEED_MODE} (force-seed=${FORCE_SEED})"
 	install_packages
 	enable_docker
 	ensure_swap
 	sync_repos
 	configure_env
 	build_and_up
+	maybe_seed_demo
 	wait_health
 }
 

@@ -304,6 +304,20 @@ PUBLIC_IP="$("${AWS[@]}" ec2 describe-addresses --allocation-ids "$ALLOC_ID" \
 PUBLIC_DNS="$("${AWS[@]}" ec2 describe-instances --instance-ids "$INSTANCE_ID" \
 	--query 'Reservations[0].Instances[0].PublicDnsName')"
 
+# Salida legible por máquina para deploy-all.sh / CI (mismo dir que el .pem).
+OUT_FILE="coco-infra.env"
+cat > "$OUT_FILE" <<OUT
+INSTANCE_ID=${INSTANCE_ID}
+ALLOC_ID=${ALLOC_ID}
+PUBLIC_IP=${PUBLIC_IP}
+PUBLIC_DNS=${PUBLIC_DNS}
+AWS_S3_BUCKET=${BUCKET}
+AWS_REGION=${REGION}
+KEY_FILE=${KEY_FILE}
+SSH_USER=ec2-user
+OUT
+log "Salida escrita en ${OUT_FILE} (la usa deploy-all.sh)."
+
 # ──────────────────────────────────────────────────────────────────────────
 # 10. Resumen
 # ──────────────────────────────────────────────────────────────────────────

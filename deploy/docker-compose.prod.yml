@@ -112,6 +112,11 @@ services:
       PORT: "4321"
       # Fetch SSR (server-side, dentro de la red Docker) va directo al backend.
       API_URL_SSR: https://backend:3000/api
+      # El backend interno usa cert HTTPS auto-firmado; el fetch SSR de Astro
+      # (Node) lo rechazaría en producción. Esto permite que las llamadas SSR al
+      # backend interno acepten ese cert (análogo a tls_insecure_skip_verify de
+      # Caddy). Solo afecta las llamadas salientes del contenedor frontend.
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     depends_on:
       - backend
     networks:

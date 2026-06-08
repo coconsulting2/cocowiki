@@ -144,7 +144,7 @@ app.use(cors({
 #### Salida del linter
 
 ```
-✖ 41 problems (0 errors, 41 warnings)
+ 41 problems (0 errors, 41 warnings)
   0 errors and 6 warnings potentially fixable with --fix
 ```
 

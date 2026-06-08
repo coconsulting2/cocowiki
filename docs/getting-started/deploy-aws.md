@@ -304,9 +304,9 @@ El backend trae tres seeders en `prisma/`:
 
 | Modo | `seed.js dev` (entrypoint, `SEED_DUMMY_DATA=true`) | `seed-usability.js` + `seed.demo.js` (post-up, `install.sh`) |
 |------|:---:|:---:|
-| `--seed=demo` (default) | ✅ | ✅ |
-| `--seed=admin` | ✅ | ❌ |
-| `--seed=none` | ❌ | ❌ |
+| `--seed=demo` (default) | | |
+| `--seed=admin` | | |
+| `--seed=none` | | |
 
 > Los seeders demo post-up solo corren en la instalación inicial; en re-deploys
 > se omiten salvo `--force-seed`.

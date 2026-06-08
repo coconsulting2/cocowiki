@@ -4,3 +4,14 @@ node_modules
 # Office/Word temporales y de bloqueo (no deben commitearse)
 ~$*
 *.tmp
+
+# Secretos y artefactos de despliegue (NUNCA commitear)
+# (los comentarios de .gitignore deben ir en su propia línea, no inline)
+# llaves SSH (coco-deploy.pem)
+*.pem
+# salida de aws-provision.sh (IPs, IDs)
+deploy/coco-infra.env
+# integraciones locales que carga deploy-all.sh
+deploy/coco-secrets.env
+# .env real con secretos (vive en el servidor)
+deploy/.env

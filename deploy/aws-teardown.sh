@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # aws-teardown.sh — destruye TODO lo que creó aws-provision.sh (tag Project=coco).
-# Útil para una prueba end-to-end desde cero. Corre en tu Mac con el AWS CLI.
+# Útil para una prueba end-to-end desde cero. Corre en tu equipo (Linux/macOS,
+# o Windows vía WSL2/Git Bash) con el AWS CLI.
 #
 # Uso:
 #   ./aws-teardown.sh           # pide confirmación

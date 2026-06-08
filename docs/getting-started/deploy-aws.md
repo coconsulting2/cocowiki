@@ -521,47 +521,95 @@ El backend trae tres seeders en `prisma/`:
 
 ---
 
-## 7. CI/CD — auto-deploy en push a `main`
+## 7. CI/CD — auto-deploy por git-poll en push a `main`
 
-El workflow `.github/workflows/deploy.yml` (en **cocowiki** y en ambos repos de
-app) hace SSH a la instancia en cada push a `main` (o manual vía
-`workflow_dispatch`) y re-corre `install.sh`, que hace `git pull` + rebuild +
-`up -d`.
+El despliegue continuo corre **en la propia instancia**: sin SSH, sin registry y
+sin credenciales. Un **timer systemd** hace _git-poll_ de `main` y reconstruye el
+stack **solo cuando avanza**. Lo instala `install.sh` automáticamente (último paso,
+`install_redeploy_timer`), así que **queda configurado de fábrica** en cada deploy
+— no hay que setear secrets ni correr nada manual.
 
-**Secrets requeridos** (Settings → Secrets and variables → Actions):
+### Cómo funciona
 
-| Secret | Contenido |
-|--------|-----------|
-| `DEPLOY_SSH_KEY` | Clave privada (contenido de `coco-deploy.pem`). |
-| `DEPLOY_HOST` | DNS/IP público de la instancia (la Elastic IP). |
-| `DEPLOY_USER` | Usuario SSH (opcional; default `ec2-user`). |
+1. `coco-redeploy.timer` dispara `coco-redeploy.service` cada `REDEPLOY_INTERVAL`
+   (default **2 min**; además `OnBootSec=3min` tras cada arranque).
+2. El service corre `cocowiki/deploy/redeploy.sh` como root. Para cada repo
+   (`cocowiki`, `TC3005B.501-Backend`, `TC3005B.501-Frontend`) hace `git fetch`
+   de la rama desplegada (normalmente `main`) y, **solo si avanzó**, `git reset
+   --hard FETCH_HEAD`.
+3. Si **algún** repo cambió, reconstruye y levanta el stack:
+   `docker compose up -d --build` (build **nativo arm64** en la caja, sin imágenes
+   pre-publicadas) y limpia imágenes viejas. Si no hubo cambios, no hace nada.
 
-> Si faltan `DEPLOY_SSH_KEY`/`DEPLOY_HOST`, el job termina **OK sin desplegar**
-> (no rompe el CI). Hay un `concurrency: deploy-ec2` para no solapar deploys.
+Los repos `coconsulting2/*` son **públicos**, así que el `git fetch` no necesita
+token. **Mergear a `main` ⇒ la caja se auto-actualiza en ≤ `REDEPLOY_INTERVAL`.**
 
 ```mermaid
 sequenceDiagram
   autonumber
   actor Dev as Desarrollador
-  participant GH as GitHub (push a main)
-  participant GA as GitHub Actions<br/>(deploy.yml)
-  participant EC2 as EC2 (coco-app)
+  participant GH as GitHub (main)
+  participant T as systemd<br/>coco-redeploy.timer
+  participant RS as redeploy.sh
   participant DC as Docker Compose
 
-  Dev->>GH: git push origin main
-  GH->>GA: dispara workflow "Deploy to EC2"
-  alt faltan DEPLOY_SSH_KEY / DEPLOY_HOST
-    GA-->>GH: warning + exit 0 (no despliega)
-  else secrets presentes
-    GA->>EC2: SSH con DEPLOY_SSH_KEY a DEPLOY_USER@DEPLOY_HOST
-    EC2->>EC2: curl install.sh + bash install.sh
-    EC2->>EC2: git pull de los 3 repos
-    EC2->>DC: docker compose build
-    DC->>DC: up -d (conserva .env y datos)
-    DC-->>EC2: stack actualizado
-    EC2-->>GA: deploy OK
+  Dev->>GH: merge a main
+  loop cada REDEPLOY_INTERVAL (2min)
+    T->>RS: dispara coco-redeploy.service
+    RS->>GH: git fetch de cada repo (main)
+    alt main avanzó en algún repo
+      RS->>RS: git reset --hard FETCH_HEAD
+      RS->>DC: docker compose up -d --build
+      DC-->>RS: stack reconstruido (conserva .env y datos)
+    else sin cambios
+      RS-->>T: no-op
+    end
   end
 ```
+
+### Operación
+
+| Acción | Comando (en la instancia) |
+|--------|---------------------------|
+| Ver estado / próximo disparo | `sudo systemctl status coco-redeploy.timer` |
+| Forzar un ciclo ahora | `sudo systemctl start coco-redeploy.service` |
+| Ver logs en vivo | `sudo journalctl -u coco-redeploy.service -f` |
+| Cambiar el intervalo | re-correr `install.sh` con `REDEPLOY_INTERVAL=5min` (o editar el `.timer` + `daemon-reload`) |
+
+> **Sin acceso por puerto 22.** Si el SSH directo está bloqueado, esos comandos
+> corren igual vía **AWS SSM** (`aws ssm send-command --instance-ids <id>
+> --document-name AWS-RunShellScript --parameters 'commands=[...]'`), sin abrir el
+> 22. La instancia necesita el rol `AmazonSSMManagedInstanceCore`.
+
+### Unidades systemd (las crea `install.sh`)
+
+```ini
+# /etc/systemd/system/coco-redeploy.service
+[Unit]
+Description=coco git-poll redeploy (rebuild + up cuando main avanza)
+After=docker.service
+Wants=docker.service
+[Service]
+Type=oneshot
+Environment=COCO_HOME=/opt/coco
+ExecStart=/opt/coco/cocowiki/deploy/redeploy.sh
+
+# /etc/systemd/system/coco-redeploy.timer
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min      # = REDEPLOY_INTERVAL
+Unit=coco-redeploy.service
+[Install]
+WantedBy=timers.target
+```
+
+> **Legacy (superado).** El mecanismo anterior era `deploy.yml` (GitHub Actions
+> con SSH a la EC2 en cada push) y se evaluó publicar imágenes a **GHCR**. Ambos
+> quedaron descartados: el GHCR `amd64` no corre en el host `arm64` (`t4g`), y
+> `deploy.yml` dependía de los secrets `DEPLOY_SSH_KEY`/`DEPLOY_HOST` — donde el
+> workflow aún exista, **no despliega** si faltan (termina OK en vacío). El
+> `docker-publish.yml` puede seguir publicando imágenes como artefacto, pero **no**
+> es la vía de despliegue.
 
 ---
 

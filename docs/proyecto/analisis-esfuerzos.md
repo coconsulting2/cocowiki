@@ -137,7 +137,7 @@ Responsable de calidad antes de producción.
 **Backend/BD (40h):**
 - Análisis arquitectura Express.js: 15h
 - Estudio servicios existentes: 15h
-- Revisión esquema BD (12 tablas + MongoDB): 10h
+- Revisión esquema BD (PostgreSQL + S3): 10h
 
 **Frontend (40h):**
 - Análisis stack (Astro + React + TypeScript): 15h

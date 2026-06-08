@@ -60,7 +60,7 @@ flowchart TD
 
     subgraph storage [Almacenamiento]
         PG[(PostgreSQL CocoScheme)]
-        MG[(MongoDB GridFS)]
+        OBJ[(AWS S3)]
     end
 
     Astro -->|HTTPS JSON + cookie token| MW1
@@ -69,7 +69,7 @@ flowchart TD
     rutas --> servicios
     servicios --> modelos
     M3 -->|Prisma ORM| PG
-    M3 -->|ObjectId en Receipt| MG
+    M3 -->|S3 key en Receipt| OBJ
 ```
 
 ### Tabla de módulos de ruta
@@ -84,7 +84,7 @@ flowchart TD
 | `/api/admin` | `adminRoutes`, `permissionRoutes` | Gestión de usuarios, roles y permisos |
 | `/api/travel-agent` | `travelAgentRoutes` | Atención de solicitudes por agencia |
 | `/api/accounts-payable` | `accountsPayableRoutes` | Cotización y validación de comprobantes |
-| `/api/files` | `fileRoutes` | Carga PDF/XML → MongoDB GridFS |
+| `/api/files` | `fileRoutes` | Carga PDF/XML → AWS S3 (pre-signed URLs) |
 | `/api/comprobantes` | `comprobantesRoutes` | CFDI (`cfdi_comprobantes`) |
 | `/api/notifications` | `notificationRoutes` | Push notifications, inbox de alertas |
 | `/api/organizations` | `organizationRoutes` | Multi-tenant: gestión de organizaciones |

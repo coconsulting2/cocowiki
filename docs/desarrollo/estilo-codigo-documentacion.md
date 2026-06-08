@@ -221,7 +221,7 @@ Backend/                    Frontend/
 | Backend | Frontend |
 |---------|----------|
 | Node.js + Express | Astro 5 + React 19 |
-| PostgreSQL + MongoDB | Tailwind CSS 4 |
+| PostgreSQL + AWS S3 | Tailwind CSS 4 |
 | Prisma 6 (ORM) | TypeScript |
 | Bun (gestor de paquetes) | Vitest + Cypress (testing) |
 | JWT + bcrypt | |

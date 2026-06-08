@@ -32,7 +32,7 @@
 
 ## 2. Automatización backend (Jest + Supertest)
 
-Corrida verde verificada el 2026-06-02 con el stack Docker levantado (Postgres 16 + Mongo 7 +
+Corrida verde verificada el 2026-06-02 con el stack Docker levantado (Postgres 16 +
 LocalStack) + `prisma db push` + seed: **430/431 pasan (1 skip), 0 fallos, cobertura 93.1%**.
 Sin el stack, dos suites de integración (`requestCommentController.test.js`, `cfdiComprobantes.test.js`)
 no conectan a Postgres (`PrismaClientInitializationError`) — es dependencia de entorno, **no son

@@ -2,8 +2,8 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión** | 1.0.0 |
-| **Última actualización** | 2026-06-06 |
+| **Versión** | 1.0.1 |
+| **Última actualización** | 2026-06-08 |
 | **Responsables** | Héctor Lugo · Mariano Carretero |
 | **Verificación** | 2026-06-06 — 30 routes, 71 services, 49 modelos Prisma |
 | **Documento padre** | [Documento de Arquitectura](documento-arquitectura.md) |
@@ -94,8 +94,7 @@ flowchart TB
     FE["[Container] Web Application<br/>Astro 5.7 + React 19 SSR<br/>:4321 HTTPS"]
     API["[Container] API Application<br/>Express 4.18 + Node 22<br/>:3000 HTTPS"]
     PG["[Container] PostgreSQL 16<br/>Prisma + RLS<br/>:5432"]
-    MG["[Container] MongoDB 7<br/>GridFS fileStorage<br/>:27017"]
-    OBJ["[Container] AWS S3<br/>archivos viaje<br/>LocalStack :4566 dev"]
+    OBJ["[Container] AWS S3<br/>archivos viaje + comprobantes<br/>LocalStack :4566 dev"]
   end
 
   subgraph ext [Externos]
@@ -109,7 +108,7 @@ flowchart TB
   Browser -->|HTTPS| FE
   FE -->|REST /api/* JSON| API
   API -->|Prisma ORM| PG
-  API -->|PDF XML comprobantes| MG
+  API -->|PDF XML comprobantes| OBJ
   API -->|SSE-S3 pre-signed| OBJ
   API --> SAT2
   API --> BMX2
@@ -125,15 +124,14 @@ flowchart TB
 | Web Application | Astro 5.7 + React 19 + Tailwind 4, Node SSR | 4321 | Stateless |
 | API Application | Express 4.18 + Node 22 + Prisma 6.16 | 3000 | Vol. `certs` (TLS) |
 | PostgreSQL | PostgreSQL 16, esquema `CocoScheme`, RLS 38 tablas | 5432 (5434 host dev) | Vol. `pgdata` |
-| MongoDB GridFS | MongoDB 7, bucket comprobantes CFDI | 27017 | Vol. `mongodata` |
-| AWS S3 | S3 real prod / LocalStack 3.5 dev | 4566 dev | Bucket + vol. LocalStack |
+| AWS S3 | S3 real prod / LocalStack 3.5 dev (archivos viaje + comprobantes CFDI) | 4566 dev | Bucket + vol. LocalStack |
 | GHCR | Imágenes `tc3005b-501-backend` / `frontend` | — | Registry GitHub |
 
 ### Despliegue — desarrollo vs producción
 
 | Aspecto | Desarrollo | Producción |
 |---------|------------|------------|
-| **Compose backend** | [`docker-compose.dev.yml`](../../../TC3005B.501-Backend/docker-compose.dev.yml) — postgres, mongo, localstack, s3-init, migrate, backend hot-reload | [`docker-compose.yml`](../../../TC3005B.501-Backend/docker-compose.yml) — postgres, mongo, backend (GHCR) |
+| **Compose backend** | [`docker-compose.dev.yml`](../../../TC3005B.501-Backend/docker-compose.dev.yml) — postgres, localstack, s3-init, migrate, backend hot-reload | [`docker-compose.yml`](../../../TC3005B.501-Backend/docker-compose.yml) — postgres, backend (GHCR) |
 | **Compose frontend** | [`docker-compose.dev.yml`](../../../TC3005B.501-Frontend/docker-compose.dev.yml) — astro dev bind-mount | Imagen GHCR; despliegue en host (pendiente documentar) |
 | **S3** | LocalStack + bucket `coco-consulting-local` | AWS S3 real |
 | **Migraciones** | Job `migrate` one-shot en cada `up` | Entrypoint `RUN_MIGRATIONS=true` |
@@ -142,29 +140,30 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  subgraph cicd [CI_CD]
-    GHA[GitHub Actions]
-    GHCR[GHCR latest]
+  subgraph cicd [CI]
+    GHA[GitHub Actions CI<br/>lint + Prisma validate + tests]
   end
+  GHmain[(GitHub main)]
 
-  subgraph host [Host de produccion]
-    NGINX[nginx 80/443]
+  subgraph host [Host de produccion EC2 arm64]
+    TIMER[systemd<br/>coco-redeploy.timer 2min]
+    CADDY[Caddy 80/443 TLS]
     BE[backend :3000]
     FE2[frontend :4321]
     PG2[postgres]
-    MG2[mongo]
   end
 
-  GHA -->|docker build push| GHCR
-  GHCR -->|docker compose pull| host
-  NGINX --> FE2
-  NGINX --> BE
+  GHA -->|merge verde| GHmain
+  GHmain -->|git fetch / poll| TIMER
+  TIMER -->|git reset --hard + docker compose up -d --build| BE
+  TIMER --> FE2
+  CADDY --> FE2
+  CADDY -->|/api/*| BE
   BE --> PG2
-  BE --> MG2
   BE --> S3AWS[AWS S3 prod]
 ```
 
-**Pipeline CI/CD:** push a `main` → lint + Prisma validate + tests (`.github/workflows/ci.yml`) → build imagen production → push GHCR (`.github/workflows/docker-publish.yml`) → despliegue con `docker compose pull && up -d` en el host de producción.
+**Pipeline CI/CD:** push a `main` → lint + Prisma validate + tests (`.github/workflows/ci.yml`). El **despliegue** a la EC2 es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) hace `git fetch` de `main` y, si avanzó, `git reset --hard` + `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Detalle en [deploy-aws.md §7](../getting-started/deploy-aws.md).
 
 Guía operativa local: [setup-docker.md](../getting-started/setup-docker.md).
 
@@ -212,7 +211,7 @@ flowchart LR
   VAL --> CTRL2[Controller]
 ```
 
-> `mongoSanitize` y `rateLimit` se aplican **por ruta** (p. ej. `fileRoutes`, login), no en el stack global. CSRF se omite en `NODE_ENV=test` y en `/api/external/*`.
+> `rateLimit` se aplica **por ruta** (p. ej. `fileRoutes`, login), no en el stack global. CSRF se omite en `NODE_ENV=test` y en `/api/external/*`.
 
 ### B. Route modules — 30 archivos, 11 dominios
 
@@ -280,14 +279,13 @@ flowchart TB
 
   subgraph data [Datos]
     PR[(Prisma PostgreSQL)]
-    GR[(GridFS Mongo)]
-    S3B[(S3)]
+    S3F[(AWS S3<br/>archivos + comprobantes)]
   end
 
   R --> svc
   svc --> PR
-  S5 --> GR
-  S9 --> S3B
+  S5 --> S3F
+  S9 --> S3F
   S5 --> SAT3[SAT SOAP]
   S7 --> BMX3[Banxico REST]
   S8 --> DUF3[Duffel REST]
@@ -327,10 +325,9 @@ Diagramas ER por subdominio: [modelo-er.md](modelo-er.md). Esquema fuente: [sche
 |---------|-------------|
 | **C4** | Modelo de diagramas de arquitectura (Context, Container, Component) de Simon Brown. |
 | **CFDI** | Comprobante Fiscal Digital por Internet — comprobante fiscal mexicano. |
-| **CI/CD** | Continuous Integration / Continuous Delivery — GitHub Actions + publicación a GHCR. |
+| **CI/CD** | Continuous Integration / Continuous Delivery — GitHub Actions (CI: lint/tests) + auto-redeploy server-side por git-poll en la EC2 (timer systemd `coco-redeploy`). |
 | **FX** | Foreign exchange — tipo de cambio (Banxico, serie SF43718). |
 | **GHCR** | GitHub Container Registry — imágenes Docker `tc3005b-501-backend` y `frontend`. |
-| **GridFS** | Almacén de archivos en MongoDB para PDF/XML de comprobantes. |
 | **IAM** | Identity and Access Management — dominio de usuarios, roles, permisos y API keys. |
 | **LocalStack** | Emulador local de servicios AWS (S3 en desarrollo). |
 | **Prisma** | ORM TypeScript/JS usado contra PostgreSQL (`schema.prisma`). |

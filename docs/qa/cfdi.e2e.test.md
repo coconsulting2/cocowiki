@@ -18,7 +18,6 @@
 NODE_ENV=test
 PORT=3000
 DATABASE_URL=postgresql://cocoscheme:cocoscheme_dev@localhost:5434/CocoScheme?schema=public
-MONGO_URI=mongodb://localhost:27017
 CORS_ORIGIN=http://localhost:4321,https://localhost:4321
 AES_SECRET_KEY=12345678901234567890123456789012
 JWT_SECRET=dev_jwt_secret_change_me

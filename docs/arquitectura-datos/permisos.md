@@ -321,7 +321,7 @@ Cuando alguien clona el repo por primera vez o agrega un permiso:
    ```sh
    cd TC3005B.501-Backend
    bun install
-   bun run docker:dev          # postgres + mongo + localstack + migrate + backend
+   bun run docker:dev          # postgres + localstack + s3-init + migrate + backend
    ```
    El `migrate` service hace `bun install` → `prisma generate` → `prisma db push` → **seed completo** (referencia + dummy). Crea un sentinel `/app/node_modules/.seeded` dentro del volumen para no re-insertar los dummy data.
 
@@ -347,8 +347,8 @@ Cuando alguien clona el repo por primera vez o agrega un permiso:
 | Comando | Qué hace | Cuándo usarlo | Datos que se pierden |
 |---|---|---|---|
 | `bun run docker:permissions:sync` | Corre `node prisma/seed.js` dentro del contenedor backend en caliente. Solo aplica la sección de referencia (roles, statuses, **permisos**). Idempotente. | Un compañero agregó un permiso y hiciste `git pull` — quieres que aparezca sin reiniciar nada. | Ninguno. |
-| `bun run docker:data:reset` | Dentro del contenedor backend: `bunx prisma db push --force-reset && node prisma/seed.js dev`. **Tira todas las tablas** de Postgres y re-aplica el schema + seed completo. No toca Mongo ni LocalStack. | Datos dummy corruptos, migraciones raras entre ramas, tests E2E contaminaron el estado. | Todo lo que esté en Postgres (requests, usuarios creados a mano, grants directos, comprobantes registrados). Mantiene archivos en Mongo y S3 mock. |
-| `bun run docker:dev:clean` | `docker compose down -v` — **borra todos los volúmenes** del proyecto: `pgdata`, `mongodata`, `localstack_data`, `node_modules_dev`, `certs`. | Algo se rompió a nivel docker (certs corruptos, deps medio instaladas, sentinel en mal estado), quieres un "fresh install" completo. | Todo: DB relacional + archivos en Mongo + objetos en S3 local + deps instaladas + certs HTTPS. |
+| `bun run docker:data:reset` | Dentro del contenedor backend: `bunx prisma db push --force-reset && node prisma/seed.js dev`. **Tira todas las tablas** de Postgres y re-aplica el schema + seed completo. No toca LocalStack (S3). | Datos dummy corruptos, migraciones raras entre ramas, tests E2E contaminaron el estado. | Todo lo que esté en Postgres (requests, usuarios creados a mano, grants directos, comprobantes registrados). Mantiene los archivos en S3 (LocalStack). |
+| `bun run docker:dev:clean` | `docker compose down -v` — **borra todos los volúmenes** del proyecto: `pgdata`, `localstack_data`, `node_modules_dev`, `certs`. | Algo se rompió a nivel docker (certs corruptos, deps medio instaladas, sentinel en mal estado), quieres un "fresh install" completo. | Todo: DB relacional + objetos en S3 local + deps instaladas + certs HTTPS. |
 | `bun run docker:dev:down` | Apaga contenedores, deja volúmenes. | Pausar el trabajo del día. | Nada. |
 
 **Orden sugerido cuando algo no funciona**:
@@ -373,9 +373,9 @@ Como regla: si cambias la definición de los usuarios dummy o su orden de inserc
 Si prefieres correr el backend con `bun run dev` directo en el host, la DB sigue viviendo en docker:
 
 ```sh
-# Una sola vez: levanta solo postgres + mongo
+# Una sola vez: levanta solo postgres + localstack
 cd TC3005B.501-Backend
-docker compose -f docker-compose.dev.yml up -d postgres mongo
+docker compose -f docker-compose.dev.yml up -d postgres localstack
 # Ajusta tu .env local para apuntar a puerto 5434 (postgres host-side)
 DATABASE_URL="postgresql://cocoscheme:cocoscheme_dev@localhost:5434/CocoScheme?schema=public"
 # Seed + dev

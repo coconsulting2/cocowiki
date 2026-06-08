@@ -8,7 +8,7 @@
 
 ## 1. Capas del sistema y datos
 
-El cliente **Astro** (SSR y navegador) consume la **CocoAPI** (Express, HTTPS). La API persiste datos estructurados en **PostgreSQL** vía **Prisma** y archivos de comprobantes (PDF/XML) en **MongoDB GridFS**; los `ObjectId` se guardan en columnas `Receipt.pdf_file_id` y `Receipt.xml_file_id`.
+El cliente **Astro** (SSR y navegador) consume la **CocoAPI** (Express, HTTPS). La API persiste datos estructurados en **PostgreSQL** vía **Prisma** y archivos de comprobantes (PDF/XML) en **AWS S3** (LocalStack como mock en dev), con URLs prefirmadas; la **S3 object key** se guarda en columnas `Receipt.pdf_file_key` y `Receipt.xml_file_key`.
 
 ```mermaid
 flowchart LR
@@ -21,19 +21,19 @@ flowchart LR
   subgraph pg [PostgreSQL_CocoScheme]
     Tables[Tablas_Prisma]
   end
-  subgraph mongo [MongoDB_GridFS]
-    GridFS[Bucket_PDF_XML]
+  subgraph s3 [AWS_S3]
+    S3B[Bucket_PDF_XML]
   end
   Browser -->|HTTPS_JSON| Routes
   Routes -->|Prisma| Tables
-  Routes -->|ObjectId_en_Receipt| GridFS
+  Routes -->|S3_key_en_Receipt| S3B
 ```
 
 ### Leyenda: columnas de archivo en `Receipt`
 
 | Columna (PostgreSQL) | Uso |
 |----------------------|-----|
-| `pdf_file_id`, `xml_file_id` | Identificador del archivo en GridFS (típicamente 24 caracteres hex, ObjectId). |
+| `pdf_file_key`, `xml_file_key` | S3 object key del archivo (ruta dentro del bucket). |
 | `pdf_file_name`, `xml_file_name` | Nombre de archivo para descarga o UI. |
 
 ### Capas internas del backend
@@ -195,7 +195,7 @@ Todos los prefijos están montados en [app.js](../../../TC3005B.501-Backend/app.
 | `/api/admin` (usuarios) | Administración de usuarios, roles y departamentos por organización. |
 | `/api/admin` (permisos) | Catálogo de permisos y grupos; asignación a roles/usuarios (`permissionRoutes`). |
 | `/api/accounts-payable` | Cuentas por pagar: cotización, validación de comprobantes, transiciones de estado (`Request`, `Receipt`). |
-| `/api/files` | **GridFS** + actualización de `Receipt` (`pdf_*`, `xml_*`); URLs prefirmadas. |
+| `/api/files` | **AWS S3** + actualización de `Receipt` (`pdf_file_key`/`xml_file_key`, `pdf_file_name`/`xml_file_name`); URLs prefirmadas. |
 | `/api/comprobantes` | CFDI ligado a `Receipt` (`POST /api/comprobantes/:receipt_id`). |
 | `/api/viajes` | Gasto por tramo del viaje (`gastoTramoRoutes`). |
 | `/api/exchange-rate` | Tipo de cambio (registro/consulta). |
@@ -224,12 +224,12 @@ sequenceDiagram
   participant P as Pagina_Astro
   participant API as CocoAPI
   participant PG as PostgreSQL
-  participant M as Mongo_GridFS
+  participant M as AWS_S3
 
   P->>API: POST_subir_archivos_receipt
-  API->>M: put_pdf_y_xml_streams
-  M-->>API: objectIds
-  API->>PG: update_Receipt_pdf_xml_ids
+  API->>M: put_pdf_y_xml_a_S3
+  M-->>API: s3Keys
+  API->>PG: update_Receipt_pdf_xml_keys
   P->>API: POST_/api/comprobantes/:receipt_id
   API->>PG: insert_cfdi_comprobantes
 ```
@@ -256,9 +256,8 @@ Fuentes operativas de código: [docker-compose.dev.yml](../../../TC3005B.501-Bac
 | Término | Significado |
 |---------|-------------|
 | **API** | Application Programming Interface — endpoints REST `/api/*` montados en [app.js](../../../TC3005B.501-Backend/app.js). |
-| **CFDI** | Comprobante Fiscal Digital por Internet — XML/PDF fiscal almacenado en GridFS y metadata en PostgreSQL. |
+| **CFDI** | Comprobante Fiscal Digital por Internet — XML/PDF fiscal almacenado en AWS S3 y metadata en PostgreSQL. |
 | **CSRF** | Cross-Site Request Forgery — token requerido en mutaciones autenticadas por cookie. |
-| **GridFS** | Subsistema de MongoDB para guardar archivos binarios (PDF/XML de comprobantes). |
 | **HTTPS** | HTTP con TLS — protocolo entre navegador Astro y CocoAPI. |
 | **JWT** | JSON Web Token — autenticación en cookie `token` o header Bearer. |
 | **N1 / N2** | Autorizador de primer y segundo nivel. |

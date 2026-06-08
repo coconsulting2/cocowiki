@@ -233,6 +233,16 @@ detect_public_host() {
 	printf '%s' "$host"
 }
 
+# ask <varname> <prompt> <default> — usa la env var si está seteada; si no y hay
+# TTY, pregunta; si no hay TTY (CI/orquestador), usa el default. Permite que
+# install.sh corra interactivo O totalmente no-interactivo por variables.
+ask() {
+	local _var="$1" _prompt="$2" _default="${3:-}" _ans
+	if [ -n "${!_var:-}" ]; then printf '%s' "${!_var}"; return; fi
+	if [ -t 0 ]; then read -rp "$_prompt" _ans; else _ans=""; fi
+	printf '%s' "${_ans:-$_default}"
+}
+
 configure_env() {
 	local file="${DEPLOY_DIR}/.env"
 	if [ -f "$file" ]; then
@@ -240,23 +250,18 @@ configure_env() {
 		return
 	fi
 	FRESH_INSTALL="true"
-	log "Generando .env interactivo en ${DEPLOY_DIR}..."
+	log "Generando .env en ${DEPLOY_DIR}..."
 	cp "${DEPLOY_DIR}/.env.example" "$file"
 
 	# --- Base de datos ---
 	local db_host db_port db_name db_user db_pass db_pass_enc db_url
-	read -rp "DB host [postgres = contenedor local]: " db_host
-	db_host="${db_host:-postgres}"
-	read -rp "DB port [5432]: " db_port
-	db_port="${db_port:-5432}"
-	read -rp "DB nombre [coco]: " db_name
-	db_name="${db_name:-coco}"
-	read -rp "DB usuario [coco]: " db_user
-	db_user="${db_user:-coco}"
-	read -rsp "DB password: " db_pass; echo
-	while [ -z "$db_pass" ]; do
-		read -rsp "DB password (no puede estar vacío): " db_pass; echo
-	done
+	db_host="$(ask POSTGRES_HOST "DB host [postgres = contenedor local]: " postgres)"
+	db_port="$(ask POSTGRES_PORT "DB port [5432]: " 5432)"
+	db_name="$(ask POSTGRES_DB   "DB nombre [coco]: " coco)"
+	db_user="$(ask POSTGRES_USER "DB usuario [coco]: " coco)"
+	db_pass="${POSTGRES_PASSWORD:-}"
+	if [ -z "$db_pass" ] && [ -t 0 ]; then read -rsp "DB password (vacío=autogenerar): " db_pass; echo; fi
+	if [ -z "$db_pass" ]; then db_pass="$(openssl rand -hex 24)"; log "DB password autogenerado (contenedor local)."; fi
 	db_pass_enc="$(urlencode "$db_pass")"
 	db_url="postgresql://${db_user}:${db_pass_enc}@${db_host}:${db_port}/${db_name}?schema=public"
 
@@ -270,9 +275,13 @@ configure_env() {
 	# --- Host público ---
 	local auto_host pub_host
 	auto_host="$(detect_public_host)"
-	read -rp "Host público [${auto_host:-introduce manualmente}]: " pub_host
-	pub_host="${pub_host:-$auto_host}"
+	pub_host="${PUBLIC_HOST:-}"
+	if [ -z "$pub_host" ]; then
+		if [ -t 0 ]; then read -rp "Host público [${auto_host:-introduce manualmente}]: " pub_host; fi
+		pub_host="${pub_host:-$auto_host}"
+	fi
 	while [ -z "$pub_host" ]; do
+		[ -t 0 ] || { err "PUBLIC_HOST requerido (sin TTY y sin auto-detección)."; exit 1; }
 		read -rp "Host público (requerido): " pub_host
 	done
 	set_env PUBLIC_HOST         "$pub_host"
@@ -285,10 +294,11 @@ configure_env() {
 
 	# --- S3 ---
 	local aws_region aws_bucket
-	read -rp "AWS_REGION [us-east-1]: " aws_region
-	aws_region="${aws_region:-us-east-1}"
-	read -rp "AWS_S3_BUCKET (requerido): " aws_bucket
+	aws_region="$(ask AWS_REGION "AWS_REGION [us-east-1]: " us-east-1)"
+	aws_bucket="${AWS_S3_BUCKET:-}"
+	if [ -z "$aws_bucket" ] && [ -t 0 ]; then read -rp "AWS_S3_BUCKET (requerido): " aws_bucket; fi
 	while [ -z "$aws_bucket" ]; do
+		[ -t 0 ] || { err "AWS_S3_BUCKET requerido (sin TTY)."; exit 1; }
 		read -rp "AWS_S3_BUCKET (requerido): " aws_bucket
 	done
 	set_env AWS_REGION    "$aws_region"

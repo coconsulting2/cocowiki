@@ -52,6 +52,9 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN requerido}
       AES_SECRET_KEY: ${AES_SECRET_KEY:?AES_SECRET_KEY requerido (32 chars)}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET requerido}
+      # Cifrado de comentarios/chat (requerido en producción): 64 hex chars c/u.
+      CHAT_CURSOR_SECRET: ${CHAT_CURSOR_SECRET:?CHAT_CURSOR_SECRET requerido (64 hex chars)}
+      CHAT_MESSAGE_SECRET: ${CHAT_MESSAGE_SECRET:?CHAT_MESSAGE_SECRET requerido (64 hex chars)}
       # S3 / almacenamiento. En EC2 las credenciales las provee el IAM
       # instance role automáticamente; AWS_ACCESS_KEY_ID/SECRET solo se pasan
       # si están definidas en .env (uso local fuera de EC2).

@@ -285,6 +285,12 @@ configure_env() {
 	fi
 	set_env JWT_SECRET "$jwt"
 
+	# Secretos de cifrado de comentarios/chat: 64 hex chars (32 bytes) c/u.
+	# Requeridos en producción; se auto-generan siempre (sin prompt).
+	set_env CHAT_CURSOR_SECRET  "$(openssl rand -hex 32)"
+	set_env CHAT_MESSAGE_SECRET "$(openssl rand -hex 32)"
+	log "CHAT_CURSOR_SECRET y CHAT_MESSAGE_SECRET autogenerados (64 hex)."
+
 	# --- Seed ---
 	local seed ans
 	read -rp "¿Sembrar datos demo? (y/N): " ans

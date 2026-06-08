@@ -16,11 +16,11 @@
 # Por defecto SITE_ADDRESS no está definido y caemos al bloque `:443` con
 # `tls internal`. Si SITE_ADDRESS trae un dominio, Caddy usa ACME automático.
 
-{
-	# Opciones globales. El email es opcional; si lo defines, Caddy lo usa
-	# para los avisos de ACME (Let's Encrypt).
-	email {$ACME_EMAIL:}
-}
+# (Opcional) Para Let's Encrypt con dominio real, añade un bloque global con tu
+# email para los avisos de ACME (déjalo fuera para cert auto-firmado / sin dominio):
+#   {
+#       email tu-correo@ejemplo.com
+#   }
 
 # Origen público. Si SITE_ADDRESS está vacío, Caddy escucha en :443 con
 # certificado interno auto-firmado. Si trae un dominio, emite ACME.

@@ -4,6 +4,17 @@ Cambios en la documentación publicada en **GitHub Pages** (carpeta `docs/`). La
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.4.0] - 2026-06-08
+
+Documentado el CD real (git-poll server-side) que reemplazó al esquema GHCR/SSH.
+
+### Cambiado
+
+- **`getting-started/deploy-aws.md` §7**: reescrita la sección de CI/CD. Antes describía el `deploy.yml` (GitHub Actions con SSH a la EC2), que quedó superado. Ahora documenta el **auto-deploy por git-poll**: timer systemd `coco-redeploy.timer` + `redeploy.sh` que instala `install.sh` (default `REDEPLOY_INTERVAL=2min`, `OnBootSec=3min`), con diagrama de secuencia, tabla de operación (estado / forzar ciclo / logs / cambiar intervalo), las unidades systemd generadas, la vía **AWS SSM** cuando el puerto 22 está bloqueado, y una nota de legacy (GHCR `amd64` no corre en host `arm64`; `deploy.yml` dependía de secrets SSH).
+- **`arquitectura-datos/diagramas-c4.md`** (v1.0.1): corregido el "Pipeline CI/CD" y el glosario — el despliegue es git-poll en la EC2, no `docker compose pull` desde GHCR.
+- **`arquitectura-datos/documento-arquitectura.md`**: misma corrección en el pipeline CI/CD y el glosario.
+- **`arquitectura-datos/service-blueprint.md`** (v1.0.2): fila "CI/CD" del inventario y glosario actualizados al despliegue por git-poll.
+
 ## [1.3.0] - 2026-06-05
 
 Documentación enfocada en el frontend para la entrega final.

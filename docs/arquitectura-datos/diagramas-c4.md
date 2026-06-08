@@ -2,8 +2,8 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión** | 1.0.0 |
-| **Última actualización** | 2026-06-06 |
+| **Versión** | 1.0.1 |
+| **Última actualización** | 2026-06-08 |
 | **Responsables** | Héctor Lugo · Mariano Carretero |
 | **Verificación** | 2026-06-06 — 30 routes, 71 services, 49 modelos Prisma |
 | **Documento padre** | [Documento de Arquitectura](documento-arquitectura.md) |
@@ -142,29 +142,30 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-  subgraph cicd [CI_CD]
-    GHA[GitHub Actions]
-    GHCR[GHCR latest]
+  subgraph cicd [CI]
+    GHA[GitHub Actions CI<br/>lint + Prisma validate + tests]
   end
+  GHmain[(GitHub main)]
 
-  subgraph host [Host de produccion]
-    NGINX[nginx 80/443]
+  subgraph host [Host de produccion EC2 arm64]
+    TIMER[systemd<br/>coco-redeploy.timer 2min]
+    CADDY[Caddy 80/443 TLS]
     BE[backend :3000]
     FE2[frontend :4321]
     PG2[postgres]
-    MG2[mongo]
   end
 
-  GHA -->|docker build push| GHCR
-  GHCR -->|docker compose pull| host
-  NGINX --> FE2
-  NGINX --> BE
+  GHA -->|merge verde| GHmain
+  GHmain -->|git fetch / poll| TIMER
+  TIMER -->|git reset --hard + docker compose up -d --build| BE
+  TIMER --> FE2
+  CADDY --> FE2
+  CADDY -->|/api/*| BE
   BE --> PG2
-  BE --> MG2
   BE --> S3AWS[AWS S3 prod]
 ```
 
-**Pipeline CI/CD:** push a `main` → lint + Prisma validate + tests (`.github/workflows/ci.yml`) → build imagen production → push GHCR (`.github/workflows/docker-publish.yml`) → despliegue con `docker compose pull && up -d` en el host de producción.
+**Pipeline CI/CD:** push a `main` → lint + Prisma validate + tests (`.github/workflows/ci.yml`). El **despliegue** a la EC2 es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) hace `git fetch` de `main` y, si avanzó, `git reset --hard` + `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Detalle en [deploy-aws.md §7](../getting-started/deploy-aws.md).
 
 Guía operativa local: [setup-docker.md](../getting-started/setup-docker.md).
 
@@ -327,7 +328,7 @@ Diagramas ER por subdominio: [modelo-er.md](modelo-er.md). Esquema fuente: [sche
 |---------|-------------|
 | **C4** | Modelo de diagramas de arquitectura (Context, Container, Component) de Simon Brown. |
 | **CFDI** | Comprobante Fiscal Digital por Internet — comprobante fiscal mexicano. |
-| **CI/CD** | Continuous Integration / Continuous Delivery — GitHub Actions + publicación a GHCR. |
+| **CI/CD** | Continuous Integration / Continuous Delivery — GitHub Actions (CI: lint/tests) + auto-redeploy server-side por git-poll en la EC2 (timer systemd `coco-redeploy`). |
 | **FX** | Foreign exchange — tipo de cambio (Banxico, serie SF43718). |
 | **GHCR** | GitHub Container Registry — imágenes Docker `tc3005b-501-backend` y `frontend`. |
 | **GridFS** | Almacén de archivos en MongoDB para PDF/XML de comprobantes. |

@@ -2,8 +2,8 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión** | 1.0.1 |
-| **Última actualización** | 2026-06-06 |
+| **Versión** | 1.0.2 |
+| **Última actualización** | 2026-06-08 |
 | **Responsables** | Héctor Lugo · Mariano Carretero |
 | **Verificación de conteos** | 2026-06-06 contra `TC3005B.501-Backend` |
 | **Documento padre** | [Documento de Arquitectura](documento-arquitectura.md) |
@@ -133,7 +133,7 @@ flowchart TB
 | **Motor de reglas** | Workflow, políticas, reembolsos | Servicios Node (`workflowRulesEngine`, `policyService`, `refundRuleEngine`) |
 | **Scheduler** | Escalación de aprobación, plazos reembolso | `services/scheduler/` (cron Node) |
 | **Integraciones** | SAT, Banxico, Duffel, SMTP, Web Push | Ver [documento-arquitectura — Arquitectura de Aplicación](documento-arquitectura.md#2-arquitectura-de-aplicación) |
-| **CI/CD** | Build, test, publicación de imágenes | GitHub Actions → GHCR |
+| **CI/CD** | Build, test; despliegue por git-poll | GitHub Actions (CI) + timer systemd `coco-redeploy` en la EC2 |
 
 > Redis no forma parte del stack actual; el rate-limiting y la caché de tipo de cambio operan en memoria del proceso Node.
 
@@ -293,7 +293,7 @@ Detalle de reglas: [flujos.md — Estados de solicitud](flujos.md#5-estados-de-s
 | **API** | Application Programming Interface — interfaz HTTP (`/api/*`) entre frontend, usuarios y sistemas externos. |
 | **AWS** | Amazon Web Services — nube donde se aloja S3 en producción. |
 | **CFDI** | Comprobante Fiscal Digital por Internet — factura electrónica mexicana (XML/PDF). |
-| **CI/CD** | Continuous Integration / Continuous Delivery — pipeline de pruebas, build y publicación (GitHub Actions → GHCR). |
+| **CI/CD** | Continuous Integration / Continuous Delivery — pruebas/build en GitHub Actions; despliegue por git-poll server-side (timer systemd en la EC2). |
 | **CSRF** | Cross-Site Request Forgery — protección contra peticiones mutantes falsificadas desde otro sitio. |
 | **CxP** | Cuentas por pagar — rol que cotiza viajes y valida comprobantes. |
 | **ERP** | Enterprise Resource Planning — sistema contable externo que consume pólizas vía `/api/external`. |

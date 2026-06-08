@@ -1,7 +1,7 @@
 # Documento de Arquitectura — CocoAPI
 
 > Proyecto: TC3005B.501 · Equipo: COCONSULTING2 · Cliente: Ditta Consulting
-> Última actualización: 2026-06-06
+> Última actualización: 2026-06-08
 > Estado: Borrador colaborativo — secciones 5 y 6 completas; secciones 1–4 con Service Blueprint y diagramas C4 integrados (2026-06-06). Pendiente: datos de infraestructura en secciones 4 y 6 (Mariano Carretero) y detalle de negocio en sección 1 (Leonardo Rodríguez).
 
 ---
@@ -144,7 +144,7 @@ Diagrama completo Level 2: [diagramas-c4.md — C4 Level 2](diagramas-c4.md#c4-l
 
 La solución se despliega en la nube de AWS y se empaqueta íntegramente con Docker Compose. En desarrollo, el stack levanta seis contenedores: cuatro de larga duración —PostgreSQL 16, MongoDB 7, LocalStack (mock de S3) y el backend con hot-reload— más dos contenedores de inicialización de un solo uso (`s3-init`, que crea el bucket en LocalStack, y `migrate`, que ejecuta `prisma generate` → `db push` → seed). En producción, el stack se reduce a tres servicios: PostgreSQL, MongoDB y el backend, este último ejecutado a partir de la imagen publicada en el registro de contenedores.
 
-La entrega continua se apoya en GitHub Actions. En cada *push* a `main`, los flujos de integración continua ejecutan lint, validación de esquema Prisma y pruebas; y un flujo de publicación construye la imagen Docker (etapa `production`) y la envía a GHCR (GitHub Container Registry) etiquetada como `latest` y por SHA de commit (imágenes `ghcr.io/coconsulting2/tc3005b-501-backend` y `…-frontend`). El despliegue al host consiste en obtener la imagen y recrear los servicios (`docker compose pull && docker compose up -d`); este paso se realiza actualmente de forma operada sobre la instancia EC2 y no está automatizado dentro de los flujos de Actions.
+La entrega continua se apoya en GitHub Actions para la **integración** (en cada *push* a `main`: lint, validación de esquema Prisma y pruebas) y en un **CD server-side por git-poll** para el **despliegue**. En la instancia EC2 corre un timer systemd (`coco-redeploy.timer`, cada `REDEPLOY_INTERVAL` ≈ 2 min) que hace `git fetch` de `main` de los repos públicos y, **solo si avanzó**, `git reset --hard` + `docker compose up -d --build` (build **nativo arm64** en la caja — no se publican imágenes a un registry, así que no aplica `docker compose pull`). No se requieren credenciales ni SSH; mergear a `main` actualiza la caja automáticamente. Detalle operativo en [deploy-aws.md §7](../getting-started/deploy-aws.md).
 
 Toda la comunicación es HTTPS: certificados autofirmados en desarrollo (generados con OpenSSL al primer arranque) y certificado válido en producción. Los contenedores se comunican por una red interna (`cocoscheme`) y exponen los puertos estándar del proyecto (backend `:3000`, frontend `:4321`, Postgres `:5434` en host, Mongo `:27017`, LocalStack `:4566`). La configuración se inyecta mediante variables de entorno (credenciales de base de datos, `JWT_SECRET`, `AES_SECRET_KEY`, `CORS_ORIGIN`, tokens de integraciones externas, claves VAPID y configuración de S3).
 
@@ -156,7 +156,7 @@ Toda la comunicación es HTTPS: certificados autofirmados en desarrollo (generad
 | **Dev frontend** | frontend (astro dev) | `docker-compose.dev.yml` (repo frontend) |
 | **Prod** | postgres, mongo, backend (GHCR); frontend en host de producción | [`docker-compose.yml`](../../../TC3005B.501-Backend/docker-compose.yml) |
 
-Pipeline CI/CD: GitHub Actions → build imagen `production` → push GHCR (`ghcr.io/coconsulting2/tc3005b-501-backend` y `…-frontend`) → despliegue con `docker compose pull && up -d` en el host de producción.
+Pipeline CI/CD: GitHub Actions corre la CI (lint/tests). El **despliegue** a producción es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) en la EC2 hace `git fetch` de `main` y, si avanzó, reconstruye con `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Ver [deploy-aws.md §7](../getting-started/deploy-aws.md).
 
 Diagramas detallados: [diagramas-c4.md — C4 Level 2](diagramas-c4.md#c4-level-2--container) y [Despliegue dev vs prod](diagramas-c4.md#despliegue--desarrollo-vs-producción). Guía operativa local: [setup-docker.md](../getting-started/setup-docker.md).
 
@@ -253,13 +253,13 @@ Los siguientes mecanismos están implementados y operativos aunque no estuvieran
 
 Esta sección define los indicadores de continuidad de negocio que comprometen la resiliencia del servicio: RTO (tiempo objetivo de recuperación), RPO (punto objetivo de recuperación, es decir, la pérdida máxima de datos tolerable) y SLA (nivel de disponibilidad comprometido). La sección establece la estructura de los indicadores y describe, desde la arquitectura, cómo la solución contribuye a cumplir cada uno; los valores objetivo y los valores reales medidos sobre la infraestructura AWS se completan a partir de los datos de despliegue (ver marcadores en la tabla 6.1).
 
-La arquitectura de CocoAPI favorece la continuidad por su naturaleza contenizada e inmutable: el backend es *stateless* y se ejecuta a partir de imágenes versionadas en GHCR, de modo que recrear el servicio se reduce a `docker compose pull && up -d`; los healthchecks HTTPS permiten el reinicio automático ante fallos; y la separación de estado en PostgreSQL, MongoDB GridFS y S3 acota el dato a respaldar. Los valores numéricos (objetivo y real) dependen de decisiones de infraestructura aún por confirmar (instancia única frente a multi-AZ, cadencia de respaldos de la base de datos, monitoreo).
+La arquitectura de CocoAPI favorece la continuidad por su naturaleza contenizada: el backend es *stateless* y se reconstruye de forma reproducible desde el código en `main` (build nativo en la instancia), de modo que recrear el servicio se reduce a `docker compose up -d --build`; los healthchecks HTTPS permiten el reinicio automático ante fallos; y la separación de estado en PostgreSQL, MongoDB GridFS y S3 acota el dato a respaldar. Los valores numéricos (objetivo y real) dependen de decisiones de infraestructura aún por confirmar (instancia única frente a multi-AZ, cadencia de respaldos de la base de datos, monitoreo).
 
 ### 6.1 Tabla de indicadores
 
 | Indicador | Definición | Valor objetivo | Valor real AWS (demo) | Cómo la arquitectura lo cumple |
 |---|---|---|---|---|
-| **RTO** — Recovery Time Objective | Tiempo máximo aceptable para recuperar el servicio tras una interrupción | *Pendiente definir* | *Pendiente (datos AWS)* | Contenedores *stateless* desde imágenes inmutables en GHCR: recuperación con `docker compose pull && up -d`. El healthcheck HTTPS dispara el reinicio automático del contenedor *unhealthy*. *(Por confirmar: tiempo real de recreación medido sobre EC2.)* |
+| **RTO** — Recovery Time Objective | Tiempo máximo aceptable para recuperar el servicio tras una interrupción | *Pendiente definir* | *Pendiente (datos AWS)* | Contenedores *stateless* reconstruidos desde `main` en la instancia: recuperación con `docker compose up -d --build`. El healthcheck HTTPS dispara el reinicio automático del contenedor *unhealthy*. *(Por confirmar: tiempo real de recreación medido sobre EC2.)* |
 | **RPO** — Recovery Point Objective | Pérdida máxima de datos aceptable, medida en tiempo | *Pendiente definir* | *Pendiente (datos AWS)* | El estado reside en PostgreSQL, MongoDB (GridFS) y S3; el RPO queda determinado por la cadencia de respaldos/snapshots de la base de datos y la durabilidad de S3. *(Por confirmar: frecuencia real de snapshots y estrategia de backup.)* |
 | **SLA** — Service Level Agreement | Nivel de disponibilidad comprometido del servicio | *Pendiente definir* | *Pendiente (datos AWS)* | La disponibilidad está acotada por el modelo de despliegue actual (instancia EC2 única / una sola AZ); es mejorable con multi-AZ y base de datos administrada. *(Por confirmar: porcentaje comprometido y esquema de monitoreo/alertas.)* |
 
@@ -330,7 +330,7 @@ Diferencias detectadas entre la documentación o los supuestos previos y la impl
 | **API** | Application Programming Interface — interfaz HTTP de CocoAPI. |
 | **AWS** | Amazon Web Services — infraestructura de nube (despliegue y S3). |
 | **CFDI** | Comprobante Fiscal Digital por Internet — comprobante fiscal mexicano. |
-| **CI/CD** | Continuous Integration / Continuous Delivery — pipeline GitHub Actions → GHCR. |
+| **CI/CD** | Continuous Integration / Continuous Delivery — CI en GitHub Actions; despliegue por git-poll server-side (timer systemd `coco-redeploy` en la EC2). |
 | **CSRF** | Cross-Site Request Forgery — token anti-falsificación en mutaciones por cookie. |
 | **GHCR** | GitHub Container Registry — registro de imágenes Docker del proyecto. |
 | **GridFS** | Almacén MongoDB para binarios PDF/XML de comprobantes. |

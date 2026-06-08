@@ -13,6 +13,7 @@
   * [Multi-tenant (Ditta como ROOT)](arquitectura-datos/multi-tenancy.md "Aislamiento por organización + RLS Postgres + Prisma extension")
   * [Service Blueprint](arquitectura-datos/service-blueprint.md "Mapa Global de Operaciones — actores, macro-procesos, swimlanes")
   * [Diagramas C4](arquitectura-datos/diagramas-c4.md "Context, Container, Component — arquitectura formal")
+  * [Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md "AWS: auto-setup un solo EC2 vs. producción recomendada multi-AZ")
   * [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md "Negocio, Aplicación, Datos, Infraestructura, RNF y Continuidad")
 * **Guías de usuario**
   * [Manual de Usuario](guias-usuario/manual-usuario.md "Manual de Usuario")

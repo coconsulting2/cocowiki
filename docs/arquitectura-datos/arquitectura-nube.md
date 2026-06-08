@@ -5,8 +5,8 @@
 | **Versión** | 1.0.0 |
 | **Última actualización** | 2026-06-07 |
 | **Alcance** | Despliegue productivo de coco en AWS — lo que levanta el auto-setup vs. la ruta recomendada a producción. |
-| **Runbook** | [Despliegue en AWS](../getting-started/deploy-aws.md) |
-| **Documento padre** | [Documento de Arquitectura](documento-arquitectura.md) · [Diagramas C4](diagramas-c4.md) |
+| **Runbook** | [Despliegue en AWS](getting-started/deploy-aws.md) |
+| **Documento padre** | [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md) · [Diagramas C4](arquitectura-datos/diagramas-c4.md) |
 
 > [!IMPORTANT]
 > El despliegue actual es **un solo EC2** con todo co-locado. Es la **decisión
@@ -195,7 +195,7 @@ Todas verificadas el 2026-06-07 (cada URL resuelve correctamente).
 
 ## 5. Referencias cruzadas
 
-- [Despliegue en AWS](../getting-started/deploy-aws.md) — runbook del auto-setup (scripts, variables, seeding, CI/CD).
-- [Diagramas C4](diagramas-c4.md) — Context/Container/Component del sistema.
-- [Documento de Arquitectura](documento-arquitectura.md) — RNF y continuidad.
-- [Multi-tenancy](multi-tenancy.md) — aislamiento por organización (RLS Postgres).
+- [Despliegue en AWS](getting-started/deploy-aws.md) — runbook del auto-setup (scripts, variables, seeding, CI/CD).
+- [Diagramas C4](arquitectura-datos/diagramas-c4.md) — Context/Container/Component del sistema.
+- [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md) — RNF y continuidad.
+- [Multi-tenancy](arquitectura-datos/multi-tenancy.md) — aislamiento por organización (RLS Postgres).

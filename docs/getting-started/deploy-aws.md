@@ -35,6 +35,11 @@ contenedores con Docker Compose. Solo Caddy se expone a Internet (80/443).
 
 ![Arquitectura del despliegue — un solo EC2](./images/arquitectura-actual.svg)
 
+> Este es el despliegue **actual** (un solo EC2, por presupuesto). El diagrama de
+> la arquitectura **recomendada para producción** (multi-AZ, Route 53/DNS, WAF,
+> CloudFront, RDS Multi-AZ, Secrets Manager, subnets privadas) y la comparativa
+> con specs están en **[Arquitectura en la nube](../arquitectura-datos/arquitectura-nube.md)**.
+
 - **caddy** termina TLS. Por defecto usa un certificado **auto-firmado**
   (`tls internal`, funciona con solo la IP/DNS de EC2). Enruta `/api/*` al
   backend **sin quitar el prefijo** y todo lo demás al frontend.

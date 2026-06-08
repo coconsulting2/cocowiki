@@ -40,20 +40,59 @@ dirección pública.
 | **Acceso a S3** | IAM instance role + IMDSv2 hop-limit 2 — sin llaves estáticas. |
 | **Costo** | ≈ **\$12–15/mes** corriendo (t4g.small + EBS + EIP). |
 
+### Specs concretas de este despliegue
+
+| Recurso | Valor usado |
+|---------|-------------|
+| **Región / AZ** | us-east-1 · **1 sola AZ** (us-east-1a) |
+| **VPC / subred** | `vpc-0f7bd8ada126a095b` (10.0.0.0/24) · 1 subnet pública /25 + IGW + route table |
+| **Instancia** | **EC2 `t4g.small`** (ARM Graviton, 2 vCPU, 2 GiB RAM) |
+| **AMI** | Amazon Linux 2023 **arm64** |
+| **Disco** | 30 GB **gp3** + swapfile de 4 GB (para los builds en 2 GiB de RAM) |
+| **Red pública** | **Elastic IP** + DNS público de EC2 (sin dominio propio / Route 53 todavía) |
+| **Metadata** | IMDSv2 obligatorio, hop-limit 2 (para que el contenedor use el rol IAM) |
+| **Contenedores** | Docker Compose: Caddy `:443` · frontend Astro SSR `:4321` · backend Express `:3000` · Postgres 16 (perfil `localdb`) |
+| **TLS** | Caddy **auto-firmado** por defecto (Let's Encrypt si se apunta un dominio) |
+| **Almacenamiento** | Bucket S3 privado (SSE-S3, block public access) |
+| **IAM** | `coco-ec2-role` (instance profile) con permisos S3 mínimos |
+| **Security Group** | 22 desde la IP del admin · 80/443 públicos |
+| **Secretos** | `deploy/.env` (chmod 600), autogenerados con `openssl rand` |
+
+> **Por qué un solo EC2 (y qué falta).** Con el presupuesto escolar de **~\$56**,
+> un stack productivo completo (ver §2: ALB + cómputo redundante + RDS Multi-AZ +
+> CloudFront/WAF + Route 53 + Secrets Manager + CloudWatch) cuesta de más. Por eso
+> hoy corre **todo co-locado en un `t4g.small`**. Lo que **conscientemente queda
+> pendiente** frente a producción: alta disponibilidad multi-AZ, BD gestionada con
+> failover, **DNS propio (Route 53) + TLS válido (ACM)**, **WAF/seguridad
+> perimetral**, subnets privadas y secretos gestionados. La §2 es la ruta de
+> migración cuando el presupuesto lo permita.
+
 ---
 
 ## 2. Arquitectura recomendada (producción)
 
-Para producción real se distribuye en **dos o más Availability Zones**, se
-separa el cómputo de los datos y se delega la gestión de TLS, secretos y BD a
-servicios administrados de AWS.
+Para producción real se distribuye en **dos o más Availability Zones**, se separa
+el cómputo de los datos, se añade una **capa de borde con DNS y seguridad** y se
+delega la gestión de TLS, secretos y BD a servicios administrados de AWS.
 
-![Arquitectura recomendada — Multi-AZ (producción)](./images/arquitectura-recomendada.svg)
+![Arquitectura recomendada — Multi-AZ, segura (producción)](./images/arquitectura-recomendada.svg)
 
-> El cómputo puede ser **ECS Fargate** (contenedores serverless) o un **EC2 Auto
-> Scaling Group** repartido en 2 AZ; ambos se ponen detrás del ALB. La elección
-> depende de si se quiere cero gestión de servidores (Fargate) o control fino
-> del host (ASG).
+**Capa de borde (DNS + seguridad):** **Amazon Route 53** resuelve el dominio
+propio (con health checks); **Amazon CloudFront** entrega el contenido en el edge
+con **TLS de ACM**; **AWS WAF** filtra tráfico malicioso a nivel L7 antes de
+llegar al origen.
+
+**Red y cómputo:** un **Application Load Balancer** reparte el tráfico entre
+**2 AZ**. Las apps corren en **subnets privadas** (sin IP pública) como **ECS
+Fargate** (serverless) o un **EC2 Auto Scaling Group**; ambos detrás del ALB. La
+elección depende de si se quiere cero gestión de servidores (Fargate) o control
+fino del host (ASG).
+
+**Datos y seguridad:** **Amazon RDS PostgreSQL Multi-AZ** (primary + standby con
+failover automático, cifrado en reposo) en subnets privadas de BD; **S3** privado
+servido vía CloudFront (OAC); **AWS Secrets Manager** para secretos con rotación;
+**roles IAM por tarea** (least-privilege, sin llaves estáticas); **Security
+Groups por capa** (ALB → App → RDS); y **CloudWatch** para logs, métricas y alarmas.
 
 ---
 
@@ -64,7 +103,10 @@ servicios administrados de AWS.
 | **Alta disponibilidad** | 1 EC2 en 1 AZ — punto único de falla. | 2+ AZ; ALB redirige tráfico ante caída de una AZ [1]. |
 | **Escalado** | Vertical manual (cambiar `INSTANCE_TYPE`). | Horizontal automático: ASG balancea entre AZ [2] o Fargate por demanda [3]. |
 | **BD gestionada** | Postgres en contenedor co-locado, sin failover. | RDS PostgreSQL Multi-AZ con standby síncrono y failover automático [4]. |
+| **DNS** | DNS público de EC2 (sin dominio propio). | **Amazon Route 53**: dominio propio + health checks. |
 | **TLS** | Caddy auto-firmado por defecto (warning) / ACME con dominio [9]. | Certificado público de ACM en el listener HTTPS del ALB [5]. |
+| **Seguridad perimetral** | Solo Security Group (puertos). | **AWS WAF** (reglas L7) + CloudFront delante del origen. |
+| **Red** | 1 subnet pública; la instancia tiene IP pública. | Subnets **privadas** para app y BD (sin IP pública); SG por capa (ALB→App→RDS). |
 | **Secretos** | En `.env` en disco (chmod 600), autogenerados. | AWS Secrets Manager: cifrado en reposo + rotación [6]; sin secretos hard-codeados [10]. |
 | **Almacenamiento** | S3 privado (SSE-S3, block public access) [8]. | Igual + versioning; servido vía CloudFront con OAC para contenido privado [7]. |
 | **Acceso a AWS** | IAM instance role (sin llaves estáticas) [10]. | Igual (roles por tarea/instancia, least-privilege) [10]. |

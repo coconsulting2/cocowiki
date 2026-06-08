@@ -1,0 +1,143 @@
+# docker-compose.prod.yml — stack de producción coco (un solo EC2)
+#
+# Servicios:
+#   caddy     — TLS público en :443 (y :80 para redirección/ACME)
+#   frontend  — Astro SSR (HTTP plano interno :4321)
+#   backend   — Express HTTPS auto-firmado interno :3000, rutas bajo /api
+#   postgres  — opcional, perfil "localdb" (Postgres co-locado)
+#
+# Se ejecuta desde cocowiki/deploy, por lo que los build contexts apuntan a los
+# repos clonados como hermanos en ../../ (ver install.sh):
+#   /opt/coco/cocowiki
+#   /opt/coco/TC3005B.501-Backend
+#   /opt/coco/TC3005B.501-Frontend
+#
+# Variables sensibles y de host viven en cocowiki/deploy/.env (ver .env.example).
+
+name: coco
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Host público (IP/DNS) o dominio real. REQUERIDO y no-vacío: install.sh
+      # lo fija al host público. Un valor vacío rompe el parseo de Caddy (lee el
+      # bloque como "global options") y sin host `tls internal` no puede emitir cert.
+      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS requerido (IP/DNS público o dominio)}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - coco
+
+  backend:
+    build:
+      context: ../../TC3005B.501-Backend
+      target: production
+    restart: unless-stopped
+    # Solo interno: lo expone Caddy. NO se publica al host.
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL requerido}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN requerido}
+      AES_SECRET_KEY: ${AES_SECRET_KEY:?AES_SECRET_KEY requerido (32 chars)}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET requerido}
+      # Cifrado de comentarios/chat (requerido en producción): 64 hex chars c/u.
+      CHAT_CURSOR_SECRET: ${CHAT_CURSOR_SECRET:?CHAT_CURSOR_SECRET requerido (64 hex chars)}
+      CHAT_MESSAGE_SECRET: ${CHAT_MESSAGE_SECRET:?CHAT_MESSAGE_SECRET requerido (64 hex chars)}
+      # S3 / almacenamiento. En EC2 las credenciales las provee el IAM
+      # instance role automáticamente; AWS_ACCESS_KEY_ID/SECRET solo se pasan
+      # si están definidas en .env (uso local fuera de EC2).
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:?AWS_S3_BUCKET requerido}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      # Migraciones + seed al arrancar (entrypoint del backend).
+      RUN_MIGRATIONS: "true"
+      SEED_DUMMY_DATA: ${SEED_DUMMY_DATA:-false}
+      # Password inicial del admin Ditta (seed.js). Si vacío, el seed usa su default.
+      DITTA_ADMIN_INITIAL_PASSWORD: ${DITTA_ADMIN_INITIAL_PASSWORD:-}
+      # Integraciones opcionales (pasan solo si están definidas en .env).
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST:-}
+      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-}
+      DUFFEL_ACCESS_TOKEN: ${DUFFEL_ACCESS_TOKEN:-}
+      FLIGHT_PROVIDER: ${FLIGHT_PROVIDER:-}
+      BANXICO_API_KEY: ${BANXICO_API_KEY:-}
+      WISE_CLIENT_ID: ${WISE_CLIENT_ID:-}
+      WISE_CLIENT_SECRET: ${WISE_CLIENT_SECRET:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_MAILTO: ${VAPID_MAILTO:-}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-}
+    volumes:
+      # Certificado auto-firmado del backend persistido entre reinicios.
+      - backend_certs:/app/certs
+    networks:
+      - coco
+
+  frontend:
+    build:
+      context: ../../TC3005B.501-Frontend
+      target: production
+      args:
+        # CRÍTICO: estos ARGs se inyectan en el bundle del navegador en build.
+        # Deben apuntar al origen PÚBLICO (Caddy), no al servicio interno.
+        PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:?PUBLIC_API_BASE_URL requerido}
+        PUBLIC_IS_DEV: ${PUBLIC_IS_DEV:-false}
+    restart: unless-stopped
+    expose:
+      - "4321"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "4321"
+      # Fetch SSR (server-side, dentro de la red Docker) va directo al backend.
+      API_URL_SSR: https://backend:3000/api
+    depends_on:
+      - backend
+    networks:
+      - coco
+
+  # Postgres co-locado OPCIONAL. Solo arranca con `--profile localdb`.
+  # Si la BD es externa (RDS u otro), no actives este perfil.
+  postgres:
+    image: postgres:16
+    profiles: ["localdb"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-coco}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para localdb}
+      POSTGRES_DB: ${POSTGRES_DB:-coco}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-coco} -d ${POSTGRES_DB:-coco}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - coco
+
+volumes:
+  caddy_data:
+  caddy_config:
+  backend_certs:
+  pgdata:
+
+networks:
+  coco:
+    driver: bridge

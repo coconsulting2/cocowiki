@@ -81,7 +81,7 @@ El backend se organiza por capas: rutas (`routes/*Routes.js`, **30 módulos**) �
 
 **Pipeline global** (`app.js`): CORS → `express.json` → `cookieParser` → httpLogger → CSRF → montaje de rutas → manejadores de error.
 
-**Pipeline por ruta protegida**: `authenticateToken` → `tenantContextMiddleware` → `applyRlsForRequest` → `loadPermissions` → `authorizePermission`. La sanitización Mongo (`mongoSanitize`) y el rate-limiting se aplican **por ruta**, no globalmente.
+**Pipeline por ruta protegida**: `authenticateToken` → `tenantContextMiddleware` → `applyRlsForRequest` → `loadPermissions` → `authorizePermission`. El rate-limiting se aplica **por ruta**, no globalmente.
 
 ### Diagrama C4 — Contexto de integraciones
 
@@ -122,7 +122,7 @@ La arquitectura de datos combina tres backends de almacenamiento especializados 
 
 El esquema es multi-tenant: las entidades operativas y de configuración están acotadas por `organization_id`, y el aislamiento se refuerza con Row-Level Security (RLS) de PostgreSQL sobre 38 tablas. El puente entre la aplicación y la RLS opera así: el middleware de contexto de tenant coloca la organización activa en `AsyncLocalStorage`; una extensión de Prisma Client (`prisma/tenantExtension.js`) inyecta automáticamente el filtro `organization_id` en lecturas y el valor correspondiente en escrituras para los modelos con scope; y en la conexión se ejecuta `set_config('app.current_organization_id', ...)`, GUC que evalúan las políticas RLS (`tenant_isolation`). Los superadministradores de Ditta (ROOT) pueden operar cross-tenant activando `app.bypass_tenant`, únicamente con el permiso correspondiente.
 
-La separación de almacenamiento distribuye los datos así: PostgreSQL guarda toda la información relacional y la *metadata* de archivos; MongoDB 7 (GridFS) almacena los binarios de comprobantes fiscales —XML y PDF de los CFDI— referenciados desde la tabla `Receipt` mediante los identificadores de GridFS (`pdf_file_id`, `xml_file_id`); y Amazon S3 (con LocalStack como mock en desarrollo) almacena los archivos generales de viaje, cifrados con SSE-S3 y servidos mediante URLs prefirmadas. El driver Node.js de MongoDB es `mongodb@5` (`mongodb@^5.0.0`), compatible con el servidor MongoDB 7 en uso; ambas versiones son correctas y coexisten sin inconveniente. La evolución del esquema se gestiona con migraciones Prisma versionadas (13 migraciones a la fecha), siendo la más relevante `20260512000000_multi_tenant_baseline`, que introdujo el modelo multi-tenant y la RLS.
+La separación de almacenamiento distribuye los datos así: PostgreSQL guarda toda la información relacional y la *metadata* de archivos; y Amazon S3 (con LocalStack como mock en desarrollo) almacena todos los binarios —tanto los comprobantes fiscales XML y PDF de los CFDI como los archivos generales de viaje—, cifrados con SSE-S3 y servidos mediante URLs prefirmadas, referenciados desde la tabla `Receipt` mediante las claves de objeto de S3 (`pdf_file_key`, `xml_file_key`). La evolución del esquema se gestiona con migraciones Prisma versionadas (13 migraciones a la fecha), siendo la más relevante `20260512000000_multi_tenant_baseline`, que introdujo el modelo multi-tenant y la RLS.
 
 ### Diagrama C4 — Contenedores de datos
 
@@ -130,8 +130,7 @@ La separación de almacenamiento distribuye los datos así: PostgreSQL guarda to
 flowchart LR
   API[CocoAPI]
   API --> PG[(PostgreSQL 16 Prisma RLS)]
-  API --> MG[(MongoDB 7 GridFS CFDI)]
-  API --> S3[(AWS S3 archivos viaje)]
+  API --> S3[(AWS S3 archivos + comprobantes)]
 ```
 
 Diagrama completo Level 2: [diagramas-c4.md — C4 Level 2](diagramas-c4.md#c4-level-2--container). Modelos ER por subdominio (49 modelos, 5 enums): [modelo-er.md](modelo-er.md). Detalle RLS: [multi-tenancy.md](multi-tenancy.md).
@@ -142,19 +141,19 @@ Diagrama completo Level 2: [diagramas-c4.md — C4 Level 2](diagramas-c4.md#c4-l
 
 > _Docker dev/prod y C4 L2 integrados; costos AWS pendientes — ver [diagramas-c4.md](diagramas-c4.md)._
 
-La solución se despliega en la nube de AWS y se empaqueta íntegramente con Docker Compose. En desarrollo, el stack levanta seis contenedores: cuatro de larga duración —PostgreSQL 16, MongoDB 7, LocalStack (mock de S3) y el backend con hot-reload— más dos contenedores de inicialización de un solo uso (`s3-init`, que crea el bucket en LocalStack, y `migrate`, que ejecuta `prisma generate` → `db push` → seed). En producción, el stack se reduce a tres servicios: PostgreSQL, MongoDB y el backend, este último ejecutado a partir de la imagen publicada en el registro de contenedores.
+La solución se despliega en la nube de AWS y se empaqueta íntegramente con Docker Compose. En desarrollo, el stack levanta cinco contenedores: tres de larga duración —PostgreSQL 16, LocalStack (mock de S3) y el backend con hot-reload— más dos contenedores de inicialización de un solo uso (`s3-init`, que crea el bucket en LocalStack, y `migrate`, que ejecuta `prisma generate` → `db push` → seed). En producción, el stack se reduce a dos servicios: PostgreSQL y el backend, este último ejecutado a partir de la imagen publicada en el registro de contenedores.
 
 La entrega continua se apoya en GitHub Actions para la **integración** (en cada *push* a `main`: lint, validación de esquema Prisma y pruebas) y en un **CD server-side por git-poll** para el **despliegue**. En la instancia EC2 corre un timer systemd (`coco-redeploy.timer`, cada `REDEPLOY_INTERVAL` ≈ 2 min) que hace `git fetch` de `main` de los repos públicos y, **solo si avanzó**, `git reset --hard` + `docker compose up -d --build` (build **nativo arm64** en la caja — no se publican imágenes a un registry, así que no aplica `docker compose pull`). No se requieren credenciales ni SSH; mergear a `main` actualiza la caja automáticamente. Detalle operativo en [deploy-aws.md §7](../getting-started/deploy-aws.md).
 
-Toda la comunicación es HTTPS: certificados autofirmados en desarrollo (generados con OpenSSL al primer arranque) y certificado válido en producción. Los contenedores se comunican por una red interna (`cocoscheme`) y exponen los puertos estándar del proyecto (backend `:3000`, frontend `:4321`, Postgres `:5434` en host, Mongo `:27017`, LocalStack `:4566`). La configuración se inyecta mediante variables de entorno (credenciales de base de datos, `JWT_SECRET`, `AES_SECRET_KEY`, `CORS_ORIGIN`, tokens de integraciones externas, claves VAPID y configuración de S3).
+Toda la comunicación es HTTPS: certificados autofirmados en desarrollo (generados con OpenSSL al primer arranque) y certificado válido en producción. Los contenedores se comunican por una red interna (`cocoscheme`) y exponen los puertos estándar del proyecto (backend `:3000`, frontend `:4321`, Postgres `:5434` en host, LocalStack `:4566`). La configuración se inyecta mediante variables de entorno (credenciales de base de datos, `JWT_SECRET`, `AES_SECRET_KEY`, `CORS_ORIGIN`, tokens de integraciones externas, claves VAPID y configuración de S3).
 
 ### Diagrama C4 — Contenedores y despliegue
 
 | Entorno | Contenedores | Fuente |
 |---------|--------------|--------|
-| **Dev backend** | postgres, mongo, localstack, s3-init, migrate, backend (hot-reload) | `docker-compose.dev.yml` |
+| **Dev backend** | postgres, localstack, s3-init, migrate, backend (hot-reload) | `docker-compose.dev.yml` |
 | **Dev frontend** | frontend (astro dev) | `docker-compose.dev.yml` (repo frontend) |
-| **Prod** | postgres, mongo, backend (GHCR); frontend en host de producción | [`docker-compose.yml`](../../../TC3005B.501-Backend/docker-compose.yml) |
+| **Prod** | postgres, backend (GHCR); frontend en host de producción | [`docker-compose.yml`](../../../TC3005B.501-Backend/docker-compose.yml) |
 
 Pipeline CI/CD: GitHub Actions corre la CI (lint/tests). El **despliegue** a producción es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) en la EC2 hace `git fetch` de `main` y, si avanzó, reconstruye con `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Ver [deploy-aws.md §7](../getting-started/deploy-aws.md).
 
@@ -185,7 +184,7 @@ Esta sección consolida los requerimientos no funcionales (RNF) de CocoAPI. Dado
 | RNF-06 | Seguridad | CORS restringido por allowlist (`CORS_ORIGIN`) con `credentials` | Todas | Origen no permitido → bloqueado por CORS | Cumplido |
 | RNF-07 | Seguridad | HTTPS/TLS extremo a extremo | Todas | 0 tráfico en claro (autofirmado en dev, cert válido en prod) | Cumplido |
 | RNF-08 | Seguridad / Aislamiento | **Multi-tenant:** aislamiento por organización vía RLS PostgreSQL (38 tablas) + extensión Prisma + `AsyncLocalStorage` | Todas las entidades con scope | **0 fugas de datos entre organizaciones** (cross-tenant) | Cumplido |
-| RNF-09 | Seguridad | Sanitización anti-inyección (`mongo-sanitize`) sobre `params`/`query`/`body` | Todas | 0 operadores `$`/`.` llegan a la capa de datos | Cumplido |
+| RNF-09 | Seguridad | Validación/saneamiento de entrada (`middleware/validation.js`) y **queries parametrizadas por Prisma** → sin inyección SQL | Todas | Entrada inválida → HTTP 400; Prisma parametriza (sin SQL crudo) | Cumplido |
 | RNF-10 | Privacidad / Seguridad | Cifrado en reposo **AES-256-CBC** de PII (email, teléfono de usuario) | US-user | Campos PII ilegibles en un dump de BD | Cumplido |
 | RNF-11 | Rendimiento | Tiempo de respuesta de API < 500 ms (p95) en endpoints de lectura | Todas | Medición con prueba de carga | Pendiente |
 | RNF-12 | Escalabilidad | Soportar 100 usuarios concurrentes sin degradación | Todas | Prueba de carga (K6 / Artillery) | Pendiente |
@@ -201,7 +200,7 @@ Esta sección consolida los requerimientos no funcionales (RNF) de CocoAPI. Dado
 | RNF-22 | Mantenibilidad | Cobertura de pruebas automatizadas (≈88 tests: backend + frontend) ejecutadas en CI | Todas | CI corre la suite en cada push/PR a `main` | Parcial |
 | RNF-23 | Mantenibilidad | JSDoc obligatorio + Conventional Commits | Todas | Enforcement por guía de estilo / ESLint | Cumplido |
 | RNF-24 | Trazabilidad / Auditoría | Logs cifrados (AES) y bitácora de uso de API keys (`api_key_logs`) | Todas | Eventos sensibles quedan auditables | Cumplido |
-| RNF-25 | Confiabilidad | **Integridad de almacenamiento:** *metadata* en **PostgreSQL** + binarios en GridFS/S3; sin archivos huérfanos | US-01, US-02 | 0 archivos en S3/GridFS sin registro en BD | Cumplido |
+| RNF-25 | Confiabilidad | **Integridad de almacenamiento:** *metadata* en **PostgreSQL** + binarios en S3; sin archivos huérfanos | US-01, US-02 | 0 archivos en S3 sin registro en BD | Cumplido |
 | RNF-26 | Seguridad | **API keys** M2M con hash **scrypt** (N=16384, r=8, p=1) + *pepper*, prefijo `cck_`; la clave en claro nunca se persiste | US-external | Solo se almacena el hash (64 hex); la clave en claro se devuelve una única vez | Cumplido |
 | RNF-27 | Cumplimiento fiscal | Validación de CFDI ante el SAT (SOAP) y parseo de XML (UUID único) | US-comprobación | CFDI inválido o duplicado → rechazado | Cumplido |
 
@@ -239,7 +238,6 @@ Los siguientes mecanismos están implementados y operativos aunque no estuvieran
 - **RLS multi-tenant** — 38 tablas de PostgreSQL con Row-Level Security (32 con columna de organización directa + 6 por *join* al padre). GUC `app.current_organization_id` (`set_config`) y bypass `app.bypass_tenant='on'` para ROOT. Migración `20260512000000_multi_tenant_baseline`. → *RNF-08*
 - **JWT con IP binding** — `middleware/authMiddleware.js`. Verificación de firma y expiración (1 h); token desde Bearer y/o cookie httpOnly `token`; IP binding desactivable en desarrollo con `NODE_ENV=development` o `JWT_SKIP_IP_CHECK=true`. → *RNF-01, RNF-02*
 - **CORS restringido** — `app.js`, allowlist por variable de entorno `CORS_ORIGIN` (lista separada por comas), `credentials: true`. → *RNF-06*
-- **Sanitización MongoDB** — `middleware/mongoSanitize.js` (`mongo-sanitize`): elimina claves con `$`/`.` de `params`, `query` y `body`. → *RNF-09*
 - **CSRF** — `app.js` con `csurf`; token emitido en `GET /api/user/csrf-token` (cookie con vigencia de 24 h); exenciones controladas: login, emisión del token y `/api/external/*` (M2M con `X-API-Key`). → *RNF-04*
 - **Cifrado de PII con AES-256-CBC** — `middleware/decryption.js` (clave `AES_SECRET_KEY`). Cifra email y teléfono del usuario; conforme a la configuración del sistema, también las bitácoras de auditoría. → *RNF-10, RNF-24*
 - **Hash de contraseñas con bcrypt** — cost 10, en el servicio de usuarios y en el de onboarding. → *RNF-03*
@@ -253,14 +251,14 @@ Los siguientes mecanismos están implementados y operativos aunque no estuvieran
 
 Esta sección define los indicadores de continuidad de negocio que comprometen la resiliencia del servicio: RTO (tiempo objetivo de recuperación), RPO (punto objetivo de recuperación, es decir, la pérdida máxima de datos tolerable) y SLA (nivel de disponibilidad comprometido). La sección establece la estructura de los indicadores y describe, desde la arquitectura, cómo la solución contribuye a cumplir cada uno; los valores objetivo y los valores reales medidos sobre la infraestructura AWS se completan a partir de los datos de despliegue (ver marcadores en la tabla 6.1).
 
-La arquitectura de CocoAPI favorece la continuidad por su naturaleza contenizada: el backend es *stateless* y se reconstruye de forma reproducible desde el código en `main` (build nativo en la instancia), de modo que recrear el servicio se reduce a `docker compose up -d --build`; los healthchecks HTTPS permiten el reinicio automático ante fallos; y la separación de estado en PostgreSQL, MongoDB GridFS y S3 acota el dato a respaldar. Los valores numéricos (objetivo y real) dependen de decisiones de infraestructura aún por confirmar (instancia única frente a multi-AZ, cadencia de respaldos de la base de datos, monitoreo).
+La arquitectura de CocoAPI favorece la continuidad por su naturaleza contenizada: el backend es *stateless* y se reconstruye de forma reproducible desde el código en `main` (build nativo en la instancia), de modo que recrear el servicio se reduce a `docker compose up -d --build`; los healthchecks HTTPS permiten el reinicio automático ante fallos; y la separación de estado en PostgreSQL y S3 acota el dato a respaldar. Los valores numéricos (objetivo y real) dependen de decisiones de infraestructura aún por confirmar (instancia única frente a multi-AZ, cadencia de respaldos de la base de datos, monitoreo).
 
 ### 6.1 Tabla de indicadores
 
 | Indicador | Definición | Valor objetivo | Valor real AWS (demo) | Cómo la arquitectura lo cumple |
 |---|---|---|---|---|
 | **RTO** — Recovery Time Objective | Tiempo máximo aceptable para recuperar el servicio tras una interrupción | *Pendiente definir* | *Pendiente (datos AWS)* | Contenedores *stateless* reconstruidos desde `main` en la instancia: recuperación con `docker compose up -d --build`. El healthcheck HTTPS dispara el reinicio automático del contenedor *unhealthy*. *(Por confirmar: tiempo real de recreación medido sobre EC2.)* |
-| **RPO** — Recovery Point Objective | Pérdida máxima de datos aceptable, medida en tiempo | *Pendiente definir* | *Pendiente (datos AWS)* | El estado reside en PostgreSQL, MongoDB (GridFS) y S3; el RPO queda determinado por la cadencia de respaldos/snapshots de la base de datos y la durabilidad de S3. *(Por confirmar: frecuencia real de snapshots y estrategia de backup.)* |
+| **RPO** — Recovery Point Objective | Pérdida máxima de datos aceptable, medida en tiempo | *Pendiente definir* | *Pendiente (datos AWS)* | El estado reside en PostgreSQL y S3; el RPO queda determinado por la cadencia de respaldos/snapshots de la base de datos y la durabilidad de S3. *(Por confirmar: frecuencia real de snapshots y estrategia de backup.)* |
 | **SLA** — Service Level Agreement | Nivel de disponibilidad comprometido del servicio | *Pendiente definir* | *Pendiente (datos AWS)* | La disponibilidad está acotada por el modelo de despliegue actual (instancia EC2 única / una sola AZ); es mejorable con multi-AZ y base de datos administrada. *(Por confirmar: porcentaje comprometido y esquema de monitoreo/alertas.)* |
 
 <!-- TODO (Mariano Carretero): completar "Valor objetivo" y "Valor real AWS (demo)" de RTO, RPO y SLA con los datos reales de la infraestructura AWS. -->
@@ -333,7 +331,6 @@ Diferencias detectadas entre la documentación o los supuestos previos y la impl
 | **CI/CD** | Continuous Integration / Continuous Delivery — CI en GitHub Actions; despliegue por git-poll server-side (timer systemd `coco-redeploy` en la EC2). |
 | **CSRF** | Cross-Site Request Forgery — token anti-falsificación en mutaciones por cookie. |
 | **GHCR** | GitHub Container Registry — registro de imágenes Docker del proyecto. |
-| **GridFS** | Almacén MongoDB para binarios PDF/XML de comprobantes. |
 | **HTTPS** | HTTP con TLS — transporte cifrado extremo a extremo. |
 | **JWT** | JSON Web Token — sesión firmada con expiración e IP binding opcional. |
 | **PII** | Personally Identifiable Information — datos personales cifrados en reposo (email, teléfono). |

@@ -90,7 +90,7 @@ flowchart TB
 | 4 | **Logística del viaje** | Cotización CxP, reservas Duffel, atención agencia | `/api/accounts-payable`, `/api/travel-agent`, `/api/flights`, `/api/hotels`, `duffel*` |
 | 5 | **Comprobación de gastos** | Recibos, upload PDF/XML, gasto por tramo | `/api/applicant`, `/api/files`, `/api/viajes`, `receiptFileService` |
 | 6 | **Cierre y reembolso** | Validación CxP, wallet, finalización | `/api/accounts-payable`, `refundRuleEngine`, `reimbursementTimeService` |
-| 7 | **Validación fiscal (CFDI/SAT)** | Parseo XML, consulta estado SAT, metadata en PostgreSQL | `/api/comprobantes`, `/api/files`, `satConsultaService`, `cfdiParserService`, GridFS |
+| 7 | **Validación fiscal (CFDI/SAT)** | Parseo XML, consulta estado SAT, metadata en PostgreSQL | `/api/comprobantes`, `/api/files`, `satConsultaService`, `cfdiParserService`, AWS S3 |
 | 8 | **Políticas y reembolso** | Topes viáticos, excepciones, plazos, motor de reglas | `/api/policies`, `/api/viaticos-policy`, `/api/refunds`, `/api/workflow-rules`, `policyService`, `viaticasPolicyService` |
 | 9 | **Exportación contable (ERP)** | Pólizas AV/GV, catálogo contable, API M2M | `/api/export`, `/api/chart-of-accounts`, `/api/external`, `accountingExportService` |
 
@@ -106,8 +106,8 @@ flowchart TB
 | Información | Sistema → Autorizadores | Alertas de bandeja | PostgreSQL `Alert` + `/api/authorizer` |
 | Información | Sistema → Usuario | Email / push de cambio de estado | SMTP + `webPushService` |
 | Información | Admin → Sistema | Usuarios, roles, departamentos | `/api/admin`, onboarding import |
-| Documentos | Solicitante → GridFS | PDF/XML de CFDI | `POST /api/files` → MongoDB GridFS |
-| Documentos | Sistema → CxP | Descarga comprobantes | `GET /api/files` stream GridFS |
+| Documentos | Solicitante → AWS S3 | PDF/XML de CFDI | `POST /api/files` → AWS S3 (pre-signed) |
+| Documentos | Sistema → CxP | Descarga comprobantes | `GET /api/files` (pre-signed URL desde AWS S3) |
 | Documentos | Solicitante → S3 | Archivos generales de viaje | Pre-signed URL (`storageService`, TTL 15 min) |
 | Fiscal | Sistema → SAT | Consulta estado CFDI | **SOAP/HTTPS** WSDL SAT; config org `OrganizationIntegration` tipo SAT |
 | Fiscal | Sistema → PostgreSQL | Metadata CFDI (`CfdiComprobante`) | Prisma tras parseo XML |
@@ -128,7 +128,7 @@ flowchart TB
 | **Plataforma Web** | UI para todos los actores | Astro 5.7 SSR + React 19 + Tailwind 4 |
 | **API Application** | Punto central HTTPS, seguridad en capas | Express 4.18 + JWT + RBAC + CSRF + rate-limit |
 | **Base relacional** | Dominio de negocio multi-tenant | PostgreSQL 16 + Prisma 6.16 + RLS (38 tablas) |
-| **Almacén CFDI** | Binarios PDF/XML de comprobantes | MongoDB 7 GridFS (`fileStorage`) |
+| **Almacén CFDI** | Binarios PDF/XML de comprobantes | AWS S3 (LocalStack mock en dev); SSE-S3 |
 | **Object storage** | Archivos generales de viaje | AWS S3 (LocalStack en dev); SSE-S3 |
 | **Motor de reglas** | Workflow, políticas, reembolsos | Servicios Node (`workflowRulesEngine`, `policyService`, `refundRuleEngine`) |
 | **Scheduler** | Escalación de aprobación, plazos reembolso | `services/scheduler/` (cron Node) |
@@ -262,9 +262,9 @@ Detalle de reglas: [flujos.md — Estados de solicitud](flujos.md#5-estados-de-s
 
 | Actor | Sistemas / integraciones | Momento del flujo |
 |-------|-------------------------|-------------------|
-| Empleado / Solicitante | Web App, API, GridFS, S3 | Solicitud, comprobación, archivos |
+| Empleado / Solicitante | Web App, API, S3 | Solicitud, comprobación, archivos |
 | Autorizador (N1/N2 u otro) | Web App, API, alertas, email/push | Aprobación |
-| Cuentas por pagar | Web App, API, GridFS, Banxico | Cotización, validación fiscal, cierre |
+| Cuentas por pagar | Web App, API, S3, Banxico | Cotización, validación fiscal, cierre |
 | Agencia | Web App, API, Duffel (indirecto vía CxP) | Reservas |
 | Admin org | Web App, API, políticas, workflow rules | Configuración |
 | Admin Ditta | Web App, API, multi-tenant, orgs | Cross-tenant |
@@ -298,7 +298,6 @@ Detalle de reglas: [flujos.md — Estados de solicitud](flujos.md#5-estados-de-s
 | **CxP** | Cuentas por pagar — rol que cotiza viajes y valida comprobantes. |
 | **ERP** | Enterprise Resource Planning — sistema contable externo que consume pólizas vía `/api/external`. |
 | **GHCR** | GitHub Container Registry — registro de imágenes Docker del proyecto. |
-| **GridFS** | Almacén de archivos en MongoDB usado para PDF/XML de comprobantes. |
 | **HTTPS** | HTTP sobre TLS — comunicación cifrada entre navegador y API. |
 | **JWT** | JSON Web Token — token de sesión firmado (cookie httpOnly + Bearer). |
 | **N1 / N2** | Autorizador de primer y segundo nivel en la cadena de aprobación. |

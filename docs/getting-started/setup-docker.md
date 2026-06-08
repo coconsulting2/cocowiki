@@ -3,7 +3,7 @@
 Guía para levantar **TC3005B.501-Backend** y **TC3005B.501-Frontend** con Docker, alineada con el trabajo de containerización del repo (commits de **Mariano Carretero**, `MVRer`, y contribuciones posteriores en backend).
 
 > [!IMPORTANT]
-> **El flujo canónico del equipo es Docker** (backend y frontend). Las dependencias y el runtime coherentes (Linux, Bun en las imágenes, Postgres/Mongo en backend) viven en contenedores. Usa los scripts `docker:*` del `package.json` de cada repo para **build, tests o Prisma** sin depender de un `node_modules` correcto en Windows. Bun en el host solo sirve como atajo para invocar `docker compose`.
+> **El flujo canónico del equipo es Docker** (backend y frontend). Las dependencias y el runtime coherentes (Linux, Bun en las imágenes, Postgres + LocalStack S3 en backend) viven en contenedores. Usa los scripts `docker:*` del `package.json` de cada repo para **build, tests o Prisma** sin depender de un `node_modules` correcto en Windows. Bun en el host solo sirve como atajo para invocar `docker compose`.
 
 ---
 
@@ -15,7 +15,7 @@ Guía para levantar **TC3005B.501-Backend** y **TC3005B.501-Frontend** con Docke
 | **Bun** (opcional pero recomendado) | Los `package.json` exponen atajos como `bun run docker:dev`. Sin Bun, puedes usar los mismos comandos sustituyendo por `docker compose ...` como se indica abajo. | [bun.sh](https://bun.sh/docs/installation) |
 
 > [!IMPORTANT]
-> No hace falta instalar **Node**, **Bun**, **Postgres** ni **Mongo** en el host para desarrollar con Docker: van dentro de los contenedores. El backend usa **Bun** dentro de la imagen para `install` / `prisma`; el runtime del API en dev es **Node 22** (imagen base del Dockerfile del backend).
+> No hace falta instalar **Node**, **Bun**, **Postgres** ni **LocalStack** en el host para desarrollar con Docker: van dentro de los contenedores. El backend usa **Bun** dentro de la imagen para `install` / `prisma`; el runtime del API en dev es **Node 22** (imagen base del Dockerfile del backend).
 
 Verifica:
 
@@ -57,10 +57,10 @@ Relacionado con PR: `chore/dockerize-and-bun-migration` (merge en historial del 
 | Archivo | Propósito |
 |---------|-----------|
 | `Dockerfile` | Targets **`deps`** (dev: Bun + Node 22 + Prisma generate) y **`production`** (imagen publicada en GHCR). |
-| `docker-compose.dev.yml` | **Desarrollo:** Postgres 16, Mongo 7, **LocalStack S3 v3.5** (`:4566`), one-shot **`s3-init`** (crea el bucket `coco-consulting-local`), job **`migrate`** (bun install → prisma generate → db push → `node prisma/seed.js dev` → `node prisma/seed-usability.js`, idempotente en cada `up`), servicio **`backend`** con hot-reload (`node --watch`), certificados HTTPS en volumen `certs`, `node_modules` en volumen Linux. |
-| `docker-compose.yml` | **Release / demo:** levanta imagen `ghcr.io/coconsulting2/tc3005b-501-backend:latest`, Postgres y Mongo (sin montar el código fuente del host). |
+| `docker-compose.dev.yml` | **Desarrollo:** Postgres 16, **LocalStack S3 v3.5** (`:4566`), one-shot **`s3-init`** (crea el bucket `coco-consulting-local`), job **`migrate`** (bun install → prisma generate → db push → `node prisma/seed.js dev` → `node prisma/seed-usability.js`, idempotente en cada `up`), servicio **`backend`** con hot-reload (`node --watch`), certificados HTTPS en volumen `certs`, `node_modules` en volumen Linux. |
+| `docker-compose.yml` | **Release / demo:** levanta imagen `ghcr.io/coconsulting2/tc3005b-501-backend:latest`, Postgres (sin montar el código fuente del host). |
 
-Puertos típicos en dev: **3000** (API HTTPS), **5434** (Postgres — host:5434 → contenedor:5432), **27017** (Mongo), **4566** (LocalStack S3).
+Puertos típicos en dev: **3000** (API HTTPS), **5434** (Postgres — host:5434 → contenedor:5432), **4566** (LocalStack S3).
 
 ### Frontend
 
@@ -96,7 +96,7 @@ Variantes útiles:
 |---------|--------|
 | `bun run docker:dev:build` | `up --build` (reconstruye imágenes). |
 | `bun run docker:dev:down` | Apaga contenedores y red. |
-| `bun run docker:dev:clean` | `down -v` — **borra volúmenes** (Postgres, Mongo, LocalStack, certs, `node_modules` del contenedor). Usar para reset completo. |
+| `bun run docker:dev:clean` | `down -v` — **borra volúmenes** (Postgres, LocalStack, certs, `node_modules` del contenedor). Usar para reset completo. |
 | `bun run docker:data:reset` | Recrea la BD con datos de prueba sin borrar volúmenes (wipe Postgres + re-seed, mantiene contenedores arriba). |
 | `bun run docker:permissions:sync` | Ejecuta el seed de referencia (permisos idempotentes). Útil tras hacer pull de un PR que agrega permisos. |
 
@@ -158,7 +158,7 @@ Configura secretos reales en un `.env` junto al compose (`AES_SECRET_KEY`, `JWT_
 | Frontend no llega al API | Asegúrate de que el backend dev esté **levantado** y escuchando en el puerto 3000 del host. Revisa `PUBLIC_API_BASE_URL` (browser) y `API_URL_SSR` (SSR dentro del contenedor) en el compose del frontend. |
 | Seed duplicado o BD “rara” | `bun run docker:dev:clean` en el backend y vuelve a levantar. |
 | Certificados HTTPS en dev | El backend dev genera certs en el volumen `certs` al arrancar. Si falla en Windows, revisa que los scripts en imagen no tengan CRLF (rama `fix/back/docker-windows-crlf`). |
-| Puerto 5434 o 27017 ocupado | Otro Postgres/Mongo local choca con los puertos publicados. Para Postgres, el host escucha en **5434** (mapeo 5434:5432); para Mongo en **27017**. Detén el servicio nativo (`brew services stop postgresql@16` / `brew services stop mongodb-community`) o cambia los mapeos en el compose. |
+| Puerto 5434 ocupado | Otro Postgres local choca con el puerto publicado. Para Postgres, el host escucha en **5434** (mapeo 5434:5432). Detén el servicio nativo (`brew services stop postgresql@16`) o cambia el mapeo en el compose. |
 
 ---
 

@@ -3,7 +3,7 @@
 Guía completa para echar a andar el proyecto **TC3005B.501-Backend** en tu máquina local.
 
 > [!TIP]
-> **Flujo recomendado del equipo:** desarrollo con **Docker** (Postgres, Mongo, Bun/Prisma y API con hot-reload). Instala [Docker](https://www.docker.com/products/docker-desktop/) y, si quieres usar los scripts del `package.json`, [Bun](https://bun.sh/). Guía detallada: [Setup Docker](setup-docker.md).
+> **Flujo recomendado del equipo:** desarrollo con **Docker** (Postgres, LocalStack S3, Bun/Prisma y API con hot-reload). Instala [Docker](https://www.docker.com/products/docker-desktop/) y, si quieres usar los scripts del `package.json`, [Bun](https://bun.sh/). Guía detallada: [Setup Docker](setup-docker.md).
 
 ---
 
@@ -16,7 +16,6 @@ Asegúrate de tener instalado lo siguiente antes de continuar:
 | **Node.js** | v18+ | [nodejs.org](https://nodejs.org/) |
 | **Bun** | v1.1+ | [bun.sh](https://bun.sh/) |
 | **PostgreSQL** | **16** | [postgresql.org](https://www.postgresql.org/download/) |
-| **MongoDB** | **7** | [mongodb.com](https://www.mongodb.com/docs/manual/installation/) |
 | **OpenSSL** | — | Incluido en Git Bash / macOS / Linux |
 | **Git** | — | [git-scm.com](https://git-scm.com/) |
 
@@ -71,7 +70,7 @@ bun install
 ```
 
 > [!NOTE]
-> El proyecto usa **Bun** como gestor de paquetes y runner de scripts (lockfile `bun.lock`). Bun se usa para instalar y para tooling (`bunx prisma`, `bun run`); el servidor en sí arranca con Node (`node --watch`, ver paso 9).
+> El proyecto usa **Bun** como gestor de paquetes y runner de scripts (lockfile `bun.lock`). Bun se usa para instalar y para tooling (`bunx prisma`, `bun run`); el servidor en sí arranca con Node (`node --watch`, ver paso 8).
 
 ---
 
@@ -117,7 +116,7 @@ GRANT ALL PRIVILEGES ON DATABASE "CocoScheme" TO cocoscheme;
 ```
 
 > [!IMPORTANT]
-> El usuario, contraseña y nombre de base que uses aquí van en la variable `DATABASE_URL` del `.env` (paso 8).
+> El usuario, contraseña y nombre de base que uses aquí van en la variable `DATABASE_URL` del `.env` (paso 7).
 
 ### 5.4 Inicializar el esquema y los datos
 
@@ -142,57 +141,11 @@ bun run empty_db
 
 ---
 
-## 6. Instalar y configurar MongoDB
-
-### 6.1 Descargar MongoDB
-
-| SO | Instrucción |
-|---|---|
-| **Windows** | Descarga el instalador MSI de [MongoDB Community](https://www.mongodb.com/try/download/community). Selecciona la opción **"Install as a Service"**. |
-| **macOS** | `brew tap mongodb/brew && brew install mongodb-community` |
-| **Linux (Ubuntu)** | Sigue la [guía oficial de MongoDB para Ubuntu](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/). |
-
-### 6.2 Instalar mongosh (Shell interactivo)
-
-Se recomienda para interactuar directamente con las bases:
-
-- [Descargar mongosh](https://www.mongodb.com/try/download/shell)
-
-### 6.3 Iniciar el servicio
-
-```sh
-# Linux
-sudo systemctl start mongod
-sudo systemctl enable mongod
-
-# macOS (Homebrew)
-brew services start mongodb-community
-
-# Windows
-# Si lo instalaste como servicio, ya debería estar corriendo.
-# De lo contrario, abre PowerShell como administrador:
-net start MongoDB
-```
-
-### 6.4 Verificar que MongoDB está corriendo
-
-```sh
-# Linux
-sudo systemctl status mongod
-
-# Cualquier SO — intenta conectarte
-mongosh
-# Si se conecta correctamente, verás el prompt de mongo.
-# Escribe exit para salir.
-```
-
----
-
-## 7. Generar certificados HTTPS
+## 6. Generar certificados HTTPS
 
 El backend usa HTTPS localmente. Para generar los certificados necesitas el archivo de configuración `openssl.cnf` y el script `create_certs.sh`.
 
-### 7.1 Crear el archivo `openssl.cnf`
+### 6.1 Crear el archivo `openssl.cnf`
 
 > [!IMPORTANT]
 > El archivo `openssl.cnf` **no se sube al repositorio**. Debes crearlo manualmente en la carpeta `/certs`.
@@ -231,7 +184,7 @@ IP.1  = 127.0.0.1
 IP.2  = ::1
 ```
 
-### 7.2 Ejecutar el script de generación
+### 6.2 Ejecutar el script de generación
 
 ```sh
 cd certs
@@ -257,15 +210,15 @@ Al finalizar deberías tener estos archivos en `/certs`:
 
 ---
 
-## 8. Variables de entorno (`.env`)
+## 7. Variables de entorno (`.env`)
 
-### 8.1 Crear el archivo `.env`
+### 7.1 Crear el archivo `.env`
 
 ```sh
 cp .env.example .env
 ```
 
-### 8.2 Editar con tus credenciales
+### 7.2 Editar con tus credenciales
 
 Abre el archivo `.env` y modifica los valores según tu configuración local:
 
@@ -277,9 +230,6 @@ NODE_ENV=development
 # PostgreSQL (usado por Prisma)
 # Nativo: Postgres local en :5432. Con el stack Docker se publica en el host como :5434.
 DATABASE_URL=postgresql://cocoscheme:cocoscheme_dev@localhost:5432/CocoScheme?schema=public
-
-# MongoDB (GridFS para PDF/XML de comprobantes)
-MONGO_URI=mongodb://localhost:27017
 
 # Orígenes permitidos para CORS (separados por coma)
 CORS_ORIGIN=http://localhost:4321,https://localhost:4321
@@ -304,9 +254,9 @@ MAIL_PASSWORD=password
 
 ---
 
-## 9. Ejecutar el servidor
+## 8. Ejecutar el servidor
 
-Asegúrate de que tanto **PostgreSQL** como **MongoDB** estén corriendo, luego ejecuta:
+Asegúrate de que **PostgreSQL** esté corriendo, luego ejecuta:
 
 ```sh
 bun run dev    # node --watch index.js, HTTPS en :3000
@@ -316,16 +266,16 @@ Verás el banner ASCII y un mensaje como `Server running on port 3000 with HTTPS
 
 ---
 
-## 10. Documentación de la API (Swagger)
+## 9. Documentación de la API (Swagger)
 
 El backend incluye documentación interactiva de la API con Swagger UI.
 
-### 10.1 Acceder a la documentación
+### 9.1 Acceder a la documentación
 
 1. Levanta el backend (`bun run dev` o con Docker).
 2. Abre en tu navegador: **https://localhost:3000/api-docs**
 
-### 10.2 Módulos documentados
+### 9.2 Módulos documentados
 
 | Módulo | Contenido |
 |--------|-----------|
@@ -347,6 +297,5 @@ El backend incluye documentación interactiva de la API con Swagger UI.
 | `bun: command not found` | Revisa la [sección de instalación de Bun](#3-instalar-bun). |
 | `password authentication failed` / `database "CocoScheme" does not exist` | Tu `DATABASE_URL` no coincide con el usuario/contraseña/base de PostgreSQL (paso 5). |
 | `P1001: Can't reach database server` | PostgreSQL no está corriendo o el host/puerto en `DATABASE_URL` es incorrecto. Inícialo con `systemctl start postgresql` o `brew services start postgresql@16`. |
-| `MongoServerError: connect ECONNREFUSED` | MongoDB no está corriendo. Inicia el servicio con `systemctl start mongod` o `net start MongoDB`. |
 | Error al ejecutar `create_certs.sh` | Asegúrate de tener `openssl.cnf` en `/certs` y de usar Git Bash en Windows. |
 | `EADDRINUSE: port already in use` | Otro proceso usa el puerto. Cambia `PORT` en `.env` o cierra el proceso conflictivo. |

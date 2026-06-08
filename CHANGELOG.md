@@ -4,16 +4,40 @@ Cambios en la documentación publicada en **GitHub Pages** (carpeta `docs/`). La
 
 El formato se inspira en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
-## [1.4.0] - 2026-06-08
+## [2.0.0] - 2026-06-08
 
-Documentado el CD real (git-poll server-side) que reemplazó al esquema GHCR/SSH.
+Alineación de la wiki con la infraestructura actual: documentado el CD real
+(git-poll) y **eliminado MongoDB/GridFS** de toda la documentación (el proyecto
+migró el almacenamiento de archivos a **AWS S3** y la caché de tipo de cambio a
+**PostgreSQL**). MAJOR por la eliminación de secciones arquitectónicas (sección
+de setup de MongoDB) y la reescritura del almacenamiento en el modelo ER.
+
+### Eliminado
+
+- **Todas las menciones de MongoDB / GridFS / `MONGO_URI` / `:27017`** en la
+  documentación (≈90 referencias en ~18 archivos). El almacenamiento de archivos
+  (comprobantes CFDI PDF/XML **y** archivos de viaje) ahora es **AWS S3**
+  (LocalStack como mock en dev), SSE-S3 + URLs prefirmadas; las columnas
+  `Receipt.pdf_file_key`/`xml_file_key` guardan la **S3 object key** (antes
+  `pdf_file_id`/`xml_file_id` con ObjectId de GridFS). La caché diaria de tipo de
+  cambio (BER) ahora vive en **PostgreSQL** (`ExchangeRate`), no en MongoDB.
+- **`getting-started/setup-backend.md`**: removida la sección completa "Instalar
+  y configurar MongoDB" (6.1–6.4) y renumeradas las secciones siguientes;
+  removidas las filas de prerequisito, env (`MONGO_URI`) y troubleshooting.
+- Stack de dev documentado sin Mongo: `postgres + localstack (S3) + s3-init +
+  migrate + backend` (sin servicio `mongo`, sin volumen `mongodata`).
 
 ### Cambiado
 
 - **`getting-started/deploy-aws.md` §7**: reescrita la sección de CI/CD. Antes describía el `deploy.yml` (GitHub Actions con SSH a la EC2), que quedó superado. Ahora documenta el **auto-deploy por git-poll**: timer systemd `coco-redeploy.timer` + `redeploy.sh` que instala `install.sh` (default `REDEPLOY_INTERVAL=2min`, `OnBootSec=3min`), con diagrama de secuencia, tabla de operación (estado / forzar ciclo / logs / cambiar intervalo), las unidades systemd generadas, la vía **AWS SSM** cuando el puerto 22 está bloqueado, y una nota de legacy (GHCR `amd64` no corre en host `arm64`; `deploy.yml` dependía de secrets SSH).
-- **`arquitectura-datos/diagramas-c4.md`** (v1.0.1): corregido el "Pipeline CI/CD" y el glosario — el despliegue es git-poll en la EC2, no `docker compose pull` desde GHCR.
-- **`arquitectura-datos/documento-arquitectura.md`**: misma corrección en el pipeline CI/CD y el glosario.
-- **`arquitectura-datos/service-blueprint.md`** (v1.0.2): fila "CI/CD" del inventario y glosario actualizados al despliegue por git-poll.
+- **`arquitectura-datos/diagramas-c4.md`** (v1.0.1): corregido el "Pipeline CI/CD", el diagrama de despliegue (Caddy + git-poll + S3) y el glosario; removidos el contenedor MongoDB y las referencias GridFS de los diagramas C4.
+- **`arquitectura-datos/documento-arquitectura.md`**: corregido el pipeline CI/CD, el modelo de almacenamiento (S3), conteo de contenedores, RNF-25/RPO y glosario; **RNF-09** reencuadrado a validación de entrada + queries parametrizadas por Prisma (antes citaba `mongo-sanitize`, middleware ya removido).
+- **`arquitectura-datos/service-blueprint.md`** (v1.0.2), **`flujos.md`**, **`modelo-er.md`**, **`arquitectura-aplicacion.md`**, **`multi-tenancy.md`**, **`permisos.md`**: actualizados a S3 (diagramas, tablas, glosarios, columnas `*_file_key`).
+- **`getting-started/setup-docker.md`**, **QA** (`testing.md`, `reporte-ejecucion.md`, `cfdi.e2e.test.md`, `ber-bmx.e2e.test.md`), **`README.md`**, **`manual-admin.md`**, **`analisis-esfuerzos.md`**, **`estilo-codigo-documentacion.md`**: stack/almacenamiento actualizados a S3/Postgres.
+
+### Corregido
+
+- **`_sidebar.md`**: eliminado el enlace duplicado a **Diagramas C4** (estaba inline en el ítem "Arquitectura de Aplicación" además del ítem dedicado, y no enrutaba bien en docsify). Queda una sola entrada funcional.
 
 ## [1.3.0] - 2026-06-05
 

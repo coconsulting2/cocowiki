@@ -16,7 +16,7 @@ CocoAPI cuenta con una base de pruebas automatizadas distribuida en dos reposito
 | Backend | **93.1%** | 87.8% | 94.11% | **93.1%** | 431 (430 , 1 skip, 0 \*) · 47 suites | 80% |
 | Frontend | **87.75%** | 82.73% | 88.69% | **90.28%** | 262 · 24 archivos | 70% |
 
-\* **Backend:** corrida **verde con el stack Docker levantado** (`docker compose up postgres mongo localstack` + `prisma db push` + seed) — verificada 2026-06-02: **430/431 pasan** (1 skip), **0 fallos**, cobertura 93.1% (**supera** la meta de 80%). Sin el stack, 2 suites de integración (`requestCommentController.test.js`, `cfdiComprobantes.test.js`, ~15 casos) no conectan a Postgres (`PrismaClientInitializationError`); **no son regresiones**, es dependencia del entorno de pruebas.
+\* **Backend:** corrida **verde con el stack Docker levantado** (`docker compose up postgres localstack` + `prisma db push` + seed) — verificada 2026-06-02: **430/431 pasan** (1 skip), **0 fallos**, cobertura 93.1% (**supera** la meta de 80%). Sin el stack, 2 suites de integración (`requestCommentController.test.js`, `cfdiComprobantes.test.js`, ~15 casos) no conectan a Postgres (`PrismaClientInitializationError`); **no son regresiones**, es dependencia del entorno de pruebas.
 
 **Frontend:** tras ampliar las pruebas de los 3 componentes que más pesaban (2026-06-02), la cobertura subió de ~51% a **87.75% stmts / 90.28% lines** — ahora **supera** la meta de 70% y el run pasa el umbral (`exit 0`). Saltos clave: `views/admin/OnboardingImportAdmin.tsx` 14%→**~87%** (archivo de ~2,238 líneas; +33 tests nuevos), `FileDropZone.tsx` 38%→**93%** (+31), `XmlExpenseForm.tsx` 45%→**92%** (+18). Total: **262 tests** en 24 archivos. La cobertura se mide sobre la lista blanca de 16 componentes (`coverage.include` en `vitest.config.ts`); páginas Astro, stores y utils fuera de esa lista no se contabilizan. Nota: `expenseSettlement.test.ts` queda fuera del `include` de ejecución.
 
@@ -80,7 +80,7 @@ bunx cypress run          # E2E headless
 | Repo | Workflow | Estado actual |
 |---|---|---|
 | Backend | `.github/workflows/ci.yml` | Ejecuta lint estricto, Prisma validate/format, `bun run test` y sube artifact de cobertura |
-| Backend | `.github/workflows/e2e-ci.yml` | Ejecuta `bun run test:e2e --forceExit` con Postgres + Mongo de servicios |
+| Backend | `.github/workflows/e2e-ci.yml` | Ejecuta `bun run test:e2e --forceExit` con Postgres + LocalStack (S3) de servicios |
 | Frontend | `.github/workflows/ci.yml` | Ejecuta typecheck (no bloqueante), build (bloqueante), audit (no bloqueante); **hoy no corre Vitest/Cypress en CI** |
 | Ambos | `.github/workflows/pr-checks.yml` | Valida convención de rama y título PR |
 
@@ -299,7 +299,7 @@ bunx cypress run          # E2E headless
 - **Archivo**: `TC3005B.501-Backend/tests/services/CDFI/verification-cfdi.e2e.test.js`
 - **Tipo**: e2e
 - **Qué hace**: valida flujo E2E de verificación CFDI con SAT mock y escenarios EFOS.
-- **Cómo está automatizado**: Jest + Supertest + fixtures + mock server SAT + Prisma/Mongo test DB.
+- **Cómo está automatizado**: Jest + Supertest + fixtures + mock server SAT + Prisma/PostgreSQL test DB (+ S3 mock vía LocalStack).
 - **Qué problema resuelve / qué bug previene**: evita regresiones en validación fiscal extremo a extremo.
 - **Requisitos asociados**: validación fiscal, EFOS.
 - **Nota skip/todo**: contiene `it.skip` y comentario TODO en archivo.

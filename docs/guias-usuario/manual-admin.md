@@ -428,7 +428,7 @@ Cuando necesites escalar un problema al equipo de desarrollo, recopila la siguie
 | Frontend | Astro + React (puerto :4321 en desarrollo) |
 | Backend | API REST (puerto :3000) |
 | Base de datos relacional | PostgreSQL |
-| Almacenamiento de archivos | MongoDB (GridFS) |
+| Almacenamiento de archivos | AWS S3 (LocalStack en dev) |
 | Almacenamiento S3 | LocalStack (mock en desarrollo), S3 en producción |
 | Contenedores | Docker Compose |
 

@@ -27,33 +27,48 @@ con un **IAM instance role** (sin llaves estáticas). Una **Elastic IP** fija la
 dirección pública.
 
 ```mermaid
+%%{init: {'theme':'dark','flowchart':{'curve':'basis'},'themeVariables':{'fontSize':'14px'}}}%%
 flowchart TB
-  Browser["[Person] Navegador del usuario"]
+  Browser["Navegador<br/>del usuario"]:::user
 
-  subgraph aws [AWS · us-east-1 — lo que levanta el auto-setup]
-    subgraph vpc [VPC vpc-0f7bd8ada126a095b · UNA sola AZ]
-      EIP["Elastic IP<br/>(dirección pública fija)"]
-      subgraph subnet [Subnet pública 10.0.0.0/25]
-        subgraph ec2 ["EC2 t4g.small (AL2023 arm64) · Docker Compose 'coco'"]
-          Caddy["caddy<br/>TLS :443 (tls internal)<br/>reverse proxy"]
-          FE["frontend<br/>Astro SSR :4321"]
-          BE["backend<br/>Express HTTPS :3000<br/>rutas /api"]
-          PG["postgres :5432<br/>(perfil localdb,<br/>co-locado, vol. pgdata)"]
+  subgraph aws["AWS · us-east-1 — lo que levanta el auto-setup"]
+    direction TB
+    subgraph vpc["VPC vpc-0f7bd8ada126a095b · UNA sola AZ"]
+      direction TB
+      EIP(["Elastic IP<br/>IP pública fija"]):::net
+      subgraph subnet["Subnet pública 10.0.0.0/25"]
+        direction TB
+        subgraph ec2["EC2 t4g.small · AL2023 arm64 · Docker Compose 'coco'"]
+          direction TB
+          Caddy["caddy · TLS :443<br/>(tls internal) · reverse proxy"]:::net
+          FE["frontend<br/>Astro SSR :4321"]:::compute
+          BE["backend · Express<br/>HTTPS :3000 · rutas /api"]:::compute
+          PG[("postgres :5432<br/>perfil localdb · vol pgdata")]:::db
         end
       end
-      Role["IAM instance role<br/>coco-ec2-role<br/>(S3 least-priv)"]
+      Role["IAM instance role<br/>coco-ec2-role · S3 least-priv"]:::security
     end
-    S3["Bucket S3 privado<br/>coco-consulting-prod-&lt;acct&gt;<br/>SSE-S3 + block public access"]
+    S3[("Bucket S3 privado<br/>coco-consulting-prod-&lt;acct&gt;<br/>SSE-S3 + block public access")]:::storage
   end
 
-  Browser -->|HTTPS :443| EIP
-  EIP --> Caddy
+  Browser -->|HTTPS :443| EIP --> Caddy
   Caddy -->|"/api/*"| BE
   Caddy -->|"todo lo demás"| FE
   FE -->|SSR fetch| BE
   BE -->|DATABASE_URL| PG
-  BE -->|"SDK (credenciales temporales vía IMDSv2)"| S3
+  BE -->|"SDK · creds temporales IMDSv2"| S3
   Role -.->|asume el rol| BE
+
+  classDef user fill:#e8eaed,stroke:#9aa0a6,color:#202124
+  classDef net fill:#4d7cfe,stroke:#16308f,color:#ffffff
+  classDef compute fill:#ff9900,stroke:#b36b00,color:#111111
+  classDef storage fill:#3fae49,stroke:#1f6b27,color:#ffffff
+  classDef db fill:#16a3a3,stroke:#0c5e5e,color:#ffffff
+  classDef security fill:#d93025,stroke:#8c1d16,color:#ffffff
+  style aws fill:#1b2433,stroke:#ff9900,stroke-width:2px,color:#ffb84d
+  style vpc fill:#16202e,stroke:#4d7cfe,color:#9ec1ff
+  style subnet fill:#13261a,stroke:#3fae49,color:#9be3a3
+  style ec2 fill:#2a2113,stroke:#ff9900,color:#ffcc80
 ```
 
 ### Características y compromisos
@@ -77,46 +92,55 @@ separa el cómputo de los datos y se delega la gestión de TLS, secretos y BD a
 servicios administrados de AWS.
 
 ```mermaid
+%%{init: {'theme':'dark','flowchart':{'curve':'basis'},'themeVariables':{'fontSize':'14px'}}}%%
 flowchart TB
-  Browser["[Person] Navegador del usuario"]
-  ACM["AWS Certificate Manager<br/>(cert público TLS)"]
-  CF["Amazon CloudFront (opcional)<br/>CDN + caché de estáticos"]
+  Browser["Navegador del usuario"]:::user
+  ACM["AWS Certificate Manager<br/>cert público TLS"]:::managed
+  CF["Amazon CloudFront (opcional)<br/>CDN + caché de estáticos"]:::net
 
-  subgraph aws [AWS · us-east-1 — recomendada · Multi-AZ]
-    ALB["Application Load Balancer<br/>HTTPS :443 (listener + ACM)"]
+  subgraph aws["AWS · us-east-1 — recomendada · Multi-AZ"]
+    direction TB
+    ALB["Application Load Balancer<br/>HTTPS :443 · listener + ACM"]:::net
 
-    subgraph vpc [VPC]
-      subgraph az1 [Availability Zone A]
-        T1["Tarea/instancia app<br/>(frontend + backend)"]
+    subgraph vpc["VPC · 2+ Availability Zones"]
+      direction LR
+      subgraph az1["Availability Zone A"]
+        T1["App front+back<br/>Fargate / EC2 ASG"]:::compute
       end
-      subgraph az2 [Availability Zone B]
-        T2["Tarea/instancia app<br/>(frontend + backend)"]
+      subgraph az2["Availability Zone B"]
+        T2["App front+back<br/>Fargate / EC2 ASG"]:::compute
       end
-      RDS["Amazon RDS PostgreSQL<br/>Multi-AZ (primary + standby)"]
+      RDS[("Amazon RDS PostgreSQL<br/>Multi-AZ · primary + standby")]:::db
     end
 
-    Secrets["AWS Secrets Manager<br/>(JWT/AES/CHAT/integraciones)"]
-    CW["Amazon CloudWatch<br/>(logs + métricas + alarmas)"]
+    Secrets["AWS Secrets Manager<br/>JWT/AES/CHAT/integraciones"]:::security
+    CW["Amazon CloudWatch<br/>logs · métricas · alarmas"]:::managed
   end
 
-  S3["Bucket S3 privado<br/>SSE + versioning"]
+  S3[("Bucket S3 privado<br/>SSE + versioning")]:::storage
 
-  Browser -->|HTTPS| CF
-  CF -->|origin| ALB
+  Browser -->|HTTPS| CF --> ALB
   Browser -.->|HTTPS directo| ALB
   ACM -.->|cert| ALB
-  ALB -->|reparte tráfico| T1
-  ALB -->|reparte tráfico| T2
-  T1 -->|escritura/lectura| RDS
-  T2 -->|escritura/lectura| RDS
-  T1 -->|SDK + IAM role| S3
-  T2 -->|SDK + IAM role| S3
-  CF -.->|OAC, contenido privado| S3
-  T1 -.->|lee secretos al arranque| Secrets
-  T2 -.->|lee secretos al arranque| Secrets
-  T1 -.->|logs/métricas| CW
-  T2 -.->|logs/métricas| CW
+  ALB -->|reparte tráfico| T1 & T2
+  T1 & T2 -->|escritura/lectura| RDS
+  T1 & T2 -->|SDK + IAM role| S3
+  CF -.->|OAC · contenido privado| S3
+  T1 & T2 -.->|secretos al arranque| Secrets
+  T1 & T2 -.->|logs/métricas| CW
   RDS -.->|métricas| CW
+
+  classDef user fill:#e8eaed,stroke:#9aa0a6,color:#202124
+  classDef net fill:#4d7cfe,stroke:#16308f,color:#ffffff
+  classDef compute fill:#ff9900,stroke:#b36b00,color:#111111
+  classDef storage fill:#3fae49,stroke:#1f6b27,color:#ffffff
+  classDef db fill:#16a3a3,stroke:#0c5e5e,color:#ffffff
+  classDef security fill:#d93025,stroke:#8c1d16,color:#ffffff
+  classDef managed fill:#9b59f0,stroke:#5b2ca0,color:#ffffff
+  style aws fill:#1b2433,stroke:#ff9900,stroke-width:2px,color:#ffb84d
+  style vpc fill:#16202e,stroke:#4d7cfe,color:#9ec1ff
+  style az1 fill:#2a2113,stroke:#ff9900,color:#ffcc80
+  style az2 fill:#2a2113,stroke:#ff9900,color:#ffcc80
 ```
 
 > El cómputo puede ser **ECS Fargate** (contenedores serverless) o un **EC2 Auto

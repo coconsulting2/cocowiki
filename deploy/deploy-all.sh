@@ -60,14 +60,11 @@ for k in "${FORWARD_KEYS[@]}"; do
 done
 
 log "Paso 3/3 — instalando en la instancia (esto tarda varios minutos)..."
-# Pre-responde el prompt de S3 bucket con el del provisioning (host se auto-detecta;
-# DB local por defecto con un password generado aquí para el contenedor co-locado).
-DB_PASS="$(openssl rand -hex 24)"
-# Respuestas a configure_env (no interactivo): db host/port/name/user/pass, host público (vacío=auto), region, bucket
-ANSWERS=$(printf '%s\n' '' '' '' '' "$DB_PASS" '' "$AWS_REGION" "$AWS_S3_BUCKET")
-
+# install.sh corre NO-interactivo: lee AWS_S3_BUCKET/REGION e integraciones del
+# entorno, auto-detecta el host público vía IMDSv2 y autogenera el password de la
+# BD local. No se necesita stdin/answers.
 ssh "${SSH_OPTS[@]}" "${SSH_USER}@${HOST}" \
-	"curl -fsSL https://raw.githubusercontent.com/coconsulting2/cocowiki/${BRANCH_COCOWIKI:-main}/deploy/install.sh -o install.sh && printf '%s' $(printf '%q' "$ANSWERS") | ${ENV_PREFIX} bash install.sh ${SEED_ARGS[*]}"
+	"curl -fsSL https://raw.githubusercontent.com/coconsulting2/cocowiki/${BRANCH_COCOWIKI:-main}/deploy/install.sh -o install.sh && ${ENV_PREFIX} bash install.sh ${SEED_ARGS[*]}"
 
 log "Listo. Abre: https://${HOST}  (acepta el cert auto-firmado)"
 log "SSH:  ssh -i ${SCRIPT_DIR}/${KEY_FILE} ${SSH_USER}@${HOST}"

@@ -1,0 +1,56 @@
+# Caddyfile — reverse proxy TLS para el stack coco (producción)
+#
+# Un solo origen sirve TODO el sitio en :443.
+#
+# TLS por defecto: certificado interno/auto-firmado de Caddy (`tls internal`),
+# para que funcione con solo la IP pública o el DNS de EC2 sin dominio. El
+# navegador mostrará una advertencia de "no confiable" (click-through) porque
+# es auto-firmado — esto es esperado en este modo.
+#
+# Para TLS válido con Let's Encrypt: define en .env un dominio real, p.ej.
+#   SITE_ADDRESS=tudominio.com
+# y apunta el A/AAAA del dominio a la IP elástica de la instancia. Caddy
+# emitirá y renovará el certificado automáticamente (requiere :80 y :443
+# accesibles públicamente y un email opcional vía `email` global).
+#
+# Por defecto SITE_ADDRESS no está definido y caemos al bloque `:443` con
+# `tls internal`. Si SITE_ADDRESS trae un dominio, Caddy usa ACME automático.
+
+{
+	# Opciones globales. El email es opcional; si lo defines, Caddy lo usa
+	# para los avisos de ACME (Let's Encrypt).
+	email {$ACME_EMAIL:}
+}
+
+# Origen público. Si SITE_ADDRESS está vacío, Caddy escucha en :443 con
+# certificado interno auto-firmado. Si trae un dominio, emite ACME.
+{$SITE_ADDRESS::443} {
+	# Con dominio real: borra/comenta la línea `tls internal` de abajo y Caddy
+	# usará Let's Encrypt automáticamente. Con solo IP/DNS de EC2, mantenla.
+	tls internal
+
+	encode gzip
+
+	# El backend monta TODAS sus rutas bajo /api y sirve HTTPS con cert
+	# auto-firmado en :3000. NO se elimina el prefijo /api (el backend lo
+	# espera). tls_insecure_skip_verify porque el cert del backend es
+	# auto-firmado e interno a la red de Docker.
+	handle /api/* {
+		reverse_proxy https://backend:3000 {
+			transport http {
+				tls_insecure_skip_verify
+				dial_timeout 10s
+				response_header_timeout 120s
+			}
+			header_up Host {upstream_hostport}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# Todo lo demás va al frontend Astro SSR (HTTP plano interno).
+	handle {
+		reverse_proxy http://frontend:4321 {
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+}

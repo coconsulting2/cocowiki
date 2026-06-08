@@ -257,6 +257,9 @@ configure_env() {
 	set_env PUBLIC_API_BASE_URL "https://${pub_host}/api"
 	set_env CORS_ORIGIN         "https://${pub_host}"
 	set_env PUBLIC_IS_DEV       "false"
+	# Caddy necesita un host (no vacío) para emitir el cert: con `tls internal`
+	# genera uno auto-firmado para este host; con dominio real haría ACME.
+	set_env SITE_ADDRESS        "$pub_host"
 
 	# --- S3 ---
 	local aws_region aws_bucket

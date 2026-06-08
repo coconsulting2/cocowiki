@@ -2,7 +2,8 @@
 #
 # aws-provision.sh — provisiona la infraestructura AWS para el stack coco.
 #
-# Corre en tu Mac con el AWS CLI v2 configurado (`aws configure`). Región
+# Corre en tu equipo (Linux/macOS, o Windows vía WSL2/Git Bash) con el AWS CLI
+# v2 configurado (`aws configure`). Región
 # us-east-1. Crea (de forma IDEMPOTENTE) en el VPC existente:
 #   - Subnet pública + Internet Gateway + route table
 #   - Security group (22 desde tu IP; 80/443 públicos)

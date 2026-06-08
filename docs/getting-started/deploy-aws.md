@@ -4,15 +4,13 @@ Runbook para desplegar **coco** (`TC3005B.501-Backend` Express/Node +
 `TC3005B.501-Frontend` Astro SSR) en una sola instancia EC2 con Docker Compose,
 TLS vía Caddy y archivos en S3. Un comando levanta todo de cero.
 
-> [!IMPORTANT]
-> Esta arquitectura **reemplazó Mongo por S3 + Postgres**. Ya no existe
+> **Importante:** Esta arquitectura **reemplazó Mongo por S3 + Postgres**. Ya no existe
 > `MONGO_URI`: los archivos viven en un bucket S3 privado (SSE-S3 + block public
 > access) y los datos en Postgres (co-locado o externo tipo RDS). Ver
 > [Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md) para el
 > diagrama de lo que levanta el auto-setup y la ruta recomendada a producción.
 
-> [!TIP]
-> Todos los scripts viven en `cocowiki/deploy/`. Son **idempotentes**:
+> **Tip:** Todos los scripts viven en `cocowiki/deploy/`. Son **idempotentes**:
 > re-ejecutarlos reutiliza lo existente (provisión) o hace pull + rebuild
 > (instalación). Los repos son **públicos**, así que la instancia los clona sin
 > autenticación.
@@ -26,10 +24,113 @@ contenedores con Docker Compose. Solo Caddy se expone a Internet (80/443).
 
 | Dónde | Herramienta | Notas |
 |-------|-------------|-------|
-| Tu Mac | **AWS CLI v2** | `aws configure` con un usuario con permisos EC2/S3/IAM. |
-| Tu Mac | **bash, curl, openssl, ssh, scp** | Incluidos en macOS. |
+| Tu equipo | **AWS CLI v2** | `aws configure` con un usuario con permisos EC2/S3/IAM. |
+| Tu equipo | **git** | Para clonar este repo (`cocowiki`) y correr los scripts de `deploy/`. |
+| Tu equipo | **OpenSSH** (`ssh`, `scp`) · **curl** · **bash** | Los scripts de `deploy/` son `bash`. En **Windows** corren bajo **WSL2** o **Git Bash**, no en PowerShell ni cmd. |
 | AWS | VPC `vpc-0f7bd8ada126a095b` (10.0.0.0/24) | Existente, en `us-east-1`. Overridable con `VPC_ID`. |
 | AWS | Presupuesto | ≈ **\$12–15/mes** corriendo; presupuesto del proyecto **\$56**. |
+
+> **Importante:** Los tres scripts de `deploy/` (`deploy-all.sh`, `aws-provision.sh`,
+> `aws-teardown.sh`) son **bash** y corren en **tu equipo**, no en AWS. Funcionan
+> igual en Linux, macOS y Windows; en Windows necesitas un entorno bash —**WSL2**
+> (recomendado) o **Git Bash**— porque no corren en PowerShell ni cmd. La parte
+> que sí corre en la instancia (`install.sh`) no requiere nada extra en tu equipo.
+
+### Instalar los requisitos (Linux · macOS · Windows)
+
+Elige tu sistema; al final verifica e introduce credenciales en
+[Verificar y configurar](#verificar-y-configurar).
+
+#### macOS
+
+`ssh`, `scp`, `curl` y `bash` ya vienen con macOS. Falta **AWS CLI v2** y, según
+tu equipo, **git**. La vía estándar es [Homebrew](https://brew.sh):
+
+```sh
+# Instala Homebrew si no lo tienes:
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Herramientas:
+brew install awscli git
+```
+
+> Sin Homebrew, AWS CLI v2 también se instala con el `.pkg` oficial
+> ([guía AWS](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)).
+
+#### Linux — Debian / Ubuntu
+
+```sh
+# git, cliente SSH, curl y unzip (este último lo usa el instalador de AWS CLI):
+sudo apt update
+sudo apt install -y git openssh-client curl unzip
+
+# AWS CLI v2 (el paquete de apt suele ser v1; usa el instalador oficial):
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o awscliv2.zip
+unzip -q awscliv2.zip && sudo ./aws/install && rm -rf aws awscliv2.zip
+```
+
+#### Linux — Fedora / RHEL / CentOS
+
+```sh
+sudo dnf install -y git openssh-clients curl unzip
+curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o awscliv2.zip
+unzip -q awscliv2.zip && sudo ./aws/install && rm -rf aws awscliv2.zip
+```
+
+#### Linux — Arch / Manjaro
+
+```sh
+sudo pacman -S --needed git openssh curl aws-cli-v2
+```
+
+#### Windows — WSL2 (recomendado)
+
+WSL2 te da un Ubuntu real donde los scripts bash corren sin cambios.
+
+```powershell
+# En PowerShell como administrador (instala WSL2 + Ubuntu; pide reinicio):
+wsl --install
+```
+
+Reinicia, abre **Ubuntu** desde el menú Inicio y dentro de WSL sigue los pasos de
+**Debian / Ubuntu** de arriba.
+
+> **Tip:** Guarda el repo `cocowiki` y el `coco-deploy.pem` **dentro** del sistema de
+> archivos de WSL (`~/...`), no en `/mnt/c/...`: en `/mnt/c` el `chmod 400` del
+> `.pem` no "pega" y `ssh` rechaza la llave por permisos demasiado abiertos.
+
+#### Windows — Git Bash (alternativa sin WSL)
+
+[Git para Windows](https://git-scm.com/download/win) trae **Git Bash** con
+`bash`, `ssh`, `scp` y `curl`. Corre todos los comandos `./xxx.sh` desde la
+ventana de **Git Bash**, no desde PowerShell.
+
+```powershell
+# Con winget (Windows 10/11):
+winget install -e --id Git.Git
+winget install -e --id Amazon.AWSCLI
+```
+
+> Con Chocolatey sería `choco install git awscli`. Tras instalar AWS CLI quizá
+> debas reabrir Git Bash para que `aws` aparezca en el PATH.
+
+### Verificar y configurar
+
+En tu terminal (Terminal/iTerm en macOS, tu shell en Linux, **WSL** o **Git
+Bash** en Windows):
+
+```sh
+aws --version     # debe decir aws-cli/2.x
+git --version
+ssh -V
+curl --version
+```
+
+Luego configura tus credenciales AWS (un usuario con permisos EC2/S3/IAM):
+
+```sh
+aws configure     # Access Key, Secret Key, región us-east-1, output json
+```
 
 ### Componentes del stack
 
@@ -77,7 +178,8 @@ subnets privadas. Comparativa completa, specs y fuentes citadas en
 ## 2. Opción A — un solo comando (`deploy-all.sh`)
 
 Orquesta TODO de cero a corriendo: provisiona la infra, espera SSH, copia y
-corre `install.sh` en la instancia (build + up + seeders). Desde tu Mac:
+corre `install.sh` en la instancia (build + up + seeders). Desde tu equipo
+(Linux/macOS, o Windows vía WSL2/Git Bash):
 
 ```sh
 cd cocowiki/deploy
@@ -97,8 +199,7 @@ Lo que hace, en orden:
 Al terminar imprime la URL (`https://<host>`) y el comando SSH. Acepta el
 certificado auto-firmado en el navegador (ver [sección 7](#7-tls--dominio)).
 
-> [!NOTE]
-> `deploy-all.sh` **propaga** a la instancia las variables de integración que
+> **Nota:** `deploy-all.sh` **propaga** a la instancia las variables de integración que
 > tengas exportadas en tu shell (ver [tabla de variables](#5-variables-de-entorno)):
 > `BRANCH_BACKEND/FRONTEND/COCOWIKI`, `MAIL_*`, `VAPID_*`, `BANXICO_API_KEY`,
 > `DUFFEL_ACCESS_TOKEN`, `FLIGHT_PROVIDER`, `DITTA_ADMIN_INITIAL_PASSWORD`,
@@ -137,8 +238,7 @@ Imprime IP/DNS público, el comando `ssh`, el bucket+región para el install y u
 recordatorio de costos. También escribe `coco-infra.env` (lo consume
 `deploy-all.sh`).
 
-> [!NOTE]
-> Variables overridables: `VPC_ID`, `REGION`, `INSTANCE_TYPE`. Ej.:
+> **Nota:** Variables overridables: `VPC_ID`, `REGION`, `INSTANCE_TYPE`. Ej.:
 > `INSTANCE_TYPE=t4g.medium ./aws-provision.sh`.
 
 ### 3.2 Paso 2 — instalar el stack en la EC2 (`install.sh`)
@@ -181,13 +281,11 @@ bash install.sh                 # --seed=demo por defecto
 | `AWS_REGION` | `us-east-1` | Región del bucket. |
 | `AWS_S3_BUCKET` | — (requerido) | El bucket del paso 1. |
 
-> [!IMPORTANT]
-> Deja `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` **en blanco** en EC2: el
+> **Importante:** Deja `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` **en blanco** en EC2: el
 > instance role provee las credenciales automáticamente. Solo se usan para
 > correr el stack fuera de EC2.
 
-> [!TIP]
-> Re-ejecutar `bash install.sh` hace `git pull` + rebuild + `up -d` conservando
+> **Tip:** Re-ejecutar `bash install.sh` hace `git pull` + rebuild + `up -d` conservando
 > el `.env` existente. Para regenerar el `.env`, bórralo
 > (`/opt/coco/cocowiki/deploy/.env`) y vuelve a correr.
 
@@ -237,6 +335,104 @@ gitignored). `install.sh` lo genera desde `.env.example`.
   Banxico, Duffel, Wise. Pásalas por entorno a `install.sh`/`deploy-all.sh` o
   edítalas a mano en el `.env`.
 
+### Cómo provees las variables de integración (dónde van)
+
+Las integraciones (SMTP, VAPID, Banxico, Duffel, Wise, scheduler) **no se
+preguntan interactivamente**: o las tomas de tu entorno, o las editas en el
+`.env` del servidor. Solo se escriben al `.env` si traen valor; vacías = feature
+apagado.
+
+#### Opción A — `deploy-all.sh` (desde tu equipo)
+
+**Recomendado — archivo auto-cargado.** Pon tus integraciones en
+`deploy/coco-secrets.env` y `deploy-all.sh` las **carga y reenvía solo**, sin que
+exportes nada a mano. Hay una plantilla lista:
+
+```sh
+cd cocowiki/deploy
+cp coco-secrets.env.example coco-secrets.env   # rellena solo lo que uses
+# edita coco-secrets.env ...
+./deploy-all.sh                                # detecta el archivo y lo carga
+```
+
+`coco-secrets.env` está **gitignored** (lleva secretos; nunca se commitea). Para
+usar otra ruta: `SECRETS_FILE=/ruta/a/archivo ./deploy-all.sh`.
+
+**Alternativa — exportar en el shell.** Si prefieres no usar archivo, exporta las
+claves antes de correr (`deploy-all.sh` reenvía una **lista fija** e `install.sh`
+las escribe en el `.env`):
+
+```sh
+cd cocowiki/deploy
+export MAIL_USER="notificaciones@tudominio.com" MAIL_PASSWORD="app-password"
+export DUFFEL_ACCESS_TOKEN="duffel_live_xxx" FLIGHT_PROVIDER="duffel"
+export WISE_CLIENT_ID="xxx" WISE_CLIENT_SECRET="xxx" SCHEDULER_ENABLED="true"
+./deploy-all.sh
+```
+
+La carga del archivo es **aditiva**: una clave que solo exportes en tu shell (y
+no esté en el archivo) se sigue respetando; si está en ambos, gana el archivo.
+
+> **Importante:** `deploy-all.sh` solo reenvía estas claves: `BRANCH_BACKEND/FRONTEND/COCOWIKI`,
+> `MAIL_USER/PASSWORD/SMTP_HOST/SMTP_PORT`, `VAPID_PUBLIC_KEY/PRIVATE_KEY/MAILTO`,
+> `BANXICO_API_KEY`, `DUFFEL_ACCESS_TOKEN`, `FLIGHT_PROVIDER`,
+> `WISE_CLIENT_ID/CLIENT_SECRET`, `SCHEDULER_ENABLED`,
+> `DITTA_ADMIN_INITIAL_PASSWORD`, `AES_SECRET_KEY`, `JWT_SECRET`. Cualquier otra
+> variable **no se reenvía** — edítala directo en el `.env` del servidor (abajo).
+
+#### Opción B — manual (dentro de la instancia)
+
+Dos formas:
+
+**(a) Pasándolas a `install.sh`** al instalar (mismo nombre, inline; mismas
+claves que arriba):
+
+```sh
+MAIL_USER="..." MAIL_PASSWORD="..." DUFFEL_ACCESS_TOKEN="..." \
+WISE_CLIENT_ID="..." WISE_CLIENT_SECRET="..." SCHEDULER_ENABLED="true" \
+bash install.sh
+```
+
+**(b) Editando el `.env` directamente** (tras la primera instalación) y
+recreando los contenedores para que el backend las relea:
+
+```sh
+cd /opt/coco/cocowiki/deploy
+sudo nano .env                                   # chmod 600, propiedad de ec2-user
+sudo docker compose -f docker-compose.prod.yml up -d
+```
+
+> **Importante:** El `.env` vive **solo en el servidor**
+> (`/opt/coco/cocowiki/deploy/.env`, chmod 600, gitignored). Nunca lo subas a
+> git ni pongas secretos en los scripts. En EC2 deja
+> `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` vacíos: el instance role los provee.
+
+#### Verificar qué variables quedaron cargadas en producción
+
+Para confirmar qué integraciones están realmente puestas **sin imprimir los
+secretos** (solo marca presencia y longitud), desde tu equipo:
+
+```sh
+ssh -i coco-deploy.pem ec2-user@<host> '
+  for k in MAIL_USER MAIL_PASSWORD DUFFEL_ACCESS_TOKEN FLIGHT_PROVIDER \
+           BANXICO_API_KEY WISE_CLIENT_ID WISE_CLIENT_SECRET \
+           VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY SCHEDULER_ENABLED; do
+    v=$(grep "^$k=" /opt/coco/cocowiki/deploy/.env | cut -d= -f2-)
+    [ -z "$v" ] && echo "$k = (vacío)" || echo "$k = SET (${#v} chars)"
+  done'
+```
+
+Para listar solo **qué claves** existen en el `.env` (sin valores):
+
+```sh
+ssh -i coco-deploy.pem ec2-user@<host> "grep -oE '^[A-Z_]+=' /opt/coco/cocowiki/deploy/.env"
+```
+
+> **Nota:** Si editaste el `.env` pero la app sigue sin ver la integración,
+> recrea los contenedores (`docker compose ... up -d`). `PUBLIC_API_BASE_URL` y
+> `PUBLIC_IS_DEV` además requieren **rebuild** del frontend (ver [§8](#8-tls--dominio)),
+> pero las integraciones del backend bastan con `up -d`.
+
 ### 5.1 Tabla de referencia completa
 
 | Variable | Origen | Descripción |
@@ -276,8 +472,7 @@ gitignored). `install.sh` lo genera desde `.env.example`.
 
 ### 5.2 Variables LEGACY que ya NO se usan
 
-> [!WARNING]
-> Si vienes de una config vieja, **no** copies estas variables — el stack las
+> **Advertencia:** Si vienes de una config vieja, **no** copies estas variables — el stack las
 > ignora o fallan:
 >
 > | Variable vieja | Reemplazo |
@@ -404,8 +599,7 @@ esperado. Para entrar:
 4. Re-ejecuta `bash install.sh` (rebuild para reinyectar `PUBLIC_API_BASE_URL`
    en el bundle del navegador). Caddy emitirá y renovará el certificado solo.
 
-> [!NOTE]
-> `PUBLIC_API_BASE_URL` y `PUBLIC_IS_DEV` se **inyectan en el bundle del
+> **Nota:** `PUBLIC_API_BASE_URL` y `PUBLIC_IS_DEV` se **inyectan en el bundle del
 > navegador en tiempo de build**. Cambiar el host requiere **rebuild** del
 > frontend, no solo reiniciar.
 
@@ -435,8 +629,7 @@ cd cocowiki/deploy
 KEEP_BUCKET=1 ./aws-teardown.sh   # conserva el bucket S3 y sus datos
 ```
 
-> [!WARNING]
-> Sin `KEEP_BUCKET=1`, el teardown **vacía y borra el bucket S3** (pierdes los
+> **Advertencia:** Sin `KEEP_BUCKET=1`, el teardown **vacía y borra el bucket S3** (pierdes los
 > archivos). El `.pem` local NO se borra.
 
 ---
@@ -454,6 +647,7 @@ KEEP_BUCKET=1 ./aws-teardown.sh   # conserva el bucket S3 y sus datos
 | Migraciones no corren | El backend corre `prisma db push` cuando `RUN_MIGRATIONS=true` (ya está en el compose). Revisa `DATABASE_URL` y logs del backend. |
 | Postgres local no levanta | Asegúrate de que `POSTGRES_PASSWORD` esté seteado; el perfil `localdb` solo se activa si el host es `postgres`/`localhost`. |
 | Seeders demo no corrieron | Solo corren en instalación inicial; usa `bash install.sh --force-seed` para forzarlos. |
+| Una integración (correo, Duffel, Wise…) no funciona | Verifica que la variable llegó al `.env` del servidor (ver [§5 · Verificar qué quedó cargado](#verificar-qué-variables-quedaron-cargadas-en-producción)). Si está vacía, edítala en `/opt/coco/cocowiki/deploy/.env` o re-despliega con `coco-secrets.env`, y recrea contenedores (`up -d`). |
 | Ver logs de todo | `cd /opt/coco/cocowiki/deploy && sudo docker compose -f docker-compose.prod.yml logs -f` |
 | Estado de contenedores | `cd /opt/coco/cocowiki/deploy && sudo docker compose -f docker-compose.prod.yml ps` |
 

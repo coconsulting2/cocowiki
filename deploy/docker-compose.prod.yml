@@ -24,10 +24,10 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      # Dominio real para Let's Encrypt; sin definir => ":443" (TLS interno
-      # auto-firmado). OJO: debe quedar NO-vacío, porque un SITE_ADDRESS vacío
-      # hace que Caddy lea el bloque como "global options" y rompe el parseo.
-      SITE_ADDRESS: ${SITE_ADDRESS:-:443}
+      # Host público (IP/DNS) o dominio real. REQUERIDO y no-vacío: install.sh
+      # lo fija al host público. Un valor vacío rompe el parseo de Caddy (lee el
+      # bloque como "global options") y sin host `tls internal` no puede emitir cert.
+      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS requerido (IP/DNS público o dominio)}
       ACME_EMAIL: ${ACME_EMAIL:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

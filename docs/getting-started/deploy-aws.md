@@ -33,32 +33,7 @@ contenedores con Docker Compose. Solo Caddy se expone a Internet (80/443).
 
 ### Componentes del stack
 
-```
-                          Internet
-                             │
-                      :80 / :443 (TLS)
-                             │
-                 ┌───────────▼────────────┐   EC2 t4g.small (AL2023 arm64)
-                 │         caddy           │   ── red Docker "coco" ──
-                 │  (reverse proxy + TLS)  │
-                 └─────┬───────────────┬───┘
-            /api/*  →  │               │  ←  todo lo demás
-                       │               │
-          ┌────────────▼───┐   ┌───────▼──────────┐
-          │    backend     │   │    frontend       │
-          │ Express HTTPS  │   │  Astro SSR (HTTP) │
-          │ :3000 (selfsig)│   │  :4321            │
-          └───┬────────┬───┘   └───────────────────┘
-              │        │
-   DATABASE_URL│        │ S3 (IAM instance role)
-              │        ▼
-   ┌──────────▼──┐   ┌──────────────────────────┐
-   │  postgres   │   │  Bucket S3 privado (SSE)  │
-   │ :5432       │   │  coco-consulting-prod-... │
-   │ (perfil     │   └──────────────────────────┘
-   │  localdb)   │
-   └─────────────┘
-```
+![Arquitectura del despliegue — un solo EC2](./images/arquitectura-actual.svg)
 
 - **caddy** termina TLS. Por defecto usa un certificado **auto-firmado**
   (`tls internal`, funciona con solo la IP/DNS de EC2). Enruta `/api/*` al

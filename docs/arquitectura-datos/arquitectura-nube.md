@@ -26,50 +26,7 @@ co-locado. Los archivos van a un **bucket S3 privado**; el backend accede a S3
 con un **IAM instance role** (sin llaves estáticas). Una **Elastic IP** fija la
 dirección pública.
 
-```mermaid
-%%{init: {'theme':'dark','flowchart':{'curve':'basis'},'themeVariables':{'fontSize':'14px'}}}%%
-flowchart TB
-  Browser["Navegador<br/>del usuario"]:::user
-
-  subgraph aws["AWS · us-east-1 — lo que levanta el auto-setup"]
-    direction TB
-    subgraph vpc["VPC vpc-0f7bd8ada126a095b · UNA sola AZ"]
-      direction TB
-      EIP(["Elastic IP<br/>IP pública fija"]):::net
-      subgraph subnet["Subnet pública 10.0.0.0/25"]
-        direction TB
-        subgraph ec2["EC2 t4g.small · AL2023 arm64 · Docker Compose 'coco'"]
-          direction TB
-          Caddy["caddy · TLS :443<br/>(tls internal) · reverse proxy"]:::net
-          FE["frontend<br/>Astro SSR :4321"]:::compute
-          BE["backend · Express<br/>HTTPS :3000 · rutas /api"]:::compute
-          PG[("postgres :5432<br/>perfil localdb · vol pgdata")]:::db
-        end
-      end
-      Role["IAM instance role<br/>coco-ec2-role · S3 least-priv"]:::security
-    end
-    S3[("Bucket S3 privado<br/>coco-consulting-prod-&lt;acct&gt;<br/>SSE-S3 + block public access")]:::storage
-  end
-
-  Browser -->|HTTPS :443| EIP --> Caddy
-  Caddy -->|"/api/*"| BE
-  Caddy -->|"todo lo demás"| FE
-  FE -->|SSR fetch| BE
-  BE -->|DATABASE_URL| PG
-  BE -->|"SDK · creds temporales IMDSv2"| S3
-  Role -.->|asume el rol| BE
-
-  classDef user fill:#e8eaed,stroke:#9aa0a6,color:#202124
-  classDef net fill:#4d7cfe,stroke:#16308f,color:#ffffff
-  classDef compute fill:#ff9900,stroke:#b36b00,color:#111111
-  classDef storage fill:#3fae49,stroke:#1f6b27,color:#ffffff
-  classDef db fill:#16a3a3,stroke:#0c5e5e,color:#ffffff
-  classDef security fill:#d93025,stroke:#8c1d16,color:#ffffff
-  style aws fill:#1b2433,stroke:#ff9900,stroke-width:2px,color:#ffb84d
-  style vpc fill:#16202e,stroke:#4d7cfe,color:#9ec1ff
-  style subnet fill:#13261a,stroke:#3fae49,color:#9be3a3
-  style ec2 fill:#2a2113,stroke:#ff9900,color:#ffcc80
-```
+![Arquitectura actual — un solo EC2 (auto-setup)](./images/arquitectura-actual.svg)
 
 ### Características y compromisos
 
@@ -91,57 +48,7 @@ Para producción real se distribuye en **dos o más Availability Zones**, se
 separa el cómputo de los datos y se delega la gestión de TLS, secretos y BD a
 servicios administrados de AWS.
 
-```mermaid
-%%{init: {'theme':'dark','flowchart':{'curve':'basis'},'themeVariables':{'fontSize':'14px'}}}%%
-flowchart TB
-  Browser["Navegador del usuario"]:::user
-  ACM["AWS Certificate Manager<br/>cert público TLS"]:::managed
-  CF["Amazon CloudFront (opcional)<br/>CDN + caché de estáticos"]:::net
-
-  subgraph aws["AWS · us-east-1 — recomendada · Multi-AZ"]
-    direction TB
-    ALB["Application Load Balancer<br/>HTTPS :443 · listener + ACM"]:::net
-
-    subgraph vpc["VPC · 2+ Availability Zones"]
-      direction LR
-      subgraph az1["Availability Zone A"]
-        T1["App front+back<br/>Fargate / EC2 ASG"]:::compute
-      end
-      subgraph az2["Availability Zone B"]
-        T2["App front+back<br/>Fargate / EC2 ASG"]:::compute
-      end
-      RDS[("Amazon RDS PostgreSQL<br/>Multi-AZ · primary + standby")]:::db
-    end
-
-    Secrets["AWS Secrets Manager<br/>JWT/AES/CHAT/integraciones"]:::security
-    CW["Amazon CloudWatch<br/>logs · métricas · alarmas"]:::managed
-  end
-
-  S3[("Bucket S3 privado<br/>SSE + versioning")]:::storage
-
-  Browser -->|HTTPS| CF --> ALB
-  Browser -.->|HTTPS directo| ALB
-  ACM -.->|cert| ALB
-  ALB -->|reparte tráfico| T1 & T2
-  T1 & T2 -->|escritura/lectura| RDS
-  T1 & T2 -->|SDK + IAM role| S3
-  CF -.->|OAC · contenido privado| S3
-  T1 & T2 -.->|secretos al arranque| Secrets
-  T1 & T2 -.->|logs/métricas| CW
-  RDS -.->|métricas| CW
-
-  classDef user fill:#e8eaed,stroke:#9aa0a6,color:#202124
-  classDef net fill:#4d7cfe,stroke:#16308f,color:#ffffff
-  classDef compute fill:#ff9900,stroke:#b36b00,color:#111111
-  classDef storage fill:#3fae49,stroke:#1f6b27,color:#ffffff
-  classDef db fill:#16a3a3,stroke:#0c5e5e,color:#ffffff
-  classDef security fill:#d93025,stroke:#8c1d16,color:#ffffff
-  classDef managed fill:#9b59f0,stroke:#5b2ca0,color:#ffffff
-  style aws fill:#1b2433,stroke:#ff9900,stroke-width:2px,color:#ffb84d
-  style vpc fill:#16202e,stroke:#4d7cfe,color:#9ec1ff
-  style az1 fill:#2a2113,stroke:#ff9900,color:#ffcc80
-  style az2 fill:#2a2113,stroke:#ff9900,color:#ffcc80
-```
+![Arquitectura recomendada — Multi-AZ (producción)](./images/arquitectura-recomendada.svg)
 
 > El cómputo puede ser **ECS Fargate** (contenedores serverless) o un **EC2 Auto
 > Scaling Group** repartido en 2 AZ; ambos se ponen detrás del ALB. La elección

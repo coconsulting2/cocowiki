@@ -3,6 +3,9 @@
 # install.sh — instala y arranca el stack coco en una instancia EC2.
 #
 # Idempotente: re-ejecutar = git pull de los repos + rebuild + up -d.
+# Al final instala un timer systemd (coco-redeploy) que hace CD continuo por
+# git-poll: detecta cuando main avanza y reconstruye solo entonces. Sin SSH,
+# sin registry, sin credenciales (repos públicos).
 # Pensado para Amazon Linux 2023 (arm64) o Ubuntu. Ejecuta como ec2-user/ubuntu
 # (con sudo disponible). No requiere autenticación: los repos son públicos.
 #
@@ -466,6 +469,49 @@ EOF
 }
 
 # ──────────────────────────────────────────────────────────────────────────
+# 8. Auto-redeploy (CD server-side por git-poll, sin registry)
+# ──────────────────────────────────────────────────────────────────────────
+# Instala un timer systemd que corre redeploy.sh cada REDEPLOY_INTERVAL. Ese
+# script hace `git fetch` de los repos públicos y, si main avanzó, rebuild + up.
+# Así la caja se auto-actualiza al mergear a main, sin SSH ni credenciales.
+install_redeploy_timer() {
+	local interval="${REDEPLOY_INTERVAL:-2min}"
+	local script="${COCO_HOME}/cocowiki/deploy/redeploy.sh"
+	if [ ! -f "$script" ]; then
+		warn "redeploy.sh no encontrado en ${script}; omito el auto-redeploy."
+		return
+	fi
+	sudo chmod +x "$script" 2>/dev/null || true
+	log "Instalando auto-redeploy (timer systemd cada ${interval})..."
+	sudo tee /etc/systemd/system/coco-redeploy.service >/dev/null <<EOF
+[Unit]
+Description=coco git-poll redeploy (rebuild + up cuando main avanza)
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+Environment=COCO_HOME=${COCO_HOME}
+ExecStart=${script}
+EOF
+	sudo tee /etc/systemd/system/coco-redeploy.timer >/dev/null <<EOF
+[Unit]
+Description=Dispara coco-redeploy periodicamente
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=${interval}
+Unit=coco-redeploy.service
+
+[Install]
+WantedBy=timers.target
+EOF
+	sudo systemctl daemon-reload
+	sudo systemctl enable --now coco-redeploy.timer
+	log "Auto-redeploy activo. Estado: sudo systemctl status coco-redeploy.timer"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────────────────────────────────
 parse_args() {
@@ -491,6 +537,7 @@ main() {
 	build_and_up
 	maybe_seed_demo
 	wait_health
+	install_redeploy_timer
 }
 
 main "$@"

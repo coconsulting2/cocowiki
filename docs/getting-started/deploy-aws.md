@@ -8,7 +8,7 @@ TLS vía Caddy y archivos en S3. Un comando levanta todo de cero.
 > Esta arquitectura **reemplazó Mongo por S3 + Postgres**. Ya no existe
 > `MONGO_URI`: los archivos viven en un bucket S3 privado (SSE-S3 + block public
 > access) y los datos en Postgres (co-locado o externo tipo RDS). Ver
-> [Arquitectura en la nube](../arquitectura-datos/arquitectura-nube.md) para el
+> [Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md) para el
 > diagrama de lo que levanta el auto-setup y la ruta recomendada a producción.
 
 > [!TIP]
@@ -38,7 +38,7 @@ contenedores con Docker Compose. Solo Caddy se expone a Internet (80/443).
 > Este es el despliegue **actual** (un solo EC2, por presupuesto). El diagrama de
 > la arquitectura **recomendada para producción** (multi-AZ, Route 53/DNS, WAF,
 > CloudFront, RDS Multi-AZ, Secrets Manager, subnets privadas) y la comparativa
-> con specs están en **[Arquitectura en la nube](../arquitectura-datos/arquitectura-nube.md)**.
+> con specs están en **[Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md)**.
 
 - **caddy** termina TLS. Por defecto usa un certificado **auto-firmado**
   (`tls internal`, funciona con solo la IP/DNS de EC2). Enruta `/api/*` al
@@ -439,7 +439,7 @@ KEEP_BUCKET=1 ./aws-teardown.sh   # conserva el bucket S3 y sus datos
 
 ## 11. Enlaces relacionados
 
-- [Arquitectura en la nube](../arquitectura-datos/arquitectura-nube.md) — diagrama del auto-setup vs. arquitectura recomendada de producción.
+- [Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md) — diagrama del auto-setup vs. arquitectura recomendada de producción.
 - [Setup con Docker (desarrollo)](setup-docker.md)
 - [Setup Backend](setup-backend.md) · [Setup Frontend](setup-frontend.md)
 - Archivos de despliegue: `cocowiki/deploy/` — `deploy-all.sh`, `aws-provision.sh`,

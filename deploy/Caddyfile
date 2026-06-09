@@ -28,8 +28,11 @@
 	default_sni {$SITE_ADDRESS}
 }
 
-# Origen público. SITE_ADDRESS = host público (IP/DNS) o dominio real.
-{$SITE_ADDRESS} {
+# Origen público. SITE_ADDRESS = host público (DNS/dominio). SITE_ALT_ADDRESS =
+# dirección extra a servir también (p.ej. la IP elástica, para entrar sin el
+# subdominio). Si no se define, cae a `localhost` (inocuo). Caddy issue cert
+# interno para cada dirección listada.
+{$SITE_ADDRESS} {$SITE_ALT_ADDRESS:localhost} {
 	# Con dominio real: borra/comenta la línea `tls internal` de abajo y Caddy
 	# usará Let's Encrypt automáticamente. Con solo IP/DNS de EC2, mantenla.
 	tls internal

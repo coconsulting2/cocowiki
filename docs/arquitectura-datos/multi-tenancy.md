@@ -207,7 +207,7 @@ TOKEN_GRACE_PERIOD_END=           # ISO date. Tokens viejos sin organization_id 
 ## Trabajo futuro (post este PR)
 
 - Refactor de `mailService`, `wiseService`, `satService`, `pushNotificationService` para usar `integrationResolver(orgId, provider)` en lugar de leer env vars directas.
-- Scoping completo de GridFS (metadata `organizationId`).
+- Scoping completo de los objetos en S3 (prefijo/metadata por `organizationId`).
 - Auditoría + enforce de prefijo `{orgId}/...` en S3 keys.
 - Refactor de schedulers (`approvalSubstituteCron` y otros) a `runForEachOrg`.
 - Pantallas frontend para configurar el catálogo contable, plantillas de notificación, integraciones desde el admin de cada org.

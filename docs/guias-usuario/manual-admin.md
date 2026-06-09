@@ -1,10 +1,10 @@
 # Manual de Administración — CocoAPI (Admin Ditta)
 
-| Metadato                 | Valor                     |
+| Metadato | Valor |
 | ------------------------ | ------------------------- |
-| **Versión del documento** | 1.0.1                    |
-| **Última actualización**  | 2026-06-02               |
-| **Audiencia**             | Super Admin de Ditta Consulting (rol "Admin Ditta") |
+| **Versión del documento** | 1.0.1 |
+| **Última actualización** | 2026-06-02 |
+| **Audiencia** | Super Admin de Ditta Consulting (rol "Admin Ditta") |
 
 ---
 
@@ -30,18 +30,18 @@ Eres el **super-administrador** de la plataforma CocoAPI. Tu rol existe únicame
 | Aspecto | Admin Ditta (tú) | Admin de Organización |
 |---------|------|------|
 | Alcance | Todas las organizaciones de la plataforma | Solo su propia organización |
-| Organizaciones | ✅ Crear, activar, suspender, impersonar | ❌ No tiene acceso |
-| Reglas de workflow | ❌ No tiene acceso | ✅ Configura su cadena de aprobación |
-| Crear usuarios | ✅ En cualquier organización | ✅ Solo en su organización |
-| Políticas de viáticos | ✅ | ✅ |
-| Categorías de empleado | ✅ | ✅ |
-| Plazo de reembolso | ✅ | ✅ |
-| Catálogo contable | ✅ | ✅ |
-| Indicadores de impuesto | ✅ | ✅ |
-| Mapeo de gastos | ✅ | ✅ |
-| Importar usuarios | ✅ | ✅ |
-| Llaves API | ✅ | ✅ |
-| Impersonar organización | ✅ | ❌ |
+| Organizaciones | Crear, activar, suspender, impersonar | No tiene acceso |
+| Reglas de workflow | No tiene acceso | Configura su cadena de aprobación |
+| Crear usuarios | En cualquier organización | Solo en su organización |
+| Políticas de viáticos | | |
+| Categorías de empleado | | |
+| Plazo de reembolso | | |
+| Catálogo contable | | |
+| Indicadores de impuesto | | |
+| Mapeo de gastos | | |
+| Importar usuarios | | |
+| Llaves API | | |
+| Impersonar organización | | |
 
 ### Tu menú lateral
 
@@ -238,7 +238,7 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 2. Haz clic en **"Eliminar"** en la columna de Acciones.
 3. Confirma en la ventana de diálogo: *"¿Estás seguro de que deseas eliminar al usuario [nombre]? Esta acción no se puede deshacer."*
 
-> **⚠️ Atención:** Esta acción es **irreversible**. Verifica que estés eliminando al usuario correcto.
+> ** Atención:** Esta acción es **irreversible**. Verifica que estés eliminando al usuario correcto.
 
 ---
 
@@ -428,7 +428,7 @@ Cuando necesites escalar un problema al equipo de desarrollo, recopila la siguie
 | Frontend | Astro + React (puerto :4321 en desarrollo) |
 | Backend | API REST (puerto :3000) |
 | Base de datos relacional | PostgreSQL |
-| Almacenamiento de archivos | MongoDB (GridFS) |
+| Almacenamiento de archivos | AWS S3 (LocalStack en dev) |
 | Almacenamiento S3 | LocalStack (mock en desarrollo), S3 en producción |
 | Contenedores | Docker Compose |
 
@@ -440,7 +440,7 @@ Cuando necesites escalar un problema al equipo de desarrollo, recopila la siguie
 | `docker:data:reset` | Resetea las bases de datos |
 | `docker:dev:clean` | Reset completo (elimina volúmenes e imágenes) |
 
-> **⚠️ Atención:** Los comandos de reset eliminan datos. Úsalos solo en entornos de desarrollo, nunca en producción.
+> ** Atención:** Los comandos de reset eliminan datos. Úsalos solo en entornos de desarrollo, nunca en producción.
 
 ---
 

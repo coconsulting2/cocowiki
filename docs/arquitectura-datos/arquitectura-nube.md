@@ -5,8 +5,8 @@
 | **Versión** | 1.0.0 |
 | **Última actualización** | 2026-06-07 |
 | **Alcance** | Despliegue productivo de coco en AWS — lo que levanta el auto-setup vs. la ruta recomendada a producción. |
-| **Runbook** | [Despliegue en AWS](../getting-started/deploy-aws.md) |
-| **Documento padre** | [Documento de Arquitectura](documento-arquitectura.md) · [Diagramas C4](diagramas-c4.md) |
+| **Runbook** | [Despliegue en AWS](getting-started/deploy-aws.md) |
+| **Documento padre** | [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md) · [Diagramas C4](arquitectura-datos/diagramas-c4.md) |
 
 > [!IMPORTANT]
 > El despliegue actual es **un solo EC2** con todo co-locado. Es la **decisión
@@ -26,35 +26,7 @@ co-locado. Los archivos van a un **bucket S3 privado**; el backend accede a S3
 con un **IAM instance role** (sin llaves estáticas). Una **Elastic IP** fija la
 dirección pública.
 
-```mermaid
-flowchart TB
-  Browser["[Person] Navegador del usuario"]
-
-  subgraph aws [AWS · us-east-1 — lo que levanta el auto-setup]
-    subgraph vpc [VPC vpc-0f7bd8ada126a095b · UNA sola AZ]
-      EIP["Elastic IP<br/>(dirección pública fija)"]
-      subgraph subnet [Subnet pública 10.0.0.0/25]
-        subgraph ec2 ["EC2 t4g.small (AL2023 arm64) · Docker Compose 'coco'"]
-          Caddy["caddy<br/>TLS :443 (tls internal)<br/>reverse proxy"]
-          FE["frontend<br/>Astro SSR :4321"]
-          BE["backend<br/>Express HTTPS :3000<br/>rutas /api"]
-          PG["postgres :5432<br/>(perfil localdb,<br/>co-locado, vol. pgdata)"]
-        end
-      end
-      Role["IAM instance role<br/>coco-ec2-role<br/>(S3 least-priv)"]
-    end
-    S3["Bucket S3 privado<br/>coco-consulting-prod-&lt;acct&gt;<br/>SSE-S3 + block public access"]
-  end
-
-  Browser -->|HTTPS :443| EIP
-  EIP --> Caddy
-  Caddy -->|"/api/*"| BE
-  Caddy -->|"todo lo demás"| FE
-  FE -->|SSR fetch| BE
-  BE -->|DATABASE_URL| PG
-  BE -->|"SDK (credenciales temporales vía IMDSv2)"| S3
-  Role -.->|asume el rol| BE
-```
+![Arquitectura actual — un solo EC2 (auto-setup)](./images/arquitectura-actual.svg)
 
 ### Características y compromisos
 
@@ -68,61 +40,59 @@ flowchart TB
 | **Acceso a S3** | IAM instance role + IMDSv2 hop-limit 2 — sin llaves estáticas. |
 | **Costo** | ≈ **\$12–15/mes** corriendo (t4g.small + EBS + EIP). |
 
+### Specs concretas de este despliegue
+
+| Recurso | Valor usado |
+|---------|-------------|
+| **Región / AZ** | us-east-1 · **1 sola AZ** (us-east-1a) |
+| **VPC / subred** | `vpc-0f7bd8ada126a095b` (10.0.0.0/24) · 1 subnet pública /25 + IGW + route table |
+| **Instancia** | **EC2 `t4g.small`** (ARM Graviton, 2 vCPU, 2 GiB RAM) |
+| **AMI** | Amazon Linux 2023 **arm64** |
+| **Disco** | 30 GB **gp3** + swapfile de 4 GB (para los builds en 2 GiB de RAM) |
+| **Red pública** | **Elastic IP** + DNS público de EC2 (sin dominio propio / Route 53 todavía) |
+| **Metadata** | IMDSv2 obligatorio, hop-limit 2 (para que el contenedor use el rol IAM) |
+| **Contenedores** | Docker Compose: Caddy `:443` · frontend Astro SSR `:4321` · backend Express `:3000` · Postgres 16 (perfil `localdb`) |
+| **TLS** | Caddy **auto-firmado** por defecto (Let's Encrypt si se apunta un dominio) |
+| **Almacenamiento** | Bucket S3 privado (SSE-S3, block public access) |
+| **IAM** | `coco-ec2-role` (instance profile) con permisos S3 mínimos |
+| **Security Group** | 22 desde la IP del admin · 80/443 públicos |
+| **Secretos** | `deploy/.env` (chmod 600), autogenerados con `openssl rand` |
+
+> **Por qué un solo EC2 (y qué falta).** Con el presupuesto escolar de **~\$56**,
+> un stack productivo completo (ver §2: ALB + cómputo redundante + RDS Multi-AZ +
+> CloudFront/WAF + Route 53 + Secrets Manager + CloudWatch) cuesta de más. Por eso
+> hoy corre **todo co-locado en un `t4g.small`**. Lo que **conscientemente queda
+> pendiente** frente a producción: alta disponibilidad multi-AZ, BD gestionada con
+> failover, **DNS propio (Route 53) + TLS válido (ACM)**, **WAF/seguridad
+> perimetral**, subnets privadas y secretos gestionados. La §2 es la ruta de
+> migración cuando el presupuesto lo permita.
+
 ---
 
 ## 2. Arquitectura recomendada (producción)
 
-Para producción real se distribuye en **dos o más Availability Zones**, se
-separa el cómputo de los datos y se delega la gestión de TLS, secretos y BD a
-servicios administrados de AWS.
+Para producción real se distribuye en **dos o más Availability Zones**, se separa
+el cómputo de los datos, se añade una **capa de borde con DNS y seguridad** y se
+delega la gestión de TLS, secretos y BD a servicios administrados de AWS.
 
-```mermaid
-flowchart TB
-  Browser["[Person] Navegador del usuario"]
-  ACM["AWS Certificate Manager<br/>(cert público TLS)"]
-  CF["Amazon CloudFront (opcional)<br/>CDN + caché de estáticos"]
+![Arquitectura recomendada — Multi-AZ, segura (producción)](./images/arquitectura-recomendada.svg)
 
-  subgraph aws [AWS · us-east-1 — recomendada · Multi-AZ]
-    ALB["Application Load Balancer<br/>HTTPS :443 (listener + ACM)"]
+**Capa de borde (DNS + seguridad):** **Amazon Route 53** resuelve el dominio
+propio (con health checks); **Amazon CloudFront** entrega el contenido en el edge
+con **TLS de ACM**; **AWS WAF** filtra tráfico malicioso a nivel L7 antes de
+llegar al origen.
 
-    subgraph vpc [VPC]
-      subgraph az1 [Availability Zone A]
-        T1["Tarea/instancia app<br/>(frontend + backend)"]
-      end
-      subgraph az2 [Availability Zone B]
-        T2["Tarea/instancia app<br/>(frontend + backend)"]
-      end
-      RDS["Amazon RDS PostgreSQL<br/>Multi-AZ (primary + standby)"]
-    end
+**Red y cómputo:** un **Application Load Balancer** reparte el tráfico entre
+**2 AZ**. Las apps corren en **subnets privadas** (sin IP pública) como **ECS
+Fargate** (serverless) o un **EC2 Auto Scaling Group**; ambos detrás del ALB. La
+elección depende de si se quiere cero gestión de servidores (Fargate) o control
+fino del host (ASG).
 
-    Secrets["AWS Secrets Manager<br/>(JWT/AES/CHAT/integraciones)"]
-    CW["Amazon CloudWatch<br/>(logs + métricas + alarmas)"]
-  end
-
-  S3["Bucket S3 privado<br/>SSE + versioning"]
-
-  Browser -->|HTTPS| CF
-  CF -->|origin| ALB
-  Browser -.->|HTTPS directo| ALB
-  ACM -.->|cert| ALB
-  ALB -->|reparte tráfico| T1
-  ALB -->|reparte tráfico| T2
-  T1 -->|escritura/lectura| RDS
-  T2 -->|escritura/lectura| RDS
-  T1 -->|SDK + IAM role| S3
-  T2 -->|SDK + IAM role| S3
-  CF -.->|OAC, contenido privado| S3
-  T1 -.->|lee secretos al arranque| Secrets
-  T2 -.->|lee secretos al arranque| Secrets
-  T1 -.->|logs/métricas| CW
-  T2 -.->|logs/métricas| CW
-  RDS -.->|métricas| CW
-```
-
-> El cómputo puede ser **ECS Fargate** (contenedores serverless) o un **EC2 Auto
-> Scaling Group** repartido en 2 AZ; ambos se ponen detrás del ALB. La elección
-> depende de si se quiere cero gestión de servidores (Fargate) o control fino
-> del host (ASG).
+**Datos y seguridad:** **Amazon RDS PostgreSQL Multi-AZ** (primary + standby con
+failover automático, cifrado en reposo) en subnets privadas de BD; **S3** privado
+servido vía CloudFront (OAC); **AWS Secrets Manager** para secretos con rotación;
+**roles IAM por tarea** (least-privilege, sin llaves estáticas); **Security
+Groups por capa** (ALB → App → RDS); y **CloudWatch** para logs, métricas y alarmas.
 
 ---
 
@@ -133,7 +103,10 @@ flowchart TB
 | **Alta disponibilidad** | 1 EC2 en 1 AZ — punto único de falla. | 2+ AZ; ALB redirige tráfico ante caída de una AZ [1]. |
 | **Escalado** | Vertical manual (cambiar `INSTANCE_TYPE`). | Horizontal automático: ASG balancea entre AZ [2] o Fargate por demanda [3]. |
 | **BD gestionada** | Postgres en contenedor co-locado, sin failover. | RDS PostgreSQL Multi-AZ con standby síncrono y failover automático [4]. |
+| **DNS** | DNS público de EC2 (sin dominio propio). | **Amazon Route 53**: dominio propio + health checks. |
 | **TLS** | Caddy auto-firmado por defecto (warning) / ACME con dominio [9]. | Certificado público de ACM en el listener HTTPS del ALB [5]. |
+| **Seguridad perimetral** | Solo Security Group (puertos). | **AWS WAF** (reglas L7) + CloudFront delante del origen. |
+| **Red** | 1 subnet pública; la instancia tiene IP pública. | Subnets **privadas** para app y BD (sin IP pública); SG por capa (ALB→App→RDS). |
 | **Secretos** | En `.env` en disco (chmod 600), autogenerados. | AWS Secrets Manager: cifrado en reposo + rotación [6]; sin secretos hard-codeados [10]. |
 | **Almacenamiento** | S3 privado (SSE-S3, block public access) [8]. | Igual + versioning; servido vía CloudFront con OAC para contenido privado [7]. |
 | **Acceso a AWS** | IAM instance role (sin llaves estáticas) [10]. | Igual (roles por tarea/instancia, least-privilege) [10]. |
@@ -222,7 +195,7 @@ Todas verificadas el 2026-06-07 (cada URL resuelve correctamente).
 
 ## 5. Referencias cruzadas
 
-- [Despliegue en AWS](../getting-started/deploy-aws.md) — runbook del auto-setup (scripts, variables, seeding, CI/CD).
-- [Diagramas C4](diagramas-c4.md) — Context/Container/Component del sistema.
-- [Documento de Arquitectura](documento-arquitectura.md) — RNF y continuidad.
-- [Multi-tenancy](multi-tenancy.md) — aislamiento por organización (RLS Postgres).
+- [Despliegue en AWS](getting-started/deploy-aws.md) — runbook del auto-setup (scripts, variables, seeding, CI/CD).
+- [Diagramas C4](arquitectura-datos/diagramas-c4.md) — Context/Container/Component del sistema.
+- [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md) — RNF y continuidad.
+- [Multi-tenancy](arquitectura-datos/multi-tenancy.md) — aislamiento por organización (RLS Postgres).

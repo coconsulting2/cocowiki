@@ -2,7 +2,8 @@
 #
 # aws-provision.sh — provisiona la infraestructura AWS para el stack coco.
 #
-# Corre en tu Mac con el AWS CLI v2 configurado (`aws configure`). Región
+# Corre en tu equipo (Linux/macOS, o Windows vía WSL2/Git Bash) con el AWS CLI
+# v2 configurado (`aws configure`). Región
 # us-east-1. Crea (de forma IDEMPOTENTE) en el VPC existente:
 #   - Subnet pública + Internet Gateway + route table
 #   - Security group (22 desde tu IP; 80/443 públicos)
@@ -237,6 +238,9 @@ if "${AWS[@]}" ec2 describe-key-pairs --key-names "$KEY_NAME" >/dev/null 2>&1; t
 	fi
 else
 	log "Creando key pair ${KEY_NAME} → ${KEY_FILE}..."
+	# Un .pem viejo (de un ciclo anterior) suele estar en modo 400 (solo lectura):
+	# quítalo antes para no fallar al re-escribir la nueva clave.
+	rm -f "$KEY_FILE"
 	"${AWS[@]}" ec2 create-key-pair --key-name "$KEY_NAME" \
 		--tag-specifications "ResourceType=key-pair,Tags=[{Key=Project,Value=${PROJECT}}]" \
 		--query 'KeyMaterial' > "$KEY_FILE"

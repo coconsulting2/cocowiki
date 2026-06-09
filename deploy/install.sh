@@ -3,6 +3,9 @@
 # install.sh — instala y arranca el stack coco en una instancia EC2.
 #
 # Idempotente: re-ejecutar = git pull de los repos + rebuild + up -d.
+# Al final instala un timer systemd (coco-redeploy) que hace CD continuo por
+# git-poll: detecta cuando main avanza y reconstruye solo entonces. Sin SSH,
+# sin registry, sin credenciales (repos públicos).
 # Pensado para Amazon Linux 2023 (arm64) o Ubuntu. Ejecuta como ec2-user/ubuntu
 # (con sudo disponible). No requiere autenticación: los repos son públicos.
 #
@@ -22,8 +25,9 @@
 #   Secretos/integraciones (si no se pasan quedan vacías y se pueden editar en
 #   el .env luego): MAIL_USER, MAIL_PASSWORD, MAIL_SMTP_HOST, MAIL_SMTP_PORT,
 #   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_MAILTO, BANXICO_API_KEY,
-#   DUFFEL_ACCESS_TOKEN, FLIGHT_PROVIDER, DITTA_ADMIN_INITIAL_PASSWORD,
-#   SCHEDULER_ENABLED. AES_SECRET_KEY/JWT_SECRET se autogeneran si van vacías.
+#   DUFFEL_ACCESS_TOKEN, FLIGHT_PROVIDER, WISE_CLIENT_ID, WISE_CLIENT_SECRET,
+#   DITTA_ADMIN_INITIAL_PASSWORD, SCHEDULER_ENABLED. AES_SECRET_KEY/JWT_SECRET
+#   se autogeneran si van vacías.
 
 set -euo pipefail
 
@@ -46,6 +50,7 @@ OPTIONAL_ENV_KEYS=(
 	MAIL_USER MAIL_PASSWORD MAIL_SMTP_HOST MAIL_SMTP_PORT
 	VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_MAILTO
 	BANXICO_API_KEY DUFFEL_ACCESS_TOKEN FLIGHT_PROVIDER
+	WISE_CLIENT_ID WISE_CLIENT_SECRET
 	DITTA_ADMIN_INITIAL_PASSWORD SCHEDULER_ENABLED
 )
 
@@ -233,6 +238,16 @@ detect_public_host() {
 	printf '%s' "$host"
 }
 
+# ask <varname> <prompt> <default> — usa la env var si está seteada; si no y hay
+# TTY, pregunta; si no hay TTY (CI/orquestador), usa el default. Permite que
+# install.sh corra interactivo O totalmente no-interactivo por variables.
+ask() {
+	local _var="$1" _prompt="$2" _default="${3:-}" _ans
+	if [ -n "${!_var:-}" ]; then printf '%s' "${!_var}"; return; fi
+	if [ -t 0 ]; then read -rp "$_prompt" _ans; else _ans=""; fi
+	printf '%s' "${_ans:-$_default}"
+}
+
 configure_env() {
 	local file="${DEPLOY_DIR}/.env"
 	if [ -f "$file" ]; then
@@ -240,23 +255,18 @@ configure_env() {
 		return
 	fi
 	FRESH_INSTALL="true"
-	log "Generando .env interactivo en ${DEPLOY_DIR}..."
+	log "Generando .env en ${DEPLOY_DIR}..."
 	cp "${DEPLOY_DIR}/.env.example" "$file"
 
 	# --- Base de datos ---
 	local db_host db_port db_name db_user db_pass db_pass_enc db_url
-	read -rp "DB host [postgres = contenedor local]: " db_host
-	db_host="${db_host:-postgres}"
-	read -rp "DB port [5432]: " db_port
-	db_port="${db_port:-5432}"
-	read -rp "DB nombre [coco]: " db_name
-	db_name="${db_name:-coco}"
-	read -rp "DB usuario [coco]: " db_user
-	db_user="${db_user:-coco}"
-	read -rsp "DB password: " db_pass; echo
-	while [ -z "$db_pass" ]; do
-		read -rsp "DB password (no puede estar vacío): " db_pass; echo
-	done
+	db_host="$(ask POSTGRES_HOST "DB host [postgres = contenedor local]: " postgres)"
+	db_port="$(ask POSTGRES_PORT "DB port [5432]: " 5432)"
+	db_name="$(ask POSTGRES_DB   "DB nombre [coco]: " coco)"
+	db_user="$(ask POSTGRES_USER "DB usuario [coco]: " coco)"
+	db_pass="${POSTGRES_PASSWORD:-}"
+	if [ -z "$db_pass" ] && [ -t 0 ]; then read -rsp "DB password (vacío=autogenerar): " db_pass; echo; fi
+	if [ -z "$db_pass" ]; then db_pass="$(openssl rand -hex 24)"; log "DB password autogenerado (contenedor local)."; fi
 	db_pass_enc="$(urlencode "$db_pass")"
 	db_url="postgresql://${db_user}:${db_pass_enc}@${db_host}:${db_port}/${db_name}?schema=public"
 
@@ -270,9 +280,13 @@ configure_env() {
 	# --- Host público ---
 	local auto_host pub_host
 	auto_host="$(detect_public_host)"
-	read -rp "Host público [${auto_host:-introduce manualmente}]: " pub_host
-	pub_host="${pub_host:-$auto_host}"
+	pub_host="${PUBLIC_HOST:-}"
+	if [ -z "$pub_host" ]; then
+		if [ -t 0 ]; then read -rp "Host público [${auto_host:-introduce manualmente}]: " pub_host; fi
+		pub_host="${pub_host:-$auto_host}"
+	fi
 	while [ -z "$pub_host" ]; do
+		[ -t 0 ] || { err "PUBLIC_HOST requerido (sin TTY y sin auto-detección)."; exit 1; }
 		read -rp "Host público (requerido): " pub_host
 	done
 	set_env PUBLIC_HOST         "$pub_host"
@@ -283,12 +297,25 @@ configure_env() {
 	# genera uno auto-firmado para este host; con dominio real haría ACME.
 	set_env SITE_ADDRESS        "$pub_host"
 
+	# IP pública (IMDSv2) para servirla TAMBIÉN en Caddy → entrar por IP sin el
+	# subdominio. Si no se detecta, `localhost` (inocuo).
+	local pub_ip imds_token
+	imds_token="$(curl -fsS -X PUT "http://169.254.169.254/latest/api/token" \
+		-H "X-aws-ec2-metadata-token-ttl-seconds: 60" 2>/dev/null || true)"
+	pub_ip="${SITE_ALT_ADDRESS:-}"
+	if [ -z "$pub_ip" ] && [ -n "$imds_token" ]; then
+		pub_ip="$(curl -fsS -H "X-aws-ec2-metadata-token: $imds_token" \
+			"http://169.254.169.254/latest/meta-data/public-ipv4" 2>/dev/null || true)"
+	fi
+	set_env SITE_ALT_ADDRESS "${pub_ip:-localhost}"
+
 	# --- S3 ---
 	local aws_region aws_bucket
-	read -rp "AWS_REGION [us-east-1]: " aws_region
-	aws_region="${aws_region:-us-east-1}"
-	read -rp "AWS_S3_BUCKET (requerido): " aws_bucket
+	aws_region="$(ask AWS_REGION "AWS_REGION [us-east-1]: " us-east-1)"
+	aws_bucket="${AWS_S3_BUCKET:-}"
+	if [ -z "$aws_bucket" ] && [ -t 0 ]; then read -rp "AWS_S3_BUCKET (requerido): " aws_bucket; fi
 	while [ -z "$aws_bucket" ]; do
+		[ -t 0 ] || { err "AWS_S3_BUCKET requerido (sin TTY)."; exit 1; }
 		read -rp "AWS_S3_BUCKET (requerido): " aws_bucket
 	done
 	set_env AWS_REGION    "$aws_region"
@@ -454,6 +481,52 @@ EOF
 }
 
 # ──────────────────────────────────────────────────────────────────────────
+# 8. Auto-redeploy (CD server-side por git-poll, sin registry)
+# ──────────────────────────────────────────────────────────────────────────
+# Instala un timer systemd que corre redeploy.sh cada REDEPLOY_INTERVAL. Ese
+# script hace `git fetch` de los repos públicos y, si main avanzó, rebuild + up.
+# Así la caja se auto-actualiza al mergear a main, sin SSH ni credenciales.
+install_redeploy_timer() {
+	local interval="${REDEPLOY_INTERVAL:-2min}"
+	local script="${COCO_HOME}/cocowiki/deploy/redeploy.sh"
+	if [ ! -f "$script" ]; then
+		warn "redeploy.sh no encontrado en ${script}; omito el auto-redeploy."
+		return
+	fi
+	sudo chmod +x "$script" 2>/dev/null || true
+	# El timer corre redeploy.sh como root sobre repos de ec2-user → git daría
+	# "dubious ownership". Se marca seguro a nivel system (no depende de HOME).
+	sudo git config --system --add safe.directory '*' 2>/dev/null || true
+	log "Instalando auto-redeploy (timer systemd cada ${interval})..."
+	sudo tee /etc/systemd/system/coco-redeploy.service >/dev/null <<EOF
+[Unit]
+Description=coco git-poll redeploy (rebuild + up cuando main avanza)
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+Environment=COCO_HOME=${COCO_HOME}
+ExecStart=${script}
+EOF
+	sudo tee /etc/systemd/system/coco-redeploy.timer >/dev/null <<EOF
+[Unit]
+Description=Dispara coco-redeploy periodicamente
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=${interval}
+Unit=coco-redeploy.service
+
+[Install]
+WantedBy=timers.target
+EOF
+	sudo systemctl daemon-reload
+	sudo systemctl enable --now coco-redeploy.timer
+	log "Auto-redeploy activo. Estado: sudo systemctl status coco-redeploy.timer"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────────────────────────────────
 parse_args() {
@@ -479,6 +552,7 @@ main() {
 	build_and_up
 	maybe_seed_demo
 	wait_health
+	install_redeploy_timer
 }
 
 main "$@"

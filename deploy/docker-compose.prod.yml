@@ -28,6 +28,9 @@ services:
       # lo fija al host público. Un valor vacío rompe el parseo de Caddy (lee el
       # bloque como "global options") y sin host `tls internal` no puede emitir cert.
       SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS requerido (IP/DNS público o dominio)}
+      # Dirección extra a servir también (p.ej. la IP elástica, para entrar sin
+      # el subdominio). Vacía/ausente => Caddy cae a `localhost` (inocuo).
+      SITE_ALT_ADDRESS: ${SITE_ALT_ADDRESS:-localhost}
       ACME_EMAIL: ${ACME_EMAIL:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
@@ -57,6 +60,11 @@ services:
       # Cifrado de comentarios/chat (requerido en producción): 64 hex chars c/u.
       CHAT_CURSOR_SECRET: ${CHAT_CURSOR_SECRET:?CHAT_CURSOR_SECRET requerido (64 hex chars)}
       CHAT_MESSAGE_SECRET: ${CHAT_MESSAGE_SECRET:?CHAT_MESSAGE_SECRET requerido (64 hex chars)}
+      # El frontend (Astro SSR) llama al backend DESDE el contenedor, con una IP
+      # distinta a la del navegador donde se hizo login. El JWT está ligado a la
+      # IP de emisión, así que sin esto las páginas SSR autenticadas (p. ej. el
+      # panel de admin) fallan con TOKEN_MISMATCH. Requerido en este modelo SSR.
+      JWT_SKIP_IP_CHECK: ${JWT_SKIP_IP_CHECK:-true}
       # S3 / almacenamiento. En EC2 las credenciales las provee el IAM
       # instance role automáticamente; AWS_ACCESS_KEY_ID/SECRET solo se pasan
       # si están definidas en .env (uso local fuera de EC2).
@@ -107,6 +115,11 @@ services:
       PORT: "4321"
       # Fetch SSR (server-side, dentro de la red Docker) va directo al backend.
       API_URL_SSR: https://backend:3000/api
+      # El backend interno usa cert HTTPS auto-firmado; el fetch SSR de Astro
+      # (Node) lo rechazaría en producción. Esto permite que las llamadas SSR al
+      # backend interno acepten ese cert (análogo a tls_insecure_skip_verify de
+      # Caddy). Solo afecta las llamadas salientes del contenedor frontend.
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
     depends_on:
       - backend
     networks:

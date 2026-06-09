@@ -8,7 +8,7 @@
 
 ## Alcance
 
-Este documento describe las tablas creadas a partir del esquema **Prisma** en **PostgreSQL** (base `CocoScheme` en desarrollo). Los archivos PDF/XML de comprobantes **no** se guardan en PostgreSQL: los campos `pdf_file_id` y `xml_file_id` de `Receipt` almacenan identificadores **ObjectId** de **MongoDB GridFS** (ver [flujos.md](flujos.md)).
+Este documento describe las tablas creadas a partir del esquema **Prisma** en **PostgreSQL** (base `CocoScheme` en desarrollo). Los archivos PDF/XML de comprobantes **no** se guardan en PostgreSQL: los campos `pdf_file_key` y `xml_file_key` de `Receipt` almacenan la **S3 object key** (ruta del archivo en el bucket de **AWS S3**; LocalStack como mock en dev) (ver [flujos.md](flujos.md)).
 
 A partir del refactor multi-tenant (Q2 2026) el esquema es **multi-organización**: prácticamente toda entidad de negocio (usuarios, roles, solicitudes, catálogos, políticas, contabilidad, notificaciones) está acotada por una columna `organization_id` con FK hacia `organizaciones`. La organización **ROOT** es **Ditta** (`id = 1`); las organizaciones cliente (`kind = CLIENT`) se siembran bajo ella. Las únicas tablas que permanecen como **catálogos globales** (sin `organization_id`) son `Permission`, `Country`, `City` y `Request_status`.
 
@@ -178,9 +178,9 @@ erDiagram
         bool refund
         datetime submission_date
         datetime validation_date
-        varchar pdf_file_id
+        varchar pdf_file_key
         varchar pdf_file_name
-        varchar xml_file_id
+        varchar xml_file_key
         varchar xml_file_name
         varchar cfdi_uuid UK
         varchar cfdi_version
@@ -899,7 +899,7 @@ Ver `services/permissionService.js` para la implementación y `middleware/permis
 
 | Columna | Destino real |
 |---------|----------------|
-| `Receipt.pdf_file_id`, `Receipt.xml_file_id` | ObjectId en **MongoDB GridFS** (bucket por defecto del driver). |
+| `Receipt.pdf_file_key`, `Receipt.xml_file_key` | S3 object key en **AWS S3** (ruta dentro del bucket). |
 | `pdf_file_name`, `xml_file_name` | Metadato en PostgreSQL para nombre legible. |
 
 > **GitHub Pages:** el sitio publica solo `cocowiki/docs`. El enlace a `schema.prisma` usa ruta relativa al monorepo; si solo clonaste el repo de la wiki, abre el backend en el repo del producto.

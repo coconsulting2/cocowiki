@@ -3,7 +3,7 @@
 **Versión:** 1.0  
 **Última actualización:** 2026-04-22  
 **Archivo fuente:** `tests/services/BER/exchangeRate.e2e.test.js`  
-**Alcance:** Validación E2E del endpoint de tipo de cambio con cache en MongoDB y mock local de Banxico
+**Alcance:** Validación E2E del endpoint de tipo de cambio con cache en PostgreSQL y mock local de Banxico
 ---
 
 ## 1. Objetivo
@@ -17,7 +17,7 @@ El suite valida:
 - `POST /api/exchange-rate/convert`
 - `GET /api/exchange-rate/history`
 - `GET /api/exchange-rate/currencies`
-- Persistencia y lectura de cache en MongoDB
+- Persistencia y lectura de cache en PostgreSQL
 - Manejo de errores y fallback hacia `DOF`
 - Validación de entrada para códigos de moneda y montos
 
@@ -89,7 +89,7 @@ Los IDs siguen este formato:
 | ID            | Título                                                          | Qué verifica                                                |
 |---------------|-----------------------------------------------------------------|-------------------------------------------------------------|
 | `TC-001-V-01` | GET /api/exchange-rate/rate returns successful response         | Respuesta exitosa de la tasa USD/MXN con `fromCache: false` |
-| `TC-002-V-02` | Cache persists in MongoDB and is retrieved on second call       | Cache diario guardado y reutilizado en una segunda llamada  |
+| `TC-002-V-02` | Cache persists in PostgreSQL and is retrieved on second call    | Cache diario guardado y reutilizado en una segunda llamada  |
 | `TC-003-V-03` | POST /api/exchange-rate/convert calculates conversion correctly | Conversión correcta para `amount = 100`                     |
 | `TC-004-V-04` | POST /api/exchange-rate/convert calculates conversion correctly | Conversión correcta para `amount = 1892.98`                 |
 
@@ -198,7 +198,7 @@ Los IDs siguen este formato:
 | TC                 | Categoría | Título actual                                                   | Estado |
 |--------------------|-----------|-----------------------------------------------------------------|--------|
 | TC-001-V-01        | V         | GET /api/exchange-rate/rate returns successful response         | Activo |
-| TC-002-V-02        | V         | Cache persists in MongoDB and is retrieved on second call       | Activo |
+| TC-002-V-02        | V         | Cache persists in PostgreSQL and is retrieved on second call    | Activo |
 | TC-003-V-03        | V         | POST /api/exchange-rate/convert calculates conversion correctly | Activo |
 | TC-004-V-04        | V         | POST /api/exchange-rate/convert calculates conversion correctly | Activo |
 | TC-005-NF-01       | NF        | Banxico returns empty series                                    | Activo |

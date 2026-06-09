@@ -1,8 +1,8 @@
 # Documento de Arquitectura — CocoAPI
 
 > Proyecto: TC3005B.501 · Equipo: COCONSULTING2 · Cliente: Ditta Consulting
-> Última actualización: 2026-06-08
-> Estado: Borrador colaborativo — secciones 5 y 6 completas; secciones 1–4 con Service Blueprint y diagramas C4 integrados (2026-06-06). Pendiente: datos de infraestructura en secciones 4 y 6 (Mariano Carretero) y detalle de negocio en sección 1 (Leonardo Rodríguez).
+> Última actualización: 2026-06-09
+> Estado: Secciones 1–6 completas; ver [arquitectura-condensada.md](arquitectura-condensada.md) para entrega única.
 
 ---
 
@@ -20,12 +20,12 @@ Este archivo es el documento de arquitectura unificado de CocoAPI / CocoScheme y
 
 | Sección | Integración a cargo de | Estado | Fuentes |
 |---|---|---|---|
-| 1. Arquitectura de Negocio | Leonardo Rodríguez · Héctor Lugo | En progreso — Blueprint integrado; contexto Ditta pendiente | [service-blueprint.md](service-blueprint.md), [multi-tenancy.md](multi-tenancy.md), [permisos.md](permisos.md), [flujos.md](flujos.md) |
+| 1. Arquitectura de Negocio | Leonardo Rodríguez · Héctor Lugo | Completa — contexto Ditta integrado | [service-blueprint.md](service-blueprint.md), [Historias-de-usuario](../proyecto/Historias-de-usuario_cocoAPI.md) |
 | 2. Arquitectura de Aplicación | Kevin Esquivel · Santino Im · Héctor Lugo | C4 L3 + integraciones | [diagramas-c4.md](diagramas-c4.md), [arquitectura-aplicacion.md](arquitectura-aplicacion.md) |
 | 3. Arquitectura de Datos | Santino Im · Héctor Lugo | Storage + ER enlazados | [diagramas-c4.md](diagramas-c4.md), [modelo-er.md](modelo-er.md) |
-| 4. Arquitectura de Infraestructura | Mariano Carretero · Héctor Lugo | En progreso — C4 L2 + Docker; costos pendientes | [diagramas-c4.md](diagramas-c4.md), [setup-docker.md](../getting-started/setup-docker.md) |
-| 5. Requerimientos No Funcionales | — (desarrollada) | Completa | Código backend (verificado 2026-06-02) |
-| 6. Continuidad (RTO/RPO/SLA) | Datos de infraestructura: Mariano Carretero | En progreso — faltan datos reales de infraestructura | Infraestructura AWS |
+| 4. Arquitectura de Infraestructura | Mariano Carretero · Héctor Lugo | Completa — specs EC2 demo documentadas | [arquitectura-nube.md](arquitectura-nube.md), [deploy-aws.md](../getting-started/deploy-aws.md) |
+| 5. Requerimientos No Funcionales | — (desarrollada) | Completa | Código backend; catálogo ampliado en [RNF_CocoAPI.md](../proyecto/RNF_CocoAPI.md) |
+| 6. Continuidad (RTO/RPO/SLA) | Mariano Carretero | Completa — valores demo + runbook backup | [arquitectura-nube.md](arquitectura-nube.md) |
 
 > Nota: esta tabla es metadato de coordinación del borrador colaborativo y puede condensarse o retirarse en la versión final publicada. Los datos técnicos de las introducciones y de las secciones 5 y 6 se verificaron contra el estado de los repositorios el **2026-06-02** (`backend` y `frontend` en `main`; `cocowiki` en la rama `docs/reorg-estructura-wiki`). Las diferencias detectadas frente a documentación previa se listan en el [Anexo A](#anexo-a--notas-de-verificación).
 
@@ -66,8 +66,28 @@ Resumen de actores dinámicos:
 
 Los aprobadores efectivos se resuelven por reglas de workflow (`workflowRulesEngine`), no solo por nombre de rol. Diagramas de swimlanes y macro-procesos: [service-blueprint.md](service-blueprint.md) (secciones 3 y 6).
 
-<!-- TODO (Leonardo Rodríguez): integrar el contexto de negocio del cliente Ditta (relación comercial, objetivos del proyecto). -->
-<!-- TODO (Leonardo Rodríguez): ampliar stakeholders externos al ciclo de viaje (contabilidad cliente, auditoría). -->
+### Contexto del cliente Ditta Consulting
+
+**Ditta Consulting** es partner de SAP que opera servicios de consultoría y back-office para clientes corporativos. El proyecto CocoAPI (curso TC3005B, equipo COCONSULTING2) nace para sustituir procesos manuales de viáticos y reembolsos por un **portal web no SAP**, ERP-agnóstico, que cualquier sistema contable pueda consumir vía API.
+
+Objetivos de negocio acordados con el cliente:
+
+- Digitalizar el ciclo **solicitud → aprobación (N1/N2 dinámicos) → comprobación → exportación contable**.
+- Validar gastos nacionales con **CFDI/SAT** y soportar **gastos internacionales** sin XML fiscal mexicano.
+- Evitar duplicar catálogos de RH/contabilidad: sincronizar empleados/proveedores desde fuente externa y exponer **API contable** (no replicar el plan de cuentas del ERP en CocoAPI).
+- Operar **multi-empresa** (Ditta como ROOT, clientes como tenants) con políticas de viaje, topes y workflows configurables por organización.
+
+### Stakeholders externos al ciclo de viaje
+
+| Stakeholder | Rol en el ecosistema | Interacción con CocoAPI |
+|-------------|----------------------|-------------------------|
+| **Contabilidad del cliente** | Registra pólizas en ERP (SAP u otro) | Consume API de exportación contable (US-11) vía API Key; recibe JSON/XML estructurado |
+| **Auditoría interna / compliance** | Revisa trazabilidad de aprobaciones y comprobantes | Consulta historial inmutable (US-19), logs de API keys (RNF-24) y comentarios auditables |
+| **SAT / Banxico** | Autoridades y fuentes oficiales | Integraciones SOAP/REST para validación CFDI y tipo de cambio |
+| **Agencia de viajes / Duffel** | Proveedor de inventario vuelo/hotel | Integración digital (US-09); costos cargados a la solicitud |
+| **Administrador Ditta** | Operador de la plataforma multi-tenant | Onboarding de organizaciones, sync de empleados, catálogo contable maestro |
+
+Referencias de requisitos funcionales: [Historias de usuario](../proyecto/Historias-de-usuario_cocoAPI.md) · RNF y trazabilidad: [RNF_CocoAPI.md](../proyecto/RNF_CocoAPI.md).
 
 ---
 
@@ -122,7 +142,7 @@ La arquitectura de datos combina tres backends de almacenamiento especializados 
 
 El esquema es multi-tenant: las entidades operativas y de configuración están acotadas por `organization_id`, y el aislamiento se refuerza con Row-Level Security (RLS) de PostgreSQL sobre 38 tablas. El puente entre la aplicación y la RLS opera así: el middleware de contexto de tenant coloca la organización activa en `AsyncLocalStorage`; una extensión de Prisma Client (`prisma/tenantExtension.js`) inyecta automáticamente el filtro `organization_id` en lecturas y el valor correspondiente en escrituras para los modelos con scope; y en la conexión se ejecuta `set_config('app.current_organization_id', ...)`, GUC que evalúan las políticas RLS (`tenant_isolation`). Los superadministradores de Ditta (ROOT) pueden operar cross-tenant activando `app.bypass_tenant`, únicamente con el permiso correspondiente.
 
-La separación de almacenamiento distribuye los datos así: PostgreSQL guarda toda la información relacional y la *metadata* de archivos; y Amazon S3 (con LocalStack como mock en desarrollo) almacena todos los binarios —tanto los comprobantes fiscales XML y PDF de los CFDI como los archivos generales de viaje—, cifrados con SSE-S3 y servidos mediante URLs prefirmadas, referenciados desde la tabla `Receipt` mediante las claves de objeto de S3 (`pdf_file_key`, `xml_file_key`). La evolución del esquema se gestiona con migraciones Prisma versionadas (13 migraciones a la fecha), siendo la más relevante `20260512000000_multi_tenant_baseline`, que introdujo el modelo multi-tenant y la RLS.
+La separación de almacenamiento distribuye los datos así: PostgreSQL guarda toda la información relacional y la *metadata* de archivos; y Amazon S3 (con LocalStack como mock en desarrollo) almacena todos los binarios —tanto los comprobantes fiscales XML y PDF de los CFDI como los archivos generales de viaje—, cifrados con SSE-S3 y servidos mediante URLs prefirmadas, referenciados desde la tabla `Receipt` mediante `pdf_file_id` y `xml_file_id` (identificador del objeto en S3). La evolución del esquema se gestiona con migraciones Prisma versionadas (13 migraciones a la fecha), siendo la más relevante `20260512000000_multi_tenant_baseline`, que introdujo el modelo multi-tenant y la RLS.
 
 ### Diagrama C4 — Contenedores de datos
 
@@ -139,13 +159,36 @@ Diagrama completo Level 2: [diagramas-c4.md — C4 Level 2](diagramas-c4.md#c4-l
 
 ## 4. Arquitectura de Infraestructura
 
-> _Docker dev/prod y C4 L2 integrados; costos AWS pendientes — ver [diagramas-c4.md](diagramas-c4.md)._
+> _Docker dev/prod, C4 L2 y despliegue AWS demo documentados — ver [arquitectura-nube.md](arquitectura-nube.md)._
 
-La solución se despliega en la nube de AWS y se empaqueta íntegramente con Docker Compose. En desarrollo, el stack levanta cinco contenedores: tres de larga duración —PostgreSQL 16, LocalStack (mock de S3) y el backend con hot-reload— más dos contenedores de inicialización de un solo uso (`s3-init`, que crea el bucket en LocalStack, y `migrate`, que ejecuta `prisma generate` → `db push` → seed). En producción, el stack se reduce a dos servicios: PostgreSQL y el backend, este último ejecutado a partir de la imagen publicada en el registro de contenedores.
+La solución se despliega en **AWS** (región `us-east-1`, AZ `us-east-1a` en el auto-setup demo) y se empaqueta con **Docker Compose**. En desarrollo, el stack backend levanta PostgreSQL 16, LocalStack (mock S3), backend con hot-reload y contenedores de init (`s3-init`, `migrate`). En producción demo, una **EC2 t4g.small (ARM)** co-loca Caddy (TLS), frontend Astro SSR, backend Express y Postgres 16 (perfil `localdb`); los binarios van a **S3 privado** (SSE-S3) con acceso vía IAM instance role.
 
-La entrega continua se apoya en GitHub Actions para la **integración** (en cada *push* a `main`: lint, validación de esquema Prisma y pruebas) y en un **CD server-side por git-poll** para el **despliegue**. En la instancia EC2 corre un timer systemd (`coco-redeploy.timer`, cada `REDEPLOY_INTERVAL` ≈ 2 min) que hace `git fetch` de `main` de los repos públicos y, **solo si avanzó**, `git reset --hard` + `docker compose up -d --build` (build **nativo arm64** en la caja — no se publican imágenes a un registry, así que no aplica `docker compose pull`). No se requieren credenciales ni SSH; mergear a `main` actualiza la caja automáticamente. Detalle operativo en [deploy-aws.md §7](../getting-started/deploy-aws.md).
+La entrega continua se apoya en GitHub Actions para la **integración** (en cada *push* a `main`: lint, validación de esquema Prisma y pruebas) y en un **CD server-side por git-poll** para el **despliegue**. En la instancia EC2 corre un timer systemd (`coco-redeploy.timer`, cada `REDEPLOY_INTERVAL` ≈ 2 min) que hace `git fetch` de `main` de los repos públicos y, **solo si avanzó**, `git reset --hard` + `docker compose up -d --build` (build **nativo arm64** en la caja). Detalle operativo en [deploy-aws.md sección 7](../getting-started/deploy-aws.md).
 
-Toda la comunicación es HTTPS: certificados autofirmados en desarrollo (generados con OpenSSL al primer arranque) y certificado válido en producción. Los contenedores se comunican por una red interna (`cocoscheme`) y exponen los puertos estándar del proyecto (backend `:3000`, frontend `:4321`, Postgres `:5434` en host, LocalStack `:4566`). La configuración se inyecta mediante variables de entorno (credenciales de base de datos, `JWT_SECRET`, `AES_SECRET_KEY`, `CORS_ORIGIN`, tokens de integraciones externas, claves VAPID y configuración de S3).
+Toda la comunicación es HTTPS (Caddy: certificado auto-firmado por defecto en demo; ACME si hay dominio). La configuración se inyecta vía `deploy/.env` (chmod 600) y variables de entorno de integraciones.
+
+### Especificaciones del despliegue demo (auto-setup)
+
+| Recurso | Valor |
+|---------|--------|
+| **Instancia** | EC2 `t4g.small` (2 vCPU, 2 GiB RAM, Graviton ARM) |
+| **Disco** | 30 GB gp3 EBS + swapfile 4 GB |
+| **Red** | Elastic IP; subnet pública; Security Group: **22** (IP admin), **80/443** (público) |
+| **IAM** | `coco-ec2-role` — permisos S3 mínimos; IMDSv2 hop-limit 2 |
+| **Contenedores** | Caddy `:443` · frontend `:4321` · backend `:3000` · Postgres 16 |
+| **S3** | Bucket privado, block public access, SSE-S3 |
+| **Costo aprox.** | **12–15 USD/mes** en ejecución (instancia + EBS + EIP) |
+
+### Monitoreo y observabilidad (demo)
+
+| Capa | Estado actual | Limitación |
+|------|---------------|------------|
+| **Salud de contenedores** | Healthcheck HTTPS backend → reinicio Docker | No alertas externas |
+| **Logs aplicación** | Pino → stdout; `docker compose logs` en EC2 | Sin CloudWatch centralizado |
+| **Métricas infra** | Consola AWS / SSH manual | Sin alarmas CPU/disco configuradas |
+| **CI** | GitHub Actions en cada push/PR | No sustituye APM en producción |
+
+Para producción real se recomienda CloudWatch (logs, métricas, alarmas), Route 53 health checks y stack multi-AZ — ver [arquitectura-nube.md sección 2](arquitectura-nube.md#2-arquitectura-recomendada-producción) (~120–300+ USD/mes).
 
 ### Diagrama C4 — Contenedores y despliegue
 
@@ -155,12 +198,9 @@ Toda la comunicación es HTTPS: certificados autofirmados en desarrollo (generad
 | **Dev frontend** | frontend (astro dev) | `docker-compose.dev.yml` (repo frontend) |
 | **Prod** | postgres, backend (GHCR); frontend en host de producción | [`docker-compose.yml`](../../../TC3005B.501-Backend/docker-compose.yml) |
 
-Pipeline CI/CD: GitHub Actions corre la CI (lint/tests). El **despliegue** a producción es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) en la EC2 hace `git fetch` de `main` y, si avanzó, reconstruye con `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Ver [deploy-aws.md §7](../getting-started/deploy-aws.md).
+Pipeline CI/CD: GitHub Actions corre la CI (lint/tests). El **despliegue** a producción es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) en la EC2 hace `git fetch` de `main` y, si avanzó, reconstruye con `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Ver [deploy-aws.md sección 7](../getting-started/deploy-aws.md).
 
-Diagramas detallados: [diagramas-c4.md — C4 Level 2](diagramas-c4.md#c4-level-2--container) y [Despliegue dev vs prod](diagramas-c4.md#despliegue--desarrollo-vs-producción). Guía operativa local: [setup-docker.md](../getting-started/setup-docker.md).
-
-<!-- TODO (Mariano Carretero): documentar los costos estimados de la infraestructura AWS. -->
-<!-- TODO (Mariano Carretero): completar Security Groups, región y monitoreo con datos reales de la instancia EC2. -->
+Diagramas detallados: [diagramas-c4.md — C4 Level 2](diagramas-c4.md#c4-level-2--container) y [Despliegue dev vs prod](diagramas-c4.md#despliegue--desarrollo-vs-producción). Guía operativa: [setup-docker.md](../getting-started/setup-docker.md), [arquitectura-nube.md](arquitectura-nube.md).
 
 ---
 
@@ -193,9 +233,9 @@ Esta sección consolida los requerimientos no funcionales (RNF) de CocoAPI. Dado
 | RNF-15 | Rendimiento | Caché de tipo de cambio (BER): 1 sola llamada externa por par/día | US-cotización | 2ª llamada del mismo día → `fromCache=true` | Cumplido |
 | RNF-16 | Confiabilidad | Fallback de tipo de cambio (Banxico → DOF) ante fallo de la fuente primaria | US-cotización | El sistema sigue cotizando ante caída de Banxico | Cumplido |
 | RNF-17 | Rendimiento | Descargas de archivos vía URL prefirmada S3 (TTL 15 min), sin proxy por el backend | US-archivos | La descarga no atraviesa el proceso del backend | Cumplido |
-| RNF-18 | Disponibilidad | SLA de disponibilidad del servicio | Todas | Ver Sección 6 | Pendiente (datos AWS) |
+| RNF-18 | Disponibilidad | SLA de disponibilidad del servicio | Todas | Ver Sección 6 | Parcial (SLA demo 99% best-effort) |
 | RNF-19 | Disponibilidad | Healthcheck HTTPS del contenedor backend para reinicio automático | Infra | Contenedor *unhealthy* → reiniciado por el orquestador | Cumplido |
-| RNF-20 | Recuperación | RTO / RPO según infraestructura AWS | Todas | Ver Sección 6 | Pendiente (datos AWS) |
+| RNF-20 | Recuperación | RTO / RPO según infraestructura AWS | Todas | Ver Sección 6 | Parcial (runbook manual; ver 6.2) |
 | RNF-21 | Mantenibilidad | Lint estricto (ESLint) + validación de esquema Prisma en CI | Todas | El build de CI falla ante errores de lint/esquema | Cumplido |
 | RNF-22 | Mantenibilidad | Cobertura de pruebas automatizadas (≈88 tests: backend + frontend) ejecutadas en CI | Todas | CI corre la suite en cada push/PR a `main` | Parcial |
 | RNF-23 | Mantenibilidad | JSDoc obligatorio + Conventional Commits | Todas | Enforcement por guía de estilo / ESLint | Cumplido |
@@ -225,7 +265,7 @@ Mapeo de los RNF contra las pruebas existentes en el repositorio (`cocowiki/docs
 | RNF-18 / RNF-19 — disponibilidad / SLA / escalamiento | `escalationJob.test.js` (SLA operativo de aprobación) | Parcial (cubre el escalamiento de aprobación, no la disponibilidad de infraestructura) |
 | RNF-11 — respuesta < 500 ms | Pendiente: ejecutar prueba de carga | Pendiente |
 | RNF-12 — 100 usuarios concurrentes | Pendiente: K6 o Artillery | Pendiente |
-| RNF-20 — RTO / RPO | Pendiente: prueba de recuperación ante desastre (datos de infraestructura AWS) | Pendiente |
+| RNF-20 — RTO / RPO | Runbook sección 6.2; simulacro de restore pendiente en staging | Parcial |
 
 > **Hallazgo importante:** a la fecha no existen pruebas de rendimiento, latencia ni carga/concurrencia en el repositorio. Las pruebas no funcionales presentes cubren aislamiento multi-tenant, RBAC, confiabilidad de integraciones (BER) y validación fiscal (CFDI). El cierre de RNF-11, RNF-12 y RNF-20 requiere instrumentar una prueba de carga (K6/Artillery) y una prueba de recuperación; estas pruebas no funcionales de carga y disponibilidad quedan pendientes.
 
@@ -247,23 +287,37 @@ Los siguientes mecanismos están implementados y operativos aunque no estuvieran
 
 ## 6. Indicadores de Continuidad de Negocio (RTO / RPO / SLA)
 
-> _Estructura completa; los valores de infraestructura se completan con los datos de AWS (ver marcadores en 6.1)._
+> _Valores objetivo y demo documentados para el auto-setup EC2; producción multi-AZ mejora todos los indicadores._
 
-Esta sección define los indicadores de continuidad de negocio que comprometen la resiliencia del servicio: RTO (tiempo objetivo de recuperación), RPO (punto objetivo de recuperación, es decir, la pérdida máxima de datos tolerable) y SLA (nivel de disponibilidad comprometido). La sección establece la estructura de los indicadores y describe, desde la arquitectura, cómo la solución contribuye a cumplir cada uno; los valores objetivo y los valores reales medidos sobre la infraestructura AWS se completan a partir de los datos de despliegue (ver marcadores en la tabla 6.1).
+Esta sección define RTO (tiempo máximo de recuperación), RPO (pérdida máxima de datos tolerable) y SLA (disponibilidad comprometida). La arquitectura contenizada favorece la continuidad: backend *stateless*, reconstrucción desde `main` con `docker compose up -d --build`, healthchecks HTTPS y separación de estado (PostgreSQL + S3).
 
-La arquitectura de CocoAPI favorece la continuidad por su naturaleza contenizada: el backend es *stateless* y se reconstruye de forma reproducible desde el código en `main` (build nativo en la instancia), de modo que recrear el servicio se reduce a `docker compose up -d --build`; los healthchecks HTTPS permiten el reinicio automático ante fallos; y la separación de estado en PostgreSQL y S3 acota el dato a respaldar. Los valores numéricos (objetivo y real) dependen de decisiones de infraestructura aún por confirmar (instancia única frente a multi-AZ, cadencia de respaldos de la base de datos, monitoreo).
+**Compromiso del despliegue demo:** instancia única en una AZ — punto único de falla consciente por presupuesto escolar (~56 USD total). S3 aporta durabilidad multi-AZ para binarios; PostgreSQL co-locado en EBS **no** tiene réplica automática.
 
 ### 6.1 Tabla de indicadores
 
-| Indicador | Definición | Valor objetivo | Valor real AWS (demo) | Cómo la arquitectura lo cumple |
+| Indicador | Definición | Valor objetivo (demo) | Valor real / medido (auto-setup) | Cómo la arquitectura lo cumple |
 |---|---|---|---|---|
-| **RTO** — Recovery Time Objective | Tiempo máximo aceptable para recuperar el servicio tras una interrupción | *Pendiente definir* | *Pendiente (datos AWS)* | Contenedores *stateless* reconstruidos desde `main` en la instancia: recuperación con `docker compose up -d --build`. El healthcheck HTTPS dispara el reinicio automático del contenedor *unhealthy*. *(Por confirmar: tiempo real de recreación medido sobre EC2.)* |
-| **RPO** — Recovery Point Objective | Pérdida máxima de datos aceptable, medida en tiempo | *Pendiente definir* | *Pendiente (datos AWS)* | El estado reside en PostgreSQL y S3; el RPO queda determinado por la cadencia de respaldos/snapshots de la base de datos y la durabilidad de S3. *(Por confirmar: frecuencia real de snapshots y estrategia de backup.)* |
-| **SLA** — Service Level Agreement | Nivel de disponibilidad comprometido del servicio | *Pendiente definir* | *Pendiente (datos AWS)* | La disponibilidad está acotada por el modelo de despliegue actual (instancia EC2 única / una sola AZ); es mejorable con multi-AZ y base de datos administrada. *(Por confirmar: porcentaje comprometido y esquema de monitoreo/alertas.)* |
+| **RTO** | Tiempo máximo para restaurar el servicio tras interrupción | **≤ 2 h** (recreación completa) | **~15–30 min** si EC2 viva (rebuild contenedores); **2–4 h** si hay que reprovisionar instancia (`aws-provision.sh`) | Contenedores stateless; CD git-poll reconstruye desde `main`; healthcheck reinicia backend unhealthy |
+| **RPO** | Pérdida máxima de datos aceptable | **≤ 24 h** (backup diario PG) | **24 h** si se ejecuta backup manual diario; **sin límite** si no hay backup (estado actual por defecto) | Datos en vol. EBS `pgdata`; S3 durable (11×9) para archivos; RPO de BD = cadencia de `pg_dump` |
+| **SLA** | Disponibilidad comprometida del servicio | **99,0 %** (best-effort demo) | Acotado por **1 EC2 / 1 AZ** — sin HA; ventanas de deploy ~2 min cada poll + rebuild ocasional | Mejorable con ALB + multi-AZ + RDS (arquitectura recomendada) |
 
-<!-- TODO (Mariano Carretero): completar "Valor objetivo" y "Valor real AWS (demo)" de RTO, RPO y SLA con los datos reales de la infraestructura AWS. -->
-<!-- TODO (Mariano Carretero): validar/ajustar la columna "Cómo la arquitectura lo cumple" con el detalle real de respaldos, AZ y monitoreo. -->
-<!-- TODO: una vez disponibles los números de SLA/disponibilidad, ejecutar las pruebas no funcionales de carga (RNF-11/RNF-12) y de disponibilidad que respalden estos indicadores. -->
+### 6.2 Estrategia de respaldo y runbook (PostgreSQL + S3)
+
+**PostgreSQL (demo):**
+
+1. **Backup lógico diario** (objetivo RPO 24 h): en la EC2, `docker compose exec postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc -f /backup/coco-$(date +%Y%m%d).dump`.
+2. Copiar el dump fuera de la instancia (S3 bucket de backups o estación local del operador).
+3. **Restauración:** detener backend → `pg_restore --clean -d "$POSTGRES_DB"` sobre el dump → `docker compose up -d`.
+
+**S3:** versioning recomendado en bucket de producción; los objetos de comprobantes no requieren backup adicional en demo gracias a durabilidad gestionada de S3.
+
+**Recuperación ante caída de EC2:**
+
+1. Ejecutar `aws-provision.sh` (o levantar instancia equivalente).
+2. Restaurar `deploy/.env` y último dump PG.
+3. `docker compose up -d --build` — el timer `coco-redeploy` retoma el CD.
+
+**Pruebas pendientes:** simulacro de recuperación documentado como deuda (RNF-20); ejecutar al menos un restore en entorno de staging antes de comprometer SLA formal al cliente.
 
 ---
 

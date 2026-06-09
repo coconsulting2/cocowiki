@@ -195,7 +195,7 @@ type UserRole =
 - Los tests de componente montan con `render` de Testing Library y simulan interacción con `@testing-library/user-event`; el backend se mockea con **MSW** (`tests/setup.ts`).
 - Cobertura con umbral del **70%** sobre la lista de `coverage.include` en `vitest.config.ts`.
 - Cada archivo de test abre con cabecera JSDoc (`Author` + `Description`).
-- Detalle de ejecución y credenciales de los roles en [Setup Frontend §9](../getting-started/setup-frontend.md).
+- Detalle de ejecución y credenciales de los roles en [Setup Frontend sección 9](../getting-started/setup-frontend.md).
 
 ---
 

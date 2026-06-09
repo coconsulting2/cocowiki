@@ -8,7 +8,7 @@
 
 ## 1. Capas del sistema y datos
 
-El cliente **Astro** (SSR y navegador) consume la **CocoAPI** (Express, HTTPS). La API persiste datos estructurados en **PostgreSQL** vía **Prisma** y archivos de comprobantes (PDF/XML) en **AWS S3** (LocalStack como mock en dev), con URLs prefirmadas; la **S3 object key** se guarda en columnas `Receipt.pdf_file_key` y `Receipt.xml_file_key`.
+El cliente **Astro** (SSR y navegador) consume la **CocoAPI** (Express, HTTPS). La API persiste datos estructurados en **PostgreSQL** vía **Prisma** y archivos de comprobantes (PDF/XML) en **AWS S3** (LocalStack como mock en dev), con URLs prefirmadas; el identificador del archivo en S3 se guarda en `Receipt.pdf_file_id` y `Receipt.xml_file_id`.
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ flowchart LR
 
 | Columna (PostgreSQL) | Uso |
 |----------------------|-----|
-| `pdf_file_key`, `xml_file_key` | S3 object key del archivo (ruta dentro del bucket). |
+| `pdf_file_id`, `xml_file_id` | Identificador del objeto en S3 (referencia al archivo en el bucket). |
 | `pdf_file_name`, `xml_file_name` | Nombre de archivo para descarga o UI. |
 
 ### Capas internas del backend
@@ -195,7 +195,7 @@ Todos los prefijos están montados en [app.js](../../../TC3005B.501-Backend/app.
 | `/api/admin` (usuarios) | Administración de usuarios, roles y departamentos por organización. |
 | `/api/admin` (permisos) | Catálogo de permisos y grupos; asignación a roles/usuarios (`permissionRoutes`). |
 | `/api/accounts-payable` | Cuentas por pagar: cotización, validación de comprobantes, transiciones de estado (`Request`, `Receipt`). |
-| `/api/files` | **AWS S3** + actualización de `Receipt` (`pdf_file_key`/`xml_file_key`, `pdf_file_name`/`xml_file_name`); URLs prefirmadas. |
+| `/api/files` | **AWS S3** + actualización de `Receipt` (`pdf_file_id`/`xml_file_id`, `pdf_file_name`/`xml_file_name`); URLs prefirmadas. |
 | `/api/comprobantes` | CFDI ligado a `Receipt` (`POST /api/comprobantes/:receipt_id`). |
 | `/api/viajes` | Gasto por tramo del viaje (`gastoTramoRoutes`). |
 | `/api/exchange-rate` | Tipo de cambio (registro/consulta). |

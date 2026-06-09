@@ -1,22 +1,89 @@
-# Arquitectura de Aplicación — Capa de Servicios
+# Arquitectura de Aplicación — Frontend, Backend y Permisos
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión del documento** | 1.0.0 |
-| **Última actualización** | 2026-06-06 |
-| **Referencias** | [app.js](../../../TC3005B.501-Backend/app.js), [permissionMiddleware.js](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [permissionService.js](../../../TC3005B.501-Backend/services/permissionService.js), [approverResolver.js](../../../TC3005B.501-Backend/services/approverResolver.js), [employeeHierarchyService.js](../../../TC3005B.501-Backend/services/employeeHierarchyService.js), [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma), [diagramas-c4.md](diagramas-c4.md) (C4 Level 3) |
+| **Versión del documento** | 1.1.0 |
+| **Última actualización** | 2026-06-09 |
+| **Referencias** | [app.js](../../../TC3005B.501-Backend/app.js), [middleware.ts](../../../TC3005B.501-Frontend/src/middleware.ts), [apiClient.ts](../../../TC3005B.501-Frontend/src/utils/apiClient.ts), [permissionMiddleware.js](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js), [permissionService.js](../../../TC3005B.501-Backend/services/permissionService.js), [approverResolver.js](../../../TC3005B.501-Backend/services/approverResolver.js), [employeeHierarchyService.js](../../../TC3005B.501-Backend/services/employeeHierarchyService.js), [schema.prisma](../../../TC3005B.501-Backend/prisma/schema.prisma), [diagramas-c4.md](diagramas-c4.md) (C4 Level 3) |
 
-## 1. Diagrama de capas y servicios
+## Índice
+
+0. [Stack tecnológico general](#0-stack-tecnológico-general)
+1. [Capas del backend](#1-capas-del-backend)
+2. [Capas del frontend](#2-capas-del-frontend)
+3. [Sistema de permisos](#3-sistema-de-permisos)
+4. [Jerarquía de aprobación en runtime](#4-jerarquía-de-aprobación-en-runtime)
+5. [Relación con otros documentos](#5-relación-con-otros-documentos)
+
+---
+
+## 0. Stack tecnológico general
+
+Vista de conjunto del ecosistema CocoScheme: el navegador consume el frontend Astro SSR, que a su vez llama a CocoAPI (Express); el backend persiste en PostgreSQL y S3 e integra servicios externos.
+
+```mermaid
+flowchart TB
+  subgraph client [Cliente]
+    Browser[Navegador HTTPS]
+  end
+  subgraph fe [Frontend Astro SSR]
+    AstroPages[pages y views]
+    ReactIslands[React islands]
+    ApiClient[apiClient.ts]
+  end
+  subgraph be [Backend Express]
+    Routes[routes y controllers]
+    Services[services]
+    Prisma[Prisma Client]
+  end
+  subgraph data [Datos]
+    PG[(PostgreSQL 16)]
+    S3[(AWS S3)]
+  end
+  subgraph ext [Externos]
+    SAT[SAT SOAP]
+    BMX[Banxico]
+    Duffel[Duffel]
+    SMTP[SMTP]
+    Push[Web Push]
+  end
+  Browser --> AstroPages
+  AstroPages --> ReactIslands
+  ReactIslands --> ApiClient
+  ApiClient -->|HTTPS JSON JWT CSRF| Routes
+  Routes --> Services --> Prisma --> PG
+  Services --> S3
+  Services --> SAT
+  Services --> BMX
+  Services --> Duffel
+  Services --> SMTP
+  Services --> Push
+```
+
+| Componente | Tecnología | Versión |
+|------------|------------|---------|
+| Frontend | Astro + React + Tailwind | 5.7 · 19 · 4.1 |
+| Runtime | Node.js | 22 |
+| Backend | Express | 4.18 |
+| ORM | Prisma | 6.16 |
+| Base relacional | PostgreSQL | 16 |
+| Almacenamiento binario | AWS S3 (SSE-S3, pre-signed) | — |
+
+Detalle por capa: [sección 1](#1-capas-del-backend) (backend) y [sección 2](#2-capas-del-frontend) (frontend).
+
+---
+
+## 1. Capas del backend
 
 La **CocoAPI** es una aplicación **Express.js** que sigue una arquitectura en capas: petición → middleware → rutas → servicios → modelos → base de datos.
 
 ```mermaid
 flowchart TD
     subgraph cliente [Cliente]
-        Astro[Astro SSR / Browser]
+        FE[Frontend Astro SSR ver sección 2]
     end
 
-    subgraph express [CocoAPI — Express]
+    subgraph express [CocoAPI Express]
         direction TB
         MW1[CORS + cookieParser + httpLogger]
         MW2[CSRF Protection]
@@ -63,7 +130,7 @@ flowchart TD
         OBJ[(AWS S3)]
     end
 
-    Astro -->|HTTPS JSON + cookie token| MW1
+    FE -->|HTTPS JSON + cookie token| MW1
     MW1 --> MW2 --> MW3 --> MW4 --> MW5 --> MW6
     MW6 --> rutas
     rutas --> servicios
@@ -99,9 +166,49 @@ flowchart TD
 
 ---
 
-## 2. Sistema de permisos
+## 2. Capas del frontend
 
-### 2.1 Modelo de datos (RBAC)
+El frontend **CocoScheme** usa **Astro 5.7** con adaptador Node (SSR) e islas **React 19**. La petición del usuario atraviesa middleware de Astro, páginas/vistas, componentes interactivos y el cliente HTTP centralizado antes de llegar a CocoAPI.
+
+| Capa | Archivos / carpetas | Responsabilidad |
+|------|---------------------|-----------------|
+| Entrada SSR | `src/pages/*.astro`, `src/views/*.astro` | Rutas HTML, layout, hidratación de islas |
+| Middleware Astro | `src/middleware.ts` | Sesión por cookie `role`/`token`; whitelist en `src/config/routeAccess.ts` |
+| UI interactiva | `src/components/*.tsx`, `src/views/admin/*.tsx` | Formularios, bandejas, modales |
+| Validación | react-hook-form + Zod | Esquemas de formulario en cliente |
+| Cliente HTTP | `src/utils/apiClient.ts` | JWT (cookie), CSRF, header `X-Organization-Id` |
+| Destino | CocoAPI `/api/*` | Autorización fina en backend (sección 3.3) |
+
+```mermaid
+flowchart TD
+    subgraph browser [Navegador]
+        User[Usuario]
+    end
+    subgraph astro [CocoScheme Frontend Astro SSR]
+        MW[middleware.ts auth y routeAccess]
+        Pages[pages y views .astro]
+        Islands[React islands .tsx]
+        Forms[react-hook-form + Zod]
+        Client[apiClient.ts]
+    end
+    subgraph api [CocoAPI]
+        BE[Express routes]
+    end
+    User -->|HTTPS| MW
+    MW --> Pages
+    Pages --> Islands
+    Islands --> Forms
+    Islands --> Client
+    Client -->|JWT cookie CSRF org header| BE
+```
+
+> **Nota:** el frontend restringe **rutas por rol** (`roleRoutes` en `routeAccess.ts`). Los permisos atómicos (`resource:action`) se evalúan en el backend mediante `requirePermission` (sección 3.3).
+
+---
+
+## 3. Sistema de permisos
+
+### 3.1 Modelo de datos (RBAC)
 
 El sistema usa **RBAC** (control de acceso basado en roles) **granular por organización**. El catálogo de `Permission` es global; los grupos y asignaciones son per-org.
 
@@ -174,7 +281,7 @@ erDiagram
     User }o--|| Role : assigned
 ```
 
-### 2.2 Resolución de permisos efectivos en runtime
+### 3.2 Resolución de permisos efectivos en runtime
 
 Al inicio de cada petición autenticada, `loadEffectivePermissions(userId)` computa el **conjunto efectivo** de códigos de permiso del usuario mediante la siguiente unión:
 
@@ -204,27 +311,35 @@ flowchart LR
     I --> J[req.user.permissionSet]
 ```
 
-### 2.3 Cadena de middleware de autorización
+### 3.3 Cadena de middleware de autorización
 
-Las rutas protegidas usan `requirePermission(...codes)` o `requireAnyPermission(...codes)`:
+Las rutas protegidas usan `requirePermission(...codes)` o `requireAnyPermission(...codes)`. Ambos helpers encadenan los mismos cinco pasos; solo difieren en el paso final (AND vs OR).
 
+```mermaid
+flowchart TD
+    Entry["requirePermission(...codes)\no requireAnyPermission(...codes)"]
+    M1["1 authenticateToken\nJWT Bearer o cookie → req.user"]
+    M2["2 tenantContextMiddleware\norganizationId → req.tenantContext"]
+    M3["3 applyRlsForRequest\nSET LOCAL app.current_organization_id"]
+    M4["4 loadPermissions\nloadEffectivePermissions → permissionSet"]
+    M5["5a authorizePermission\nAND — todos los códigos"]
+    M5b["5b authorizeAnyPermission\nOR — al menos un código"]
+    Handler[Controlador de ruta]
+    Entry --> M1 --> M2 --> M3 --> M4
+    M4 --> M5 --> Handler
+    M4 --> M5b --> Handler
 ```
-requirePermission("solicitud:create")
-  │
-  ├─ 1. authenticateToken     → verifica JWT (Bearer o cookie), adjunta req.user
-  ├─ 2. tenantContextMiddleware → resuelve organizationId en req.tenantContext
-  ├─ 3. applyRlsForRequest    → SET LOCAL app.org_id en la conexión Prisma (RLS PG)
-  ├─ 4. loadPermissions       → llama loadEffectivePermissions, guarda en req.user.permissionSet
-  └─ 5. authorizePermission   → verifica que TODOS los códigos estén en permissionSet
-         (authorizeAnyPermission verifica que AL MENOS UNO esté presente)
-```
 
-| Helper | Semántica | Uso típico |
-|--------|-----------|------------|
-| `requirePermission(...codes)` | AND — todos los códigos requeridos | Operaciones específicas de un solo recurso |
-| `requireAnyPermission(...codes)` | OR — al menos un código | Rutas accesibles por varios roles |
+Ejemplo: `requirePermission("solicitud:create")` exige que `solicitud:create` esté en `req.user.permissionSet` tras los pasos 1–4.
 
-### 2.4 Roles de sistema vs. roles personalizados
+| Helper | Semántica | Paso 5 | Uso típico |
+|--------|-----------|--------|------------|
+| `requirePermission(...codes)` | AND — todos los códigos requeridos | `authorizePermission` | Operaciones específicas de un solo recurso |
+| `requireAnyPermission(...codes)` | OR — al menos un código | `authorizeAnyPermission` | Rutas accesibles por varios roles |
+
+Fuente del orden: [`permissionMiddleware.js`](../../../TC3005B.501-Backend/middleware/permissionMiddleware.js).
+
+### 3.4 Roles de sistema vs. roles personalizados
 
 | Atributo | Rol de sistema (`isSystem: true`) | Rol personalizado |
 |----------|-----------------------------------|-------------------|
@@ -237,9 +352,9 @@ El campo `Role.maxApprovalAmount` define el **tope de monto** (`requested_fee`) 
 
 ---
 
-## 3. Jerarquía de aprobación en runtime
+## 4. Jerarquía de aprobación en runtime
 
-### 3.1 Estructura: adjacency list en `User`
+### 4.1 Estructura: adjacency list en `User`
 
 La jerarquía organizacional se almacena como una **adjacency list** en la tabla `User`:
 
@@ -259,7 +374,7 @@ erDiagram
     User ||--o{ User : "manager →"
 ```
 
-### 3.2 Resolución de aprobadores N1/N2 (`approverResolver.js`)
+### 4.2 Resolución de aprobadores N1/N2 (`approverResolver.js`)
 
 Cuando un solicitante envía una solicitud, `resolveN1N2Approvers` determina quiénes serán N1 y N2:
 
@@ -283,7 +398,7 @@ flowchart TD
 2. Si la cadena tiene menos de 2 nodos, se completa con el primer usuario activo de rol `"N1"` / `"N2"` en la organización, priorizando el mismo departamento del solicitante.
 3. Se garantiza que `approverIds` siempre tenga al menos los IDs de N1 y N2 finales.
 
-### 3.3 Utilidades de jerarquía (`employeeHierarchyService.js`)
+### 4.3 Utilidades de jerarquía (`employeeHierarchyService.js`)
 
 | Función | Descripción | Límite |
 |---------|-------------|--------|
@@ -292,7 +407,7 @@ flowchart TD
 | `getHierarchyDepth(userId, maxDepth=8)` | Profundidad de la cadena de aprobación disponible. | 8 niveles |
 | `wouldCreateManagerCycle(userId, proposedManagerUserId)` | Detecta si asignar un jefe crearía un ciclo antes de guardar. | 32 niveles |
 
-### 3.4 Secuencia de resolución al crear una solicitud
+### 4.4 Secuencia de resolución al crear una solicitud
 
 ```mermaid
 sequenceDiagram
@@ -317,13 +432,14 @@ sequenceDiagram
 
 ---
 
-## 4. Relación con otros documentos
+## 5. Relación con otros documentos
 
 | Documento | Qué complementa |
 |-----------|-----------------|
 | [Modelo ER](modelo-er.md) | Tablas `Permission`, `PermissionGroup`, `Role`, `User` (con `manager_user_id`) |
 | [Flujos y pantallas](flujos.md) | Capas del sistema, rutas REST, estados de solicitud |
-| [Flujos de pantallas por rol](../flujos-pantallas-por-rol.md) | Qué pantallas son accesibles por rol en el frontend |
+| [Flujos de pantallas por rol](../guias-usuario/flujos-pantallas-por-rol.md) | Qué pantallas son accesibles por rol en el frontend |
+| [Documento de Arquitectura](documento-arquitectura.md) | Vista unificada negocio, datos, infra, RNF |
 
 > **Nota:** La lógica de adjacency list (`managerUserId`) está documentada también en el modelo Prisma `User` (`schema.prisma`, campo `manager_user_id`). `approverResolver.js` y `employeeHierarchyService.js` son los únicos consumidores en runtime.
 
@@ -341,3 +457,4 @@ sequenceDiagram
 | **RBAC** | Role-Based Access Control — permisos atómicos (`resource:action`) unidos por roles, grupos y asignación directa a usuario. |
 | **RLS** | Row-Level Security — filtrado de filas en PostgreSQL por organización activa. |
 | **REST** | Representational State Transfer — API HTTP JSON consumida por el frontend. |
+| **SSR** | Server-Side Rendering — Astro renderiza HTML en Node antes de hidratar islas React. |

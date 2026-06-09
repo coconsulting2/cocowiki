@@ -59,12 +59,12 @@ dirección pública.
 | **Secretos** | `deploy/.env` (chmod 600), autogenerados con `openssl rand` |
 
 > **Por qué un solo EC2 (y qué falta).** Con el presupuesto escolar de **~\$56**,
-> un stack productivo completo (ver §2: ALB + cómputo redundante + RDS Multi-AZ +
+> un stack productivo completo (ver sección 2: ALB + cómputo redundante + RDS Multi-AZ +
 > CloudFront/WAF + Route 53 + Secrets Manager + CloudWatch) cuesta de más. Por eso
 > hoy corre **todo co-locado en un `t4g.small`**. Lo que **conscientemente queda
 > pendiente** frente a producción: alta disponibilidad multi-AZ, BD gestionada con
 > failover, **DNS propio (Route 53) + TLS válido (ACM)**, **WAF/seguridad
-> perimetral**, subnets privadas y secretos gestionados. La §2 es la ruta de
+> perimetral**, subnets privadas y secretos gestionados. La sección 2 es la ruta de
 > migración cuando el presupuesto lo permita.
 
 ---

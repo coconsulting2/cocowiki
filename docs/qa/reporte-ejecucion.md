@@ -24,7 +24,7 @@
 | Defectos (log formal) | **9** total · **5 abiertos** / **4 resueltos-cerrados** | — | 0 Crítica/Alta de producto abierta |
 
 > La cobertura y el conteo de tests provienen de la medición real del 2026-06-02 documentada en
-> [`testing.md` §1](testing.md). El frontend **superó la meta de 70%** tras ampliar las pruebas de
+> [`testing.md` sección 1](testing.md). El frontend **superó la meta de 70%** tras ampliar las pruebas de
 > `OnboardingImportAdmin` (14%→~87%), `FileDropZone` (38%→93%) y `XmlExpenseForm` (45%→92%);
 > ver `testing.md` para el valor vigente.
 
@@ -45,8 +45,8 @@ regresiones**. Detalle e inventario por carpeta en [`testing.md`](testing.md).
 | `apiKeys.e2e.test.js` | Ciclo de vida de API Keys (M3) | **2/2** | `tests/routes/apiKeys.e2e.test.js` (rama `test/qa/m3-qa2-api-keys-export`, pendiente de merge) |
 | `accountingExport.e2e.test.js` | Exportación contable + gate RBAC (M3) | **5/5** | `tests/services/accountingExport/accountingExport.e2e.test.js` |
 | `refundRules.e2e.test.js` | Reglas de reembolso, políticas, inbox (M2-006) | Pasa en aislamiento | Ver [BUG-M2-004](log-de-defectos.md) |
-| `verification-cfdi.e2e.test.js` | Verificación CFDI con mock SAT (M1) | Realizado | Ver §4 (matriz CFDI) |
-| `exchangeRate.e2e.test.js` | Tipo de cambio Banxico/BER (M1) | Realizado | Ver §4 (matriz BER) |
+| `verification-cfdi.e2e.test.js` | Verificación CFDI con mock SAT (M1) | Realizado | Ver sección 4 (matriz CFDI) |
+| `exchangeRate.e2e.test.js` | Tipo de cambio Banxico/BER (M1) | Realizado | Ver sección 4 (matriz BER) |
 
 > **`refundRules.e2e.test.js`** ejecuta `TRUNCATE … RESTART IDENTITY CASCADE` en su ciclo de
 > vida y **destruye el seed CocoUAT**, bloqueando cualquier flujo posterior basado en login HTTP.
@@ -142,8 +142,8 @@ Evidencia: [`evidencias/cypress/TI-001-2026-05-27-summary.md`](evidencias/cypres
 
 ### 5.2 Suite Cypress + Vitest
 
-262 tests Vitest (24 archivos) y 16 specs Cypress catalogados en [`testing.md` §4](testing.md). El frontend CI
-**hoy no ejecuta Vitest/Cypress** (solo typecheck/build/audit) — ver §7.
+262 tests Vitest (24 archivos) y 16 specs Cypress catalogados en [`testing.md` sección 4](testing.md). El frontend CI
+**hoy no ejecuta Vitest/Cypress** (solo typecheck/build/audit) — ver sección 7.
 
 ---
 
@@ -173,14 +173,14 @@ Fuente única de verdad: [`log-de-defectos.md`](log-de-defectos.md) (corte 2026-
 | Severidad | Abiertos | Resueltos/Cerrados | IDs |
 |---|---:|---:|---|
 | Crítica | 0 | 1 | *resuelto:* F1 (`POST /api/organizations` 500, PR #96) |
-| Alta | 1 | 0 | BUG-M2-004 (TRUNCATE e2e — deuda de proceso, ver §7.3) |
+| Alta | 1 | 0 | BUG-M2-004 (TRUNCATE e2e — deuda de proceso, ver sección 7.3) |
 | Media | 3 | 3 | *abiertos:* BUG-M2-001/002 (drift colección Postman, fix en PR #99), BUG-M1-002 (cred drift) · *resueltos:* BUG-M2-003 (reclasif. + PR #99), BUG-M3-001 (API catálogo, PR #97) · *cerrado:* BUG-M1-001 |
 | Baja | 1 | 0 | BUG-M1-003 (SAT real diferido) |
 | **Total** | **5** | **4** | **9 defectos** |
 
 ### 7.2 Defectos de seguimiento (ya en el log formal y resueltos)
 
-Todos los defectos detectados están incorporados al log formal (§7.1 / [`log-de-defectos.md`](log-de-defectos.md)).
+Todos los defectos detectados están incorporados al log formal (sección 7.1 / [`log-de-defectos.md`](log-de-defectos.md)).
 Los dos defectos de seguimiento posteriores al corte M2 ya están **resueltos**:
 
 | ID | Severidad | Descripción | Estado |
@@ -215,5 +215,5 @@ es la fuente de su columna *Estado*.
 - [`cfdi.e2e.test.md`](cfdi.e2e.test.md) y [`ber-bmx.e2e.test.md`](ber-bmx.e2e.test.md) — matrices E2E de integraciones.
 - [`log-de-defectos.md`](log-de-defectos.md) — registro unificado de defectos.
 - [`m2-006-casos-de-prueba.md`](m2-006-casos-de-prueba.md) — casos manuales M2-006 (RF-37..46).
-- `plan-de-pruebas/Plan de Pruebas de Software v4.0.docx` — Plan de Pruebas (Anexo M1 + Anexo M2 + Anexo M3 + Anexo Tendencias; §1–§14, §11 Entregables).
+- `plan-de-pruebas/Plan de Pruebas de Software v4.0.docx` — Plan de Pruebas (Anexo M1 + Anexo M2 + Anexo M3 + Anexo Tendencias; secciones 1–14, sección 11 Entregables).
 - Suites E2E de backend: `tests/services/accountingExport/accountingExport.e2e.test.js` (export contable) y `tests/routes/apiKeys.e2e.test.js` (API Keys, en la rama `test/qa/m3-qa2-api-keys-export` pendiente de merge).

@@ -430,7 +430,7 @@ ssh -i coco-deploy.pem ec2-user@<host> "grep -oE '^[A-Z_]+=' /opt/coco/cocowiki/
 
 > **Nota:** Si editaste el `.env` pero la app sigue sin ver la integración,
 > recrea los contenedores (`docker compose ... up -d`). `PUBLIC_API_BASE_URL` y
-> `PUBLIC_IS_DEV` además requieren **rebuild** del frontend (ver [§8](#8-tls--dominio)),
+> `PUBLIC_IS_DEV` además requieren **rebuild** del frontend (ver [sección 8](#8-tls--dominio)),
 > pero las integraciones del backend bastan con `up -d`.
 
 ### 5.1 Tabla de referencia completa
@@ -695,7 +695,7 @@ KEEP_BUCKET=1 ./aws-teardown.sh   # conserva el bucket S3 y sus datos
 | Migraciones no corren | El backend corre `prisma db push` cuando `RUN_MIGRATIONS=true` (ya está en el compose). Revisa `DATABASE_URL` y logs del backend. |
 | Postgres local no levanta | Asegúrate de que `POSTGRES_PASSWORD` esté seteado; el perfil `localdb` solo se activa si el host es `postgres`/`localhost`. |
 | Seeders demo no corrieron | Solo corren en instalación inicial; usa `bash install.sh --force-seed` para forzarlos. |
-| Una integración (correo, Duffel, Wise…) no funciona | Verifica que la variable llegó al `.env` del servidor (ver [§5 · Verificar qué quedó cargado](#verificar-qué-variables-quedaron-cargadas-en-producción)). Si está vacía, edítala en `/opt/coco/cocowiki/deploy/.env` o re-despliega con `coco-secrets.env`, y recrea contenedores (`up -d`). |
+| Una integración (correo, Duffel, Wise…) no funciona | Verifica que la variable llegó al `.env` del servidor (ver [sección 5 · Verificar qué quedó cargado](#verificar-qué-variables-quedaron-cargadas-en-producción)). Si está vacía, edítala en `/opt/coco/cocowiki/deploy/.env` o re-despliega con `coco-secrets.env`, y recrea contenedores (`up -d`). |
 | Ver logs de todo | `cd /opt/coco/cocowiki/deploy && sudo docker compose -f docker-compose.prod.yml logs -f` |
 | Estado de contenedores | `cd /opt/coco/cocowiki/deploy && sudo docker compose -f docker-compose.prod.yml ps` |
 

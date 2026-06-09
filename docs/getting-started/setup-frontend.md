@@ -110,7 +110,7 @@ Todos se ejecutan con `bun run <script>` (definidos en `package.json`):
 | `docker:dev*` | Flujos de desarrollo con Docker (ver [Setup Docker](setup-docker.md)). |
 
 > [!NOTE]
-> El chequeo de tipos (`bun run typecheck`) hoy reporta algunos warnings preexistentes; el gate real de CI es `bun run build`. Cypress no tiene script propio: se invoca con `bunx cypress` (ver §9).
+> El chequeo de tipos (`bun run typecheck`) hoy reporta algunos warnings preexistentes; el gate real de CI es `bun run build`. Cypress no tiene script propio: se invoca con `bunx cypress` (ver sección 9).
 
 ---
 

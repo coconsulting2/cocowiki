@@ -1,140 +1,147 @@
 # Requerimientos No Funcionales (RNF) — CocoAPI
 
 > Proyecto: **CocoAPI** · Cliente: **Ditta Consulting** · Equipo: **COCONSULTING2**
-> Documento de especificación de Requerimientos No Funcionales y matriz de trazabilidad US ↔ Requerimientos.
+> Catálogo alineado al código (backend `main`, verificado 2026-06-02) y matriz de trazabilidad US ↔ RNF.
+> Detalle técnico ampliado (pruebas, evidencia): [Documento de Arquitectura — sección 5](../arquitectura-datos/documento-arquitectura.md#5-requerimientos-no-funcionales).
 
 ---
 
 ## Índice
 
+- [Leyenda](#leyenda)
 - [Resumen por categoría](#resumen-por-categoría)
-- [Catálogo de RNF](#catálogo-de-rnf)
-  - [Seguridad](#seguridad)
-  - [Rendimiento](#rendimiento)
-  - [Usabilidad](#usabilidad)
-  - [Disponibilidad](#disponibilidad)
-  - [Confiabilidad](#confiabilidad)
-  - [Mantenibilidad](#mantenibilidad)
-  - [Trazabilidad](#trazabilidad-rnf)
-- [Matriz de Trazabilidad US ↔ Requerimientos](#matriz-de-trazabilidad-us--requerimientos)
+- [RNF técnicos (RNF-01…RNF-27)](#rnf-técnicos-rnf-01rnf-27)
+- [RNF de producto / UX (RNF-P01…RNF-P14)](#rnf-de-producto--ux-rnf-p01rnf-p14)
+- [Matriz de Trazabilidad US ↔ RNF](#matriz-de-trazabilidad-us--rnf)
+
+---
+
+## Leyenda
+
+**Estado:** **Cumplido** · **Parcial** · **Pendiente**
+
+- **RNF-01…27:** requerimientos verificados contra implementación (seguridad, rendimiento, infra, fiscal).
+- **RNF-P01…14:** criterios de producto/UX del backlog (historias de usuario); no duplican IDs técnicos.
 
 ---
 
 ## Resumen por categoría
 
-| Categoría | # RNF | IDs |
+| Categoría | # RNF técnicos | IDs |
 |---|---|---|
-| Seguridad | 10 | RNF-01 → RNF-10 |
-| Rendimiento | 5 | RNF-11 → RNF-15 |
-| Usabilidad | 5 | RNF-16 → RNF-20 |
-| Disponibilidad | 2 | RNF-21, RNF-22 |
-| Confiabilidad | 3 | RNF-23 → RNF-25 |
-| Mantenibilidad | 6 | RNF-26 → RNF-31* |
-| Trazabilidad | 4 | RNF-31 → RNF-34 |
-
-\* RNF-31 aparece bajo Trazabilidad en el catálogo original.
+| Seguridad / privacidad | 10 | RNF-01 → RNF-10 |
+| Rendimiento / escalabilidad | 5 | RNF-11 → RNF-15, RNF-17 |
+| Disponibilidad / recuperación | 3 | RNF-18 → RNF-20 |
+| Mantenibilidad / trazabilidad | 4 | RNF-21 → RNF-24 |
+| Confiabilidad / almacenamiento | 1 | RNF-25 |
+| Integraciones / fiscal | 2 | RNF-26, RNF-27 |
+| **Producto / UX (bloque P)** | 14 | RNF-P01 → RNF-P14 |
 
 ---
 
-## Catálogo de RNF
+## RNF técnicos (RNF-01…RNF-27)
 
-### Seguridad
+| ID | Categoría | Requerimiento | US / Área | Criterio de medición | Estado | Evidencia en código |
+|---|---|---|---|---|---|---|
+| **RNF-01** | Seguridad | JWT con verificación de firma (HMAC) y expiración (1 h) | Todas | 0 requests sin auth válida acceden a rutas protegidas | Cumplido | `middleware/authMiddleware.js` |
+| **RNF-02** | Seguridad | IP binding del JWT: el token queda atado a la IP de emisión | Todas | Token reutilizado desde otra IP → rechazado | Cumplido | `authMiddleware.js` (`TokenMismatchError`) |
+| **RNF-03** | Seguridad | Contraseñas hasheadas con bcrypt (cost 10) | US-auth | 0 contraseñas en texto plano en BD | Cumplido | Servicios de usuario / onboarding |
+| **RNF-04** | Seguridad | Protección CSRF en mutaciones por cookie | Todas | Mutación sin token CSRF válido → 403 | Cumplido | `app.js` + `csurf` |
+| **RNF-05** | Seguridad | Rate limiting: 100 req/15 min global; 5 req/min en login | Todas / login | Exceso → HTTP 429 | Cumplido | `middleware/rateLimiters.js` |
+| **RNF-06** | Seguridad | CORS restringido por allowlist con `credentials` | Todas | Origen no permitido → bloqueado | Cumplido | `app.js` (`CORS_ORIGIN`) |
+| **RNF-07** | Seguridad | HTTPS/TLS extremo a extremo; S3 con SSE-S3 (AES-256) | US-01, US-02 | 0 tráfico en claro; archivos cifrados en bucket | Cumplido | TLS en prod; `services/storageService.js` |
+| **RNF-08** | Seguridad / Aislamiento | Multi-tenant: RLS PostgreSQL (38 tablas) + extensión Prisma + `AsyncLocalStorage` | US-13, US-14, todas | 0 fugas cross-org | Cumplido | `prisma/tenantExtension.js`, `multi-tenancy.md` |
+| **RNF-09** | Seguridad | Validación de entrada y queries parametrizadas (Prisma) | Todas | Entrada inválida → 400; sin SQL crudo | Cumplido | `middleware/validation.js` |
+| **RNF-10** | Privacidad | Cifrado AES-256-CBC de PII (email, teléfono) | US-user | PII ilegible en dump de BD | Cumplido | `middleware/decryption.js` |
+| **RNF-11** | Rendimiento | Tiempo de respuesta API < 500 ms (p95) en lecturas | Todas | Prueba de carga | Pendiente | — |
+| **RNF-12** | Escalabilidad | 100 usuarios concurrentes sin degradación | Todas | K6 / Artillery: 0 errores con 100 VUs | Pendiente | — |
+| **RNF-13** | Escalabilidad | Backend stateless (JWT) apto para escalado horizontal | Todas | N instancias tras balanceador sin afinidad | Parcial | Sin despliegue multi-instancia medido |
+| **RNF-14** | Autorización | RBAC granular `resource:action`, unión aditiva de permisos | US-14 | Acceso sin permiso → 403 | Cumplido | `permissionMiddleware.js`, `permissionService.js` |
+| **RNF-15** | Rendimiento | Caché tipo de cambio (BER): máx. 1 llamada externa por par/día | US-04 | 2ª llamada del día → `fromCache=true` | Cumplido | `services/banxicoService.js` |
+| **RNF-16** | Confiabilidad | Fallback Banxico → DOF ante fallo de fuente primaria | US-04 | Sistema sigue cotizando | Cumplido | `banxicoService.js` |
+| **RNF-17** | Rendimiento | Descargas vía URL prefirmada S3 (TTL 15 min), sin proxy backend | US-01, US-02 | Descarga no atraviesa proceso API | Cumplido | `storageService.js` |
+| **RNF-18** | Disponibilidad | SLA de disponibilidad del servicio | Todas | Ver [Documento de Arquitectura — sección 6](../arquitectura-datos/documento-arquitectura.md#6-indicadores-de-continuidad-de-negocio-rto--rpo--sla) | Pendiente | Datos AWS |
+| **RNF-19** | Disponibilidad | Healthcheck HTTPS del contenedor backend | Infra | Contenedor unhealthy → reinicio | Cumplido | `docker-compose` healthcheck |
+| **RNF-20** | Recuperación | RTO / RPO según infraestructura AWS | Todas | Ver sección 6 del documento de arquitectura | Pendiente | Datos AWS / DR test |
+| **RNF-21** | Mantenibilidad | ESLint estricto + validación Prisma en CI | Todas | CI falla ante errores lint/esquema | Cumplido | `.github/workflows/ci.yml` |
+| **RNF-22** | Mantenibilidad | Suite automatizada (~88+ tests) en CI | Todas | CI corre tests en push/PR | Parcial | Cobertura FE variable |
+| **RNF-23** | Mantenibilidad | JSDoc + Conventional Commits | Todas | Guía de estilo / ESLint | Cumplido | `estilo-codigo-documentacion.md` |
+| **RNF-24** | Trazabilidad | Logs cifrados y bitácora API keys (`api_key_logs`) | US-17 | Eventos sensibles auditables | Cumplido | `apiKeyService.js`, logs AES |
+| **RNF-25** | Confiabilidad | Integridad: metadata en **PostgreSQL** + binarios en **S3**; sin huérfanos | US-01, US-02 | 0 archivos S3 sin registro en BD | Cumplido | `Receipt` + `storageService.js` |
+| **RNF-26** | Seguridad | API keys M2M: hash **scrypt** + pepper, prefijo `cck_` | US-17 | Solo hash persistido; clave en claro una vez | Cumplido | `services/apiKeyService.js` |
+| **RNF-27** | Cumplimiento fiscal | Validación CFDI SAT (SOAP) + parseo XML (UUID único) | US-03 | CFDI inválido/duplicado → rechazado | Cumplido | `satConsultaService.js`, `cfdiParserService.js` |
 
-| ID | Requerimiento No Funcional | US Relacionada(s) | Criterio de Medición | Prioridad |
-|---|---|---|---|---|
-| **RNF-01** | El sistema debe autenticar cada request protegido mediante JWT con verificación de firma y expiración. | Todas | 0 requests sin auth acceden a rutas protegidas | Alta |
-| **RNF-02** | Los tokens expirados, inválidos o ausentes deben retornar error en formato estándar `{statusCode, message, error}`. | Todas | 100% de errores de auth siguen formato estándar | Alta |
-| **RNF-03** | Los archivos en S3 deben tener encryption at rest (AES-256) y políticas IAM restrictivas. | US-01, US-02 | 0 archivos sin encriptación en bucket | Alta |
-| **RNF-04** | Las URLs de descarga de archivos deben ser pre-signed con TTL de 15 minutos. | US-01, US-02 | URLs no accesibles después de 15 min | Alta |
-| **RNF-05** | La descarga de archivos debe requerir autenticación y verificar pertenencia a la organización. | US-01, US-02 | 0 accesos cross-org a archivos | Alta |
-| **RNF-06** | Las API Keys deben almacenarse como hash SHA-256, nunca en texto plano. | US-17 | 0 keys en texto plano en BD | Alta |
-| **RNF-07** | Las peticiones sin API Key válida deben retornar HTTP 401 sin revelar información interna. | US-17 | Respuesta genérica sin stack traces | Alta |
-| **RNF-08** | Los datos de cada organización deben estar completamente aislados (multi-tenancy). | US-13, US-14 | 0 data leaks entre organizaciones | Alta |
-| **RNF-09** | El sistema de permisos debe validar por permiso específico, no por rol. | US-14 | Middleware verifica permiso, no nombre de rol | Alta |
-| **RNF-10** | Los permisos expirados deben invalidarse automáticamente sin intervención manual. | US-14 | Permiso expirado retorna 403 inmediatamente | Alta |
-
-### Rendimiento
-
-| ID | Requerimiento No Funcional | US Relacionada(s) | Criterio de Medición | Prioridad |
-|---|---|---|---|---|
-| **RNF-11** | Los endpoints principales deben responder en menos de 500ms bajo carga normal. | Todas | p95 < 500ms con 50 usuarios concurrentes | Alta |
-| **RNF-12** | El sistema debe soportar al menos 100 usuarios concurrentes sin degradación. | Todas | K6: 0 errores con 100 VUs | Alta |
-| **RNF-13** | El tipo de cambio de Banxico debe cachearse diariamente para evitar llamadas excesivas. | US-04 | Máx 1 llamada a Banxico por día por moneda | Media |
-| **RNF-14** | El dashboard debe actualizar datos sin recargar la página (polling o WebSocket). | US-18 | Datos actualizados en < 60 segundos | Alta |
-| **RNF-15** | El auto-guardado de borradores debe ejecutarse cada 30 segundos sin bloquear la UI. | US-21 | Guardado no produce lag visible en formulario | Media |
-
-### Usabilidad
-
-| ID | Requerimiento No Funcional | US Relacionada(s) | Criterio de Medición | Prioridad |
-|---|---|---|---|---|
-| **RNF-16** | Todas las vistas deben ser responsive desde 320px de ancho (mobile-first). | US-07, Todas | Sin overflow horizontal en 320px | Alta |
-| **RNF-17** | Los botones de acción primaria deben ser táctilmente accesibles (mínimo 44x44 px). | US-07, US-08 | Todos los CTAs ≥ 44x44px en móvil | Alta |
-| **RNF-18** | La aplicación debe funcionar correctamente en Chrome, Safari y Edge (últimas 2 versiones). | Todas | 0 errores críticos cross-browser | Alta |
-| **RNF-19** | Los componentes deben tener tipado completo en TypeScript (sin `any`). | Todas | 0 usos de `any` en código frontend | Media |
-| **RNF-20** | Los mensajes de error deben ser claros y específicos para el usuario. | Todas | Cada error tiene mensaje legible (no stack trace) | Alta |
-
-### Disponibilidad
-
-| ID | Requerimiento No Funcional | US Relacionada(s) | Criterio de Medición | Prioridad |
-|---|---|---|---|---|
-| **RNF-21** | Si la API del SAT no está disponible, el sistema debe mostrar un mensaje y permitir continuar sin bloquear. | US-03 | Mock server activo como fallback | Alta |
-| **RNF-22** | Si la API de Banxico no responde, el sistema debe usar el último tipo de cambio conocido (cache). | US-04 | Fallback a cache sin error visible al usuario | Alta |
-
-### Confiabilidad
-
-| ID | Requerimiento No Funcional | US Relacionada(s) | Criterio de Medición | Prioridad |
-|---|---|---|---|---|
-| **RNF-23** | Los correos de notificación deben enviarse dentro de los 5 minutos posteriores al evento. | US-20 | 95% de correos entregados en < 5 min | Media |
-| **RNF-24** | Las transacciones de base de datos deben ser atómicas (rollback en caso de error). | US-02, US-05 | 0 registros huérfanos en caso de error | Alta |
-| **RNF-25** | El sistema debe mantener consistencia entre MariaDB y MongoDB/S3. | US-01, US-02 | 0 archivos huérfanos en S3 sin registro en BD | Alta |
-
-### Mantenibilidad
-
-| ID | Requerimiento No Funcional | US Relacionada(s) | Criterio de Medición | Prioridad |
-|---|---|---|---|---|
-| **RNF-26** | El código debe pasar ESLint + Prettier sin errores. | Todas | `make lint` retorna 0 errores | Media |
-| **RNF-27** | El entorno dockerizado debe levantarse con un solo comando (`docker compose up`). | Todas | Entorno funcional en Mac, Linux y Windows | Alta |
-| **RNF-28** | La cobertura de pruebas unitarias del backend debe ser mayor al 70%. | Todas | `jest --coverage` ≥ 70% | Alta |
-| **RNF-29** | Cada migración de base de datos debe ser reversible (up/down). | US-05 | Todas las migraciones tienen rollback funcional | Alta |
-| **RNF-30** | Los design tokens (colores, espaciado, tipografía) deben estar centralizados. | Todas (Frontend) | 1 archivo de tokens, 0 valores hardcoded | Media |
-
-### Trazabilidad (RNF)
-
-| ID | Requerimiento No Funcional | US Relacionada(s) | Criterio de Medición | Prioridad |
-|---|---|---|---|---|
-| **RNF-31** | El historial de cada solicitud debe ser inmutable (solo lectura, no modificable). | US-19 | 0 registros de historial modificados post-creación | Alta |
-| **RNF-32** | Cada consumo de API Key debe quedar registrado en log de auditoría. | US-17 | 100% de consumos loggeados con timestamp | Alta |
-| **RNF-33** | Los comentarios por solicitud deben ser inmutables una vez guardados. | US-22 | No existen endpoints PUT/DELETE para comentarios | Media |
-| **RNF-34** | Cada sincronización de empleados debe generar un log con resultados detallados. | US-15 | Log incluye: nuevos, actualizados, inactivos, errores | Alta |
+> **Notas de alineación (2026-06):** la base relacional es **PostgreSQL 16** (no MariaDB). Las columnas de archivo en `Receipt` son `pdf_file_id` / `xml_file_id`. Las API keys usan **scrypt**, no SHA-256.
 
 ---
 
-## Matriz de Trazabilidad US ↔ Requerimientos
+## RNF de producto / UX (RNF-P01…RNF-P14)
 
-| US | Título | Req Funcionales | Req No Funcionales | Épica | Módulo |
+Requerimientos derivados del backlog de historias de usuario; complementan los RNF técnicos sin reutilizar sus IDs.
+
+| ID | Requerimiento | US | Criterio de medición | Prioridad | Estado |
 |---|---|---|---|---|---|
-| **US-01** | Interfaz de Carga de Comprobantes XML/PDF | RF-01, RF-02, RF-03, RF-04, RF-05, RF-10 | RNF-03, RNF-04, RNF-05, RNF-16, RNF-17, RNF-20 | Automatización Fiscal | M1 |
-| **US-02** | Extracción de Datos de CFDI (Backend) | RF-06, RF-07, RF-08, RF-09, RF-10 | RNF-11, RNF-24, RNF-25 | Automatización Fiscal | M1 |
-| **US-03** | Verificación de CFDI ante el SAT | RF-11, RF-12, RF-13 | RNF-11, RNF-21 | Automatización Fiscal | M1 |
-| **US-04** | Tipo de Cambio Automático vía Banxico | RF-14, RF-15, RF-16 | RNF-13, RNF-22 | Automatización Fiscal | M1 |
-| **US-05** | Migración de DB — Tabla CFDI | RF-17, RF-18 | RNF-24, RNF-29 | Automatización Fiscal | M1 |
-| **US-06** | Límite de tiempo de reembolsos | RF-37, RF-38, RF-39 | RNF-11, RNF-20 | Control de Viajes | M2 |
-| **US-07** | Interfaz Móvil para Aprobaciones | RF-26, RF-27 | RNF-16, RNF-17, RNF-18 | Aprobaciones | M2 |
-| **US-08** | Aprobar o Rechazar Solicitudes | RF-28, RF-29, RF-30, RF-31 | RNF-11, RNF-20, RNF-31 | Aprobaciones | M2 |
-| **US-09** | Gestión de Agencia de Viajes Digital | RF-40, RF-41 | RNF-11 | Control de Viajes | M3 |
-| **US-10** | Gastos Individuales por Tramo | RF-19, RF-20, RF-21 | RNF-11, RNF-24 | Automatización Fiscal | M1 |
-| **US-11** | API de exportación contable | RF-22, RF-23, RF-24, RF-25 | RNF-07, RNF-11, RNF-32 | Automatización Fiscal | M1 |
-| **US-12** | Configuración de Políticas de Viaje | RF-42, RF-43, RF-44, RF-45, RF-46 | RNF-08, RNF-20 | Control de Viajes | M2 |
-| **US-13** | Registro de Nueva Empresa | RF-47, RF-48, RF-49 | RNF-08 | Onboarding | M3 |
-| **US-14** | Creación de Permisos | RF-50, RF-51, RF-52, RF-53, RF-54, RF-55, RF-56 | RNF-08, RNF-09, RNF-10 | Onboarding | M2 |
-| **US-15** | Sincronización de Empleados y Proveedores | RF-57, RF-58, RF-59, RF-60, RF-61 | RNF-24, RNF-34 | Onboarding | M3 |
-| **US-16** | Configuración Dinámica de Workflow | RF-62, RF-63, RF-64, RF-65, RF-66 | RNF-08, RNF-20 | Onboarding | M2 |
-| **US-17** | Autenticación de Sistemas Externos vía API Key | RF-67, RF-68, RF-69, RF-70, RF-71 | RNF-06, RNF-07, RNF-32 | API Contable | M3 |
-| **US-18** | Dashboard de Viáticos por Centro de Costos | RF-82, RF-83, RF-84, RF-85 | RNF-14, RNF-16 | Reportería | M3 |
-| **US-19** | Historial y Trazabilidad de Solicitud | RF-86, RF-87, RF-88, RF-89 | RNF-31 | Reportería | M3 |
-| **US-20** | Notificaciones Push y por Correo | RF-99, RF-100, RF-101, RF-102 | RNF-23 | Experiencia | M3 |
-| **US-21** | Borrador Automático de Solicitud | RF-90, RF-91, RF-92, RF-93, RF-94 | RNF-15 | Experiencia | M3 |
-| **US-22** | Comentarios y Mensajería Interna | RF-95, RF-96, RF-97, RF-98 | RNF-33 | Experiencia | M3 |
-| **US-23** | Roles de Notificación vs. Autorización | RF-32, RF-33, RF-34, RF-35, RF-36 | RNF-09, RNF-10 | Aprobaciones | M2 |
-| **US-24** | Catálogo Contable Maestro | RF-72, RF-73, RF-74, RF-75, RF-76 | RNF-08 | API Contable | M3 |
-| **US-25** | Asociación de Cuentas a Tipos de Gasto | RF-77, RF-78, RF-79, RF-80, RF-81 | RNF-08 | API Contable | M3 |
+| **RNF-P01** | Vistas responsive desde 320 px (mobile-first) | US-07, todas | Sin overflow horizontal en 320 px | Alta | Parcial |
+| **RNF-P02** | Botones primarios táctiles ≥ 44×44 px | US-07, US-08 | CTAs cumplen tamaño en móvil | Alta | Parcial |
+| **RNF-P03** | Compatibilidad Chrome, Safari, Edge (últimas 2 versiones) | Todas | 0 errores críticos cross-browser | Alta | Parcial |
+| **RNF-P04** | TypeScript sin `any` en frontend | Todas (FE) | 0 usos de `any` | Media | Parcial |
+| **RNF-P05** | Mensajes de error claros (sin stack trace al usuario) | Todas | Cada error tiene mensaje legible | Alta | Cumplido |
+| **RNF-P06** | Dashboard actualiza datos sin recargar (< 60 s) | US-18 | Polling o SSE activo | Alta | Parcial |
+| **RNF-P07** | Auto-guardado de borrador cada 30 s sin bloquear UI | US-21 | Guardado sin lag visible | Media | Parcial |
+| **RNF-P08** | Si SAT no responde: mensaje y flujo no bloqueado | US-03 | Mock/fallback activo | Alta | Cumplido |
+| **RNF-P09** | Correos de notificación en < 5 min tras el evento | US-20 | 95% entregados en < 5 min | Media | Parcial |
+| **RNF-P10** | Migraciones de BD reversibles (up/down) | US-05 | Rollback funcional | Alta | Parcial |
+| **RNF-P11** | Design tokens centralizados (colores, espaciado, tipografía) | Frontend | 1 archivo tokens; 0 hardcode | Media | Parcial |
+| **RNF-P12** | Historial de solicitud inmutable (solo lectura) | US-19 | 0 modificaciones post-creación | Alta | Cumplido |
+| **RNF-P13** | Comentarios inmutables (sin PUT/DELETE) | US-22 | No existen endpoints de edición | Media | Cumplido |
+| **RNF-P14** | Log detallado en sync de empleados/proveedores | US-15 | Log: nuevos, actualizados, inactivos, errores | Alta | Cumplido |
+
+**RNF heredados absorbidos por técnicos:**
+
+| Viejo ID | Ahora |
+|---|---|
+| RNF-02 (formato error auth) | Cubierto por manejadores globales + RNF-P05 |
+| RNF-04 (presigned 15 min) | **RNF-17** |
+| RNF-05 (archivos cross-org) | **RNF-08**, **RNF-14**, **RNF-17** |
+| RNF-06 (API key hash) | **RNF-26** (scrypt) |
+| RNF-07 (401 genérico API key) | **RNF-26**, **RNF-P05** |
+| RNF-09 (permiso, no rol) | **RNF-14** |
+| RNF-10 (permisos expirados) | **RNF-14** + modelo `UserPermission` |
+| RNF-13 (caché Banxico) | **RNF-15** |
+| RNF-22 (fallback Banxico) | **RNF-16** |
+| RNF-24 (transacciones atómicas) | Prisma `$transaction` en servicios críticos |
+| RNF-25 (MariaDB/MongoDB) | **RNF-25** (PostgreSQL + S3) |
+| RNF-26–28 (lint, docker, cobertura) | **RNF-21**, **RNF-22**, setup Docker en wiki |
+| RNF-32 (log API key) | **RNF-24** |
+
+---
+
+## Matriz de Trazabilidad US ↔ RNF
+
+| US | Título | RNF técnicos | RNF producto | Épica | Módulo |
+|---|---|---|---|---|---|
+| **US-01** | Interfaz de Carga de Comprobantes XML/PDF | RNF-07, RNF-17, RNF-25 | RNF-P01, RNF-P02, RNF-P05 | Automatización Fiscal | M1 |
+| **US-02** | Extracción de Datos de CFDI (Backend) | RNF-11, RNF-25, RNF-27 | RNF-P05 | Automatización Fiscal | M1 |
+| **US-03** | Verificación de CFDI ante el SAT | RNF-11, RNF-27 | RNF-P08 | Automatización Fiscal | M1 |
+| **US-04** | Tipo de Cambio Automático vía Banxico | RNF-15, RNF-16 | — | Automatización Fiscal | M1 |
+| **US-05** | Migración de DB — Tabla CFDI | RNF-21 | RNF-P10 | Automatización Fiscal | M1 |
+| **US-06** | Límite de tiempo de reembolsos | RNF-11 | RNF-P05 | Control de Viajes | M2 |
+| **US-07** | Interfaz Móvil para Aprobaciones | — | RNF-P01, RNF-P02, RNF-P03 | Aprobaciones | M2 |
+| **US-08** | Aprobar o Rechazar Solicitudes | RNF-11, RNF-14 | RNF-P02, RNF-P05, RNF-P12 | Aprobaciones | M2 |
+| **US-09** | Gestión de Agencia de Viajes Digital | RNF-11 | — | Control de Viajes | M3 |
+| **US-10** | Gastos Individuales por Tramo | RNF-11, RNF-25 | — | Automatización Fiscal | M1 |
+| **US-11** | API de exportación contable | RNF-11, RNF-24, RNF-26 | — | Automatización Fiscal | M1 |
+| **US-12** | Configuración de Políticas de Viaje | RNF-08 | RNF-P05 | Control de Viajes | M2 |
+| **US-13** | Registro de Nueva Empresa | RNF-08 | — | Onboarding | M3 |
+| **US-14** | Creación de Permisos | RNF-08, RNF-14 | — | Onboarding | M2 |
+| **US-15** | Sincronización de Empleados y Proveedores | RNF-25 | RNF-P14 | Onboarding | M3 |
+| **US-16** | Configuración Dinámica de Workflow | RNF-08, RNF-14 | RNF-P05 | Onboarding | M2 |
+| **US-17** | Autenticación vía API Key | RNF-24, RNF-26 | RNF-P05 | API Contable | M3 |
+| **US-18** | Dashboard de Viáticos por Centro de Costos | — | RNF-P01, RNF-P06 | Reportería | M3 |
+| **US-19** | Historial y Trazabilidad de Solicitud | RNF-24 | RNF-P12 | Reportería | M3 |
+| **US-20** | Notificaciones Push y por Correo | — | RNF-P09 | Experiencia | M3 |
+| **US-21** | Borrador Automático de Solicitud | — | RNF-P07 | Experiencia | M3 |
+| **US-22** | Comentarios y Mensajería Interna | RNF-24 | RNF-P13 | Experiencia | M3 |
+| **US-23** | Roles de Notificación vs. Autorización | RNF-14 | RNF-P12 | Aprobaciones | M2 |
+| **US-24** | Catálogo Contable Maestro | RNF-08 | — | API Contable | M3 |
+| **US-25** | Asociación de Cuentas a Tipos de Gasto | RNF-08, RNF-25 | — | API Contable | M3 |

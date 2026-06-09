@@ -163,7 +163,7 @@ flowchart LR
   BE --> S3AWS[AWS S3 prod]
 ```
 
-**Pipeline CI/CD:** push a `main` → lint + Prisma validate + tests (`.github/workflows/ci.yml`). El **despliegue** a la EC2 es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) hace `git fetch` de `main` y, si avanzó, `git reset --hard` + `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Detalle en [deploy-aws.md §7](../getting-started/deploy-aws.md).
+**Pipeline CI/CD:** push a `main` → lint + Prisma validate + tests (`.github/workflows/ci.yml`). El **despliegue** a la EC2 es **git-poll server-side**: un timer systemd (`coco-redeploy.timer`) hace `git fetch` de `main` y, si avanzó, `git reset --hard` + `docker compose up -d --build` (build nativo arm64 en la caja, sin registry). Detalle en [deploy-aws.md sección 7](../getting-started/deploy-aws.md).
 
 Guía operativa local: [setup-docker.md](../getting-started/setup-docker.md).
 

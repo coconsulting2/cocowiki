@@ -1,7 +1,7 @@
 # Log de Defectos — Plan de Pruebas
 
 > Fuente única de verdad. Cada defecto vive aquí; las sesiones de QA referencian por ID.
-> Este archivo se referencia desde `Plan de Pruebas de Software v4.0.docx` (§7.4)
+> Este archivo se referencia desde `Plan de Pruebas de Software v4.0.docx` (sección 7.4)
 > y se va extendiendo con cada módulo. El corte actual cubre M1, M2 y M3, más las
 > correcciones de seguimiento posteriores a M2 (defecto crítico F1 y reclasificación
 > de BUG-M2-003).
@@ -9,7 +9,7 @@
 ## Convenciones
 
 - **ID**: `BUG-<modulo>-<NNN>` (ej. `BUG-M1-001`).
-- **Severidad**: Crítica / Alta / Media / Baja (matriz §7.1 del Plan de Pruebas).
+- **Severidad**: Crítica / Alta / Media / Baja (matriz sección 7.1 del Plan de Pruebas).
 - **Estatus**: Abierto / En revisión / Resuelto / Cerrado / Reabierto.
 - **Sesión origen**: nombre del reporte de sesión QA que detectó el defecto.
 
@@ -58,6 +58,6 @@ como **caso de prueba pendiente** (TC-S3-004) y no como defecto detectado en eje
   contable CRUD, resuelto vía la nueva API `/api/chart-of-accounts`) y el defecto crítico
   `F1` (`POST /api/organizations` 500, resuelto), además de reclasificar `BUG-M2-003` a
   Media y marcarlo resuelto tras corregir la colección Postman (Newman 46/46). Reflejado
-  en `Plan de Pruebas de Software v4.0.docx` (§7.4 y nuevo Anexo M3).
+  en `Plan de Pruebas de Software v4.0.docx` (sección 7.4 y nuevo Anexo M3).
 - Cuando un BUG cambie de estatus, edítese **aquí** y refleje el cambio en la próxima
   versión del Plan de Pruebas (no se modifican `.docx` ya firmados).

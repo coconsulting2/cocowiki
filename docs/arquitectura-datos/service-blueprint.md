@@ -283,6 +283,8 @@ Detalle de reglas: [flujos.md — Estados de solicitud](flujos.md#5-estados-de-s
 - [Flujos](flujos.md) — API, estados, secuencia CFDI
 - [Multi-tenancy](multi-tenancy.md) — aislamiento por organización
 - [Permisos](permisos.md) — sistema de permisos granular
+- [Lista de Procesos](lista-procesos.md) — inventario granular de 167 endpoints por dominio, tipo y trigger
+- [Diagramas de Procesos](diagramas-procesos.md) — diagramas de secuencia y flujo detallados por macro-proceso
 
 ---
 

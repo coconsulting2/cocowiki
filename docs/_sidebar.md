@@ -6,6 +6,7 @@
 * **Despliegue**
   * [Despliegue en AWS](getting-started/deploy-aws.md "Producción en EC2 con Docker Compose, Caddy TLS y S3")
 * **Arquitectura**
+  * [Arquitectura de Negocio](arquitectura-datos/arquitectura-negocio.md "Procesos de negocio, multi-tenant Ditta ROOT, stakeholders y roles como contenedores de permisos")
   * [Modelo ER](arquitectura-datos/modelo-er.md "PostgreSQL / Prisma")
   * [Flujos y pantallas](arquitectura-datos/flujos.md "Capas, roles, API, estados")
   * [Arquitectura de Aplicación](arquitectura-datos/arquitectura-aplicacion.md "Servicios Express/Prisma, permisos, jerarquía de aprobación")

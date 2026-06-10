@@ -1,7 +1,7 @@
 # Documento de Arquitectura — CocoAPI
 
 > Proyecto: TC3005B.501 · Equipo: COCONSULTING2 · Cliente: Ditta Consulting
-> Última actualización: 2026-06-09
+> Última actualización: 2026-06-10
 > Estado: Secciones 1–6 completas; ver [arquitectura-condensada.md](arquitectura-condensada.md) para entrega única.
 
 ---
@@ -20,7 +20,7 @@ Este archivo es el documento de arquitectura unificado de CocoAPI / CocoScheme y
 
 | Sección | Integración a cargo de | Estado | Fuentes |
 |---|---|---|---|
-| 1. Arquitectura de Negocio | Leonardo Rodríguez · Héctor Lugo | Completa — contexto Ditta integrado | [service-blueprint.md](service-blueprint.md), [Historias-de-usuario](../proyecto/Historias-de-usuario_cocoAPI.md) |
+| 1. Arquitectura de Negocio | Leonardo Rodríguez · Héctor Lugo | Completa — contexto Ditta, stakeholders y roles RBAC integrados | [arquitectura-negocio.md](arquitectura-negocio.md), [service-blueprint.md](service-blueprint.md), [permisos.md](permisos.md), [Historias-de-usuario](../proyecto/Historias-de-usuario_cocoAPI.md) |
 | 2. Arquitectura de Aplicación | Kevin Esquivel · Santino Im · Héctor Lugo | C4 L3 + integraciones | [diagramas-c4.md](diagramas-c4.md), [arquitectura-aplicacion.md](arquitectura-aplicacion.md) |
 | 3. Arquitectura de Datos | Santino Im · Héctor Lugo | Storage + ER enlazados | [diagramas-c4.md](diagramas-c4.md), [modelo-er.md](modelo-er.md) |
 | 4. Arquitectura de Infraestructura | Mariano Carretero · Héctor Lugo | Completa — specs EC2 demo documentadas | [arquitectura-nube.md](arquitectura-nube.md), [deploy-aws.md](../getting-started/deploy-aws.md) |
@@ -44,13 +44,17 @@ Este archivo es el documento de arquitectura unificado de CocoAPI / CocoScheme y
 
 ## 1. Arquitectura de Negocio
 
-> _Contenido base redactado; Service Blueprint integrado — ver [service-blueprint.md](service-blueprint.md)._
+> _Contenido base redactado; Arquitectura de Negocio y Service Blueprint integrados — ver [arquitectura-negocio.md](arquitectura-negocio.md) y [service-blueprint.md](service-blueprint.md)._
 
 CocoAPI es el sistema de gestión de gastos de viaje de negocio desarrollado para el cliente Ditta Consulting. Su propósito es digitalizar y dar trazabilidad de extremo a extremo al ciclo de vida de una solicitud de viaje: desde su captura por parte de un colaborador, pasando por la cadena de autorizaciones, la cotización y reserva con la agencia, hasta la comprobación de gastos (CFDI) y su contabilización. El sistema sustituye procesos manuales y hojas de cálculo por un flujo controlado, auditable y con reglas de negocio (políticas de viático, topes de gasto, límites de reembolso) configurables por organización.
 
 A partir del refactor multi-tenant (Q2 2026), la plataforma opera como solución multiempresa: cada entidad de negocio (usuarios, solicitudes, roles, grupos de permisos, catálogos) queda aislada por `organization_id`. La organización ROOT es Ditta (id=1), desde la cual se dan de alta las organizaciones cliente (`kind=CLIENT`). Este modelo permite administrar múltiples clientes sobre una sola instancia y garantiza que ninguna organización pueda consultar ni modificar datos de otra (detalle de aislamiento en [Sección 3](#3-arquitectura-de-datos) y [Sección 5](#5-requerimientos-no-funcionales)).
 
 El modelo de negocio se sustenta en una jerarquía de aprobación y en un esquema de roles como contenedores de permisos. Los actores del sistema son: Solicitante (captura la solicitud), Autorizador N1 y Autorizador N2 (aprueban en dos niveles), Agencia de viajes (cotiza y reserva vuelos y hospedaje), Cuentas por pagar / CPP (valida comprobantes y procesa el pago), Administrador (gestiona usuarios, roles y catálogos de su organización) y Admin Ditta (superadministrador cross-tenant, exclusivo de la organización ROOT). El flujo de aprobación canónico es N1 → N2 → Cuentas por pagar → Agencia → Comprobación, y la solicitud transita por una máquina de estados (Borrador → revisiones → cotización → atención de agencia → comprobación → validación → finalizado, con ramas de cancelación y rechazo).
+
+### Roles como contenedores de permisos y mapa de actores
+
+Los roles del sistema no otorgan acceso por su nombre: son **contenedores de grupos de permisos atómicos** (`resource:action`) que se resuelven en runtime como unión aditiva (permisos y grupos del rol + grants directos del usuario), sin `deny` explícito. N1 y N2 comparten el mismo grupo aprobador y se distinguen únicamente por su tope de autorización (`maxApprovalAmount`: 50 000 vs 500 000); el rol `Admin Ditta` (grupo `DittaSuperAdmin`) existe únicamente en la organización ROOT. El diagrama de procesos de negocio, el **mapa de stakeholders/actores del sistema** (plataforma → organizaciones cliente → externos) y la síntesis del modelo de roles se documentan en [arquitectura-negocio.md](arquitectura-negocio.md); el catálogo completo de permisos y su operación, en [permisos.md](permisos.md).
 
 ### Mapa Global de Operaciones (Service Blueprint)
 

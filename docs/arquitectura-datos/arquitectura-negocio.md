@@ -95,6 +95,67 @@ flowchart TD
 
 ---
 
+## Mapa de Stakeholders / Actores del Sistema
+
+Los actores se organizan en tres niveles: la **plataforma** (Ditta como organización ROOT), las **organizaciones cliente** (un tenant por empresa, con sus roles operativos sembrados en el onboarding) y las **partes externas** (sistemas integrados y stakeholders que consumen la trazabilidad).
+
+```mermaid
+flowchart TB
+    subgraph PLAT["Nivel Plataforma — Ditta ROOT (id=1)"]
+        ADITTA[Admin Ditta<br/>SuperAdmin cross-tenant]
+    end
+
+    subgraph ORG["Nivel Organización Cliente — roles por tenant"]
+        SOL[Solicitante]
+        N1[Autorizador N1]
+        N2[Autorizador N2]
+        CXP[Cuentas por Pagar]
+        AGE[Agencia de Viajes]
+        ADM[Administrador de Org]
+        OBS[Observador]
+    end
+
+    subgraph EXT["Nivel Externo"]
+        ERP[ERP del cliente]
+        FIS[SAT / Banxico / Duffel]
+        AUD[Auditoría / QA]
+    end
+
+    ADITTA -->|crea, activa o suspende tenants| ORG
+    ORG -->|exporta pólizas vía API Key| ERP
+    ORG -->|valida CFDI, cotiza divisas y viajes| FIS
+    ORG -->|historial inmutable y logs| AUD
+```
+
+| Nivel | Actor | Responsabilidad de negocio | Rol / grupo RBAC |
+|---|---|---|---|
+| Plataforma (Ditta ROOT) | **Admin Ditta** | Onboarding de organizaciones cliente, activación/suspensión, API keys ERP, onboarding masivo | `Admin Ditta` — grupo `DittaSuperAdmin`, exclusivo de la org ROOT |
+| Organización cliente | **Solicitante** | Captura solicitudes de viaje, sube comprobantes, comprueba gastos | `Solicitante` (`BaseColaborador` + `TravelRequestAuthor`) |
+| Organización cliente | **Autorizador N1** | Primera aprobación (jefe directo, resuelto por jerarquía de empleados) | `N1` (+ `TravelRequestApprover`, tope 50 000) |
+| Organización cliente | **Autorizador N2** | Segunda aprobación para montos mayores | `N2` (+ `TravelRequestApprover`, tope 500 000) |
+| Organización cliente | **Cuentas por Pagar (CxP)** | Valida comprobantes contra el SAT, procesa el reembolso, exporta contabilidad | `Cuentas por pagar` (`AccountsPayableOps`) |
+| Organización cliente | **Agencia de viajes** | Cotiza y reserva vuelos/hospedaje (Duffel o atención manual) | `Agencia de viajes` (`TravelAgencyOps`) |
+| Organización cliente | **Administrador** | Gestiona usuarios, roles, permisos, políticas y catálogos de su tenant | `Administrador` (`OrgAdmin`) |
+| Organización cliente | **Observador** | Solo lectura y alertas, sin capacidad de autorizar | `Observador` (`TravelNotifyOnly`) |
+| Externo | **ERP del cliente** | Extrae las pólizas contables generadas | M2M vía `/api/external/*` con API Key (sin rol de usuario) |
+| Externo | **SAT / Banxico / Duffel** | Validación fiscal de CFDI, tipo de cambio, inventario de vuelos/hospedaje | Integraciones de servicio (sin sesión de usuario) |
+| Externo | **Auditoría / QA** | Revisa trazabilidad de aprobaciones y comprobantes; el equipo QA valida la resolución de permisos por rol vía E2E (Cypress) | Consulta de historial y logs; sin rol operativo dedicado |
+
+---
+
+## Roles como Contenedores de Permisos
+
+Síntesis del modelo RBAC desde la perspectiva de negocio. El detalle técnico completo (catálogo, semántica, endpoints y seed) vive en [permisos.md](permisos.md).
+
+* **El nombre del rol no otorga acceso.** El backend protege cada acción con permisos atómicos en formato `resource:action` (48 permisos en 21 namespaces a la fecha), validados vía `requirePermission(...)`. Un rol es solo un contenedor configurable que agrupa esos permisos.
+* **Los roles acumulan grupos de permisos.** Los permisos se empaquetan en grupos reutilizables (`PermissionGroup`) y cada rol suma varios grupos. Por ejemplo, N1 y N2 obtienen `BaseColaborador` + `TravelRequestAuthor` + `TravelRequestApprover`: conservan toda la capacidad de solicitante **y además** la de aprobador.
+* **Resolución aditiva en runtime.** Los permisos efectivos de un usuario son la unión deduplicada de cuatro conjuntos: permisos directos del rol, grupos del rol, permisos directos del usuario y grupos del usuario. No existe `deny` explícito: para quitar un permiso se cambia el rol.
+* **N1 vs N2 es una regla de monto, no de permisos.** Ambos comparten el mismo grupo aprobador; se distinguen por su tope de autorización (`maxApprovalAmount`: 50 000 vs 500 000), que evalúa el motor de reglas de workflow.
+* **Roles por organización, configurables en caliente.** Cada tenant se siembra con 7 roles default (Solicitante, N1, N2, Agencia de viajes, Cuentas por pagar, Administrador, Observador) y puede crear roles custom o reasignar grupos vía los endpoints admin, sin release de software. Solo las altas/bajas del catálogo global de permisos requieren release.
+* **`DittaSuperAdmin` es exclusivo del ROOT.** El rol `Admin Ditta` (y con él `api_key:manage` y `onboarding:import`) solo existe en la organización ROOT; las organizaciones cliente nunca lo reciben.
+
+---
+
 ## Modelo Operativo del SuperAdministrador de Ditta (ROOT)
 
 Para entender a fondo la separación de poderes en la plataforma, a continuación se detallan las capacidades de negocio exclusivas del actor **SuperAdministrador de Ditta (ROOT)**, contrastándolas con el **Administrador de Organización (CLIENT)**.

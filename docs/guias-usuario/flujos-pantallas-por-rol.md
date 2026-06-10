@@ -2,29 +2,31 @@
 
 | Metadato | Valor |
 |----------|--------|
-| **Versión del documento** | 1.0.3 |
-| **Última actualización** | 2026-06-05 |
-| **Relacionado** | [Flujos — arquitectura de datos y navegación](../arquitectura-datos/flujos.md) |
+| **Versión del documento** | 1.1.0 |
+| **Última actualización** | 2026-06-09 |
+| **Relacionado** | [Flujos — arquitectura de datos y navegación](../arquitectura-datos/flujos.md) · [Manual de usuario](manual-usuario.md) · [Manual Admin Ditta](manual-admin.md) |
 
-Las imágenes se enlazan en markdown como **`./images/diagrams/pantallas/…`**. Aunque este archivo vive en **`docs/guias-usuario/`**, un plugin de Docsify (en `index.html`) reescribe los prefijos `./images/` y `/images/` a rutas absolutas desde la raíz del sitio, por lo que esa forma funciona desde cualquier subcarpeta sin usar `../images/…`.
+Las imágenes se enlazan como **`./images/diagrams/pantallas/…`**. Docsify reescribe esos prefijos a rutas absolutas desde la raíz del sitio.
 
-Mapeo de pantallas accesibles, acciones disponibles y transiciones por cada uno de los 7 roles del sistema. Alcance completo: Módulo 1 + 2 + 3.
+Mapeo de pantallas, acciones y transiciones por cada uno de los 7 roles. Alcance: Módulos 1–3.
 
 ---
 
 ## 1. Solicitante
 
-Empleado viajero. Crea solicitudes, sube comprobantes (nacionales o internacionales), consulta su wallet y da seguimiento a lo pendiente.
+Empleado viajero. Crea solicitudes, sube comprobantes (nacionales con CFDI o internacionales con imagen), consulta reembolsos y resumen por tramos.
 
-**Rutas exclusivas del Solicitante:**
+**Menú lateral:** DASHBOARD · CREAR SOLICITUD · DRAFT SOLICITUDES · GASTOS (COMPROBAR) · RESUMEN POR TRAMOS · REEMBOLSOS · HISTORIAL DE VIAJES
+
+**Rutas clave:**
 
 | Ruta | Descripción |
 |------|-------------|
-| `/subir-comprobante/[id]` | Sube por primera vez los comprobantes de una solicitud en estado "Comprobación gastos del viaje". |
-| `/resubir-comprobante/[id]` | Sube de nuevo un comprobante rechazado por Cuentas por Pagar. |
-| `/comprobar-solicitud/[id]` | Pantalla de detalle de comprobación de la solicitud. |
-
-Cuando la solicitud se encuentra en estado **"Comprobación gastos del viaje"**, el detalle de la solicitud (`RequestDetail`) muestra un banner informativo con el botón **"Subir comprobantes"** (`showUploadCTA`). Al hacer clic, el sistema navega a `/comprobar-solicitud/[id]`.
+| `/subir-comprobante/[id]` | Registra un gasto: concepto, monto, archivos (PDF+XML o imagen), validación SAT, excepción de política si aplica. |
+| `/resubir-comprobante/[id]?replace=` | Sustituye un comprobante rechazado por Cuentas por Pagar. |
+| `/comprobar-solicitud/[id]` | Detalle de comprobación con acceso al formulario de subida. |
+| `/detalles-solicitud/[id]` | Detalle completo, línea de tiempo, comentarios y banner "Subir comprobantes" cuando aplica. |
+| `/perfil-usuario` | Perfil y preferencias de notificación. |
 
 ![Flujo de pantallas del Solicitante](./images/diagrams/pantallas/01_solicitante.png)
 
@@ -32,7 +34,11 @@ Cuando la solicitud se encuentra en estado **"Comprobación gastos del viaje"**,
 
 ## 2. N1 · Jefe directo
 
-Primer aprobador. Su trabajo es la bandeja de pendientes de su equipo directo. Tiene dos decisiones paralelas por solicitud: el viaje y el anticipo.
+Primer aprobador. Bandeja de pendientes de su equipo. Aprueba o rechaza viaje y anticipo. Revisa excepciones de política de viáticos.
+
+**Menú lateral:** incluye AUTORIZACIONES, GASTO POR CC y las mismas rutas operativas del solicitante cuando crea sus propios viajes.
+
+**Pantalla `/autorizaciones`:** bandeja filtrable + sección **Excepciones de política** (gastos que excedieron topes con justificación del solicitante).
 
 ![Flujo de pantallas del N1](./images/diagrams/pantallas/02_n1_jefe_directo.png)
 
@@ -40,7 +46,7 @@ Primer aprobador. Su trabajo es la bandeja de pendientes de su equipo directo. T
 
 ## 3. N2 · Jefe de área
 
-Alcance más amplio que N1 (varios equipos). Solo ve solicitudes que escalaron a su nivel por las reglas del tenant. Tiene además el dashboard ejecutivo del área.
+Segundo nivel de aprobación. Solo ve solicitudes que escalaron según las reglas de workflow del tenant. Misma operación que N1 (secciones 4.1–4.4 del manual de usuario).
 
 ![Flujo de pantallas del N2](./images/diagrams/pantallas/03_n2_jefe_area.png)
 
@@ -48,7 +54,11 @@ Alcance más amplio que N1 (varios equipos). Solo ve solicitudes que escalaron a
 
 ## 4. Cuentas por pagar · Finanzas
 
-Interviene solo después del viaje. Valida los comprobantes uno a uno, calcula el saldo final considerando el anticipo, asocia gastos a cuentas contables y expone el lote en la API para que el ERP externo lo jale.
+Cotiza solicitudes aprobadas, valida comprobantes CFDI, comenta con el solicitante y exporta pólizas al ERP.
+
+**Menú lateral:** DASHBOARD · TODAS LAS SOLICITUDES · COTIZACIONES · COMPROBACIONES · RESUMEN POR TRAMOS · EXPORTAR ERP · GASTO POR CC
+
+**Pantalla `/comprobar-gastos/[id]`:** validación de comprobantes, liquidación y hilo de **Comentarios de la solicitud** (el motivo de rechazo se publica aquí).
 
 ![Flujo de pantallas de Cuentas por pagar](./images/diagrams/pantallas/04_soi_finanzas.png)
 
@@ -56,7 +66,9 @@ Interviene solo después del viaje. Valida los comprobantes uno a uno, calcula e
 
 ## 5. Agencia de viajes
 
-Rol acotado. Solo ve solicitudes aprobadas donde se pidió avión u hotel. Reserva usando integración con agencias digitales (Expedia, AMEX, KAYAK).
+Rol acotado. Solo solicitudes aprobadas con vuelo u hotel. Gestiona reservas y revisa viajes cancelados.
+
+**Menú lateral:** DASHBOARD · ATENCIONES
 
 ![Flujo de pantallas de la Agencia](./images/diagrams/pantallas/05_agencia.png)
 
@@ -64,9 +76,9 @@ Rol acotado. Solo ve solicitudes aprobadas donde se pidió avión u hotel. Reser
 
 ## 6. Admin de la organización
 
-Cliente de Ditta que administra su propia empresa. Configura políticas, workflow de aprobación, roles y ve el dashboard ejecutivo. No toca datos operativos.
+Configura usuarios, políticas, catálogo contable, workflow (con simulador), llaves API y reportes. No gestiona otras organizaciones.
 
-Su sidebar incluye la opción **LLAVES API** (`/admin/api-keys`) además de las rutas estándar de administración.
+**Menú lateral:** incluye **REGLAS DE WORKFLOW** (`/admin/workflow-rules`) y enlace al **Simulador de workflow** (`/admin/workflow-simulator`) desde esa pantalla.
 
 ![Flujo de pantallas del Admin organización](./images/diagrams/pantallas/06_admin_organizacion.png)
 
@@ -74,9 +86,9 @@ Su sidebar incluye la opción **LLAVES API** (`/admin/api-keys`) además de las 
 
 ## 7. Admin Ditta
 
-Super-admin del sistema. Consultor Ditta encargado del onboarding de empresas, catálogos contables maestros, API Keys y log global de auditoría.
+Super-admin. Onboarding multi-tenant, impersonación, catálogos y usuarios cross-org. **No** tiene REGLAS DE WORKFLOW (lo configura cada cliente).
 
-Su sidebar incluye la opción **LLAVES API** (`/admin/api-keys`). A diferencia del Administrador de organización, no tiene acceso a **REGLAS DE WORKFLOW**.
+**Menú lateral:** incluye **ORGANIZACIONES** (`/admin/organizations`) además del panel de administración compartido.
 
 ![Flujo de pantallas del Admin Ditta](./images/diagrams/pantallas/07_admin_ditta.png)
 
@@ -84,53 +96,66 @@ Su sidebar incluye la opción **LLAVES API** (`/admin/api-keys`). A diferencia d
 
 ## Matriz de rutas por rol
 
-Permisos de navegación tal como están definidos en el frontend (`src/config/routeAccess.ts`). El middleware de Astro (`src/middleware.ts`) valida cada ruta SSR contra esta tabla; lo que un rol no tiene permitido, no aparece en su menú ni es accesible por URL directa (RBAC estricto, US-14).
+Permisos según `src/config/routeAccess.ts` y menú en `src/types/menu-config.ts`. El middleware SSR bloquea rutas no autorizadas (RBAC estricto, US-14).
 
-Columnas: **Sol** = Solicitante · **AV** = Agencia de viajes · **CPP** = Cuentas por pagar · **N1** / **N2** = aprobadores · **Adm** = Administrador de organización · **Ditta** = Admin Ditta.
+Columnas: **Sol** = Solicitante · **AV** = Agencia · **CPP** = Cuentas por pagar · **N1** / **N2** · **Adm** = Administrador org · **Ditta** = Admin Ditta.
 
 | Ruta | Sol | AV | CPP | N1 | N2 | Adm | Ditta |
 |------|:---:|:--:|:---:|:--:|:--:|:---:|:-----:|
-| `/dashboard` | | | | | | | |
-| `/perfil-usuario` | | | | | | | |
-| `/crear-solicitud` | | | | | | | |
-| `/historial` | | | | | | | |
-| `/reembolso` | | | | | | | |
-| `/solicitudes-draft` | | | | | | | |
-| `/comprobar-gastos` | | | | | | | |
-| `/solicitudes-autorizador` | | | | | | | |
-| `/autorizaciones` · `/aprobaciones` | | | | | | | |
-| `/atenciones` | | | | | | | |
-| `/todas-las-solicitudes` | | | | | | | |
-| `/cotizaciones` | | | | | | | |
-| `/comprobaciones` | | | | | | | |
-| `/exportar-contable` | | | | | | | |
-| `/reportes/gastos-por-centro` | | | | | | | |
-| `/crear-usuario` | | | | | | | |
-| `/admin/expense-policies` | | | | | | | |
-| `/admin/employee-categories` | | | | | | | |
-| `/admin/refund-time-limits` | | | | | | | |
-| `/admin/organizations` | | | | | | | |
-| `/admin/onboarding-import` | | | | | | | |
-| `/admin/catalogo-contable` | | | | | | | |
-| `/admin/indicadores-impuesto` | | | | | | | |
-| `/admin/mapeo-gastos` | | | | | | | |
-| `/admin/api-keys` | | | | | | | |
-| `/admin/workflow-rules` | | | | | | | |
+| `/dashboard` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/perfil-usuario` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/crear-solicitud` | ✓ | | | ✓ | ✓ | | |
+| `/historial` | ✓ | | | ✓ | ✓ | | |
+| `/reembolso` | ✓ | | | ✓ | ✓ | | |
+| `/solicitudes-draft` | ✓ | | | ✓ | ✓ | | |
+| `/comprobar-gastos` | ✓ | | ✓ | ✓ | ✓ | | |
+| `/resumen-tramos` | ✓ | | ✓ | ✓ | ✓ | | |
+| `/subir-comprobante/*` | ✓ | | | ✓ | ✓ | | |
+| `/resubir-comprobante/*` | ✓ | | | | | | |
+| `/detalles-solicitud/*` | ✓ | | ✓ | ✓ | ✓ | | |
+| `/solicitudes-autorizador` | | | | ✓ | ✓ | | |
+| `/autorizaciones` · `/aprobaciones` | | | | ✓ | ✓ | | |
+| `/atenciones` | | ✓ | | | | | |
+| `/todas-las-solicitudes` | | | ✓ | | | | |
+| `/cotizaciones` | | | ✓ | | | | |
+| `/comprobaciones` | | | ✓ | | | | |
+| `/exportar-contable` | | | ✓ | | | | |
+| `/reportes/gastos-por-centro` | | | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `/crear-usuario` | | | | | | ✓ | ✓ |
+| `/admin/expense-policies` | | | | | | ✓ | ✓ |
+| `/admin/employee-categories` | | | | | | ✓ | ✓ |
+| `/admin/refund-time-limits` | | | | | | ✓ | ✓ |
+| `/admin/onboarding-import` | | | | | | ✓ | ✓ |
+| `/admin/catalogo-contable` | | | | | | ✓ | ✓ |
+| `/admin/indicadores-impuesto` | | | | | | ✓ | ✓ |
+| `/admin/mapeo-gastos` | | | | | | ✓ | ✓ |
+| `/admin/api-keys` | | | | | | ✓ | ✓ |
+| `/admin/workflow-rules` | | | | | | ✓ | |
+| `/admin/organizations` | | | | | | | ✓ |
 
-> Las rutas de detalle dinámicas (`/detalles-solicitud/[id]`, `/editar-solicitud/[id]`, `/autorizar-solicitud/[id]`, `/comprobar-solicitud/[id]`, `/atender-solicitud/[id]`, `/cotizar-solicitud/[id]`, `/subir-comprobante/[id]`, `/resubir-comprobante/[id]`) heredan el mismo gating por rol que su flujo correspondiente.
+> Rutas dinámicas (`/editar-solicitud/[id]`, `/autorizar-solicitud/[id]`, `/comprobar-solicitud/[id]`, `/atender-solicitud/[id]`, `/cotizar-solicitud/[id]`, etc.) heredan el gating del flujo padre.
 >
-> **Única diferencia entre los dos perfiles de admin:** `/admin/workflow-rules` (Reglas de Workflow) solo la tiene el **Administrador** de organización; el **Admin Ditta** no. El resto del panel de administración es idéntico para ambos.
+> **Simulador de workflow:** accesible desde `/admin/workflow-rules` para el Administrador de organización (enlace interno a `/admin/workflow-simulator`).
 
 ---
 
-## Patrones compartidos
+## Funcionalidades transversales
 
-**Login único con switch por rol.** El JWT + IP binding es el mismo para todos, pero la ruta post-login difiere: solicitante llega a "Mis solicitudes", aprobadores a su bandeja, Cuentas por pagar a bandeja contable, agencia a reservas, admins a su panel respectivo.
+| Funcionalidad | Dónde | Quién la usa |
+|---------------|-------|--------------|
+| **Notificaciones** | Campana en el encabezado | Todos los roles autenticados |
+| **Preferencias de notificación** | `/perfil-usuario` | Todos |
+| **Comentarios en solicitud** | Detalle de solicitud; validación CxP en `/comprobar-gastos/[id]` | Solicitante, N1, N2, CxP |
+| **Excepciones de política** | Formulario de comprobante (justificación) + bandeja en `/autorizaciones` | Solicitante, N1, N2 |
+| **Tipo de cambio** | Panel en comprobante internacional | Solicitante (y aprobadores con rol de comprobación) |
+| **Sesión expirada** | Modal global ante HTTP 401 | Todos |
 
-**Detalle de solicitud reutilizable.** Esta pantalla la ven casi todos los roles (solicitante, N1, N2, Cuentas por pagar, agencia) pero con vista y acciones distintas según rol y estado. Candidato a un componente único con slots condicionales, no 5 pantallas separadas.
+---
 
-**Chat de comentarios transversal.** US-22 aparece en solicitante, N1, N2 y Cuentas por pagar sobre la misma solicitud. Otro componente compartido.
+## Patrones de navegación
 
-**Sesión expirada.** Cuando el backend responde con un 401 con código `TOKEN_EXPIRED`, `INVALID_TOKEN` o `MISSING_TOKEN`, el frontend limpia las cookies de sesión y muestra un modal de advertencia: *"Tu sesion ha expirado. Por favor inicia sesion nuevamente."* El usuario hace clic en aceptar y el sistema redirige automáticamente a `/login`. Un mecanismo de guarda evita que el diálogo aparezca más de una vez si se reciben varios 401 simultáneos.
+**Login único por rol.** Tras autenticarse, cada rol llega a su dashboard con menú filtrado.
 
-**Principio de RBAC estricto (US-14).** Si un rol no tiene el permiso, la pantalla no existe para ese usuario — no aparece en gris ni bloqueada. El menú se renderiza dinámicamente según los permisos del rol activo.
+**Detalle de solicitud reutilizable.** Misma pantalla base con acciones distintas según rol y estado del viaje.
+
+**RBAC estricto.** Si un rol no tiene permiso, la ruta no aparece en el menú y no es accesible por URL directa.

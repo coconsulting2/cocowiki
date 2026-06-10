@@ -295,74 +295,39 @@ Esta sección define RTO (tiempo máximo de recuperación), RPO (pérdida máxim
 
 ### 6.1 RTO (Recovery Time Objective)
 
-**Definición.** Tiempo máximo aceptable para restaurar el servicio tras una interrupción no planificada o tras completar un despliegue que dejó la aplicación fuera de línea.
+**Qué mide.** Cuánto tarda el servicio en volver a estar disponible tras una caída o un despliegue.
 
-**Objetivo establecido (demo, condicionado por escenario).** No existe un único RTO numérico verificable para todos los casos: el despliegue demo es **una EC2 en una AZ**, **sin staging**, con CD por **git-poll** y rebuild nativo. Los objetivos se expresan por escenario:
+En el **demo** (una EC2, sin staging) no hay un solo RTO: depende de qué falló.
 
-| Escenario | Descripción | RTO derivable del repo |
-|-----------|-------------|------------------------|
-| **A** | EC2 viva; fallo del backend (proceso termina); sin rebuild de imagen | **≥20 s, ≤3 min** (techo operativo de `wait_backend_healthy`) + tiempo de entrypoint no medido |
-| **B** | EC2 viva; release por git-poll (`merge` a `main` → rebuild) | **0–120 s** hasta iniciar redeploy + **T_build** (no medido; domina) + **≥20 s** readiness |
-| **C** | EC2 perdida; reprovisionar infra + `install.sh` + restaurar BD (6.2) | **No verificable como cifra única** — orden de magnitud en horas; etapas manuales y build inicial no benchmarked |
+| Escenario | Qué pasó | RTO esperado |
+|-----------|----------|--------------|
+| **A — Caída del backend** | La EC2 sigue viva; el contenedor se detuvo | Segundos a ~3 min (reinicio automático + healthcheck) |
+| **B — Nuevo release** | Merge a `main`; la EC2 detecta cambios y reconstruye | Hasta ~2 min de espera + rebuild (varios minutos; no medido en repo) |
+| **C — EC2 perdida** | Hay que levantar infra de cero y restaurar datos | Horas (provision + install + restore — ver 6.2) |
 
-**Fórmulas de cálculo:**
+**Cómo se recupera (resumen).**
 
-- **Escenario A:** `RTO_A = T_docker_restart + T_entrypoint + T_readiness`
-- **Escenario B:** `RTO_B = T_poll + T_git + T_build_up + T_readiness` (incluye **downtime recurrente** en cada release, distinto de una falla)
-- **Escenario C:** `RTO_C = T_provision + T_operador + T_install + T_restore_pg`
-
-**Desglose por etapa** (cada cifra indica fuente o declara “no medido”):
-
-| Esc. | Etapa | Tiempo | Fuente | Verificable |
-|------|-------|--------|--------|-------------|
-| A | Reinicio contenedor al exit del proceso | ~0 s | `restart: unless-stopped` en [`docker-compose.prod.yml`](../../deploy/docker-compose.prod.yml) L49 | Sí |
-| A | Entrypoint (certs + `prisma db push` + skip seed) | No medido | [`entrypoint.sh`](../../../TC3005B.501-Backend/docker/entrypoint.sh) L24–27; `RUN_MIGRATIONS=true` en compose prod L76 | No |
-| A | Readiness backend (`start-period` + 1.er check) | **≥20 s, ≤50 s** | `HEALTHCHECK --start-period=20s --interval=30s` en [`Dockerfile`](../../../TC3005B.501-Backend/Dockerfile) L74–75 | Sí (límites) |
-| A | **Suma (sin entrypoint)** | **≥20 s + ≤50 s = ≤50 s** | 20 + 30 | Sí |
-| A | Techo operativo install | **≤180 s (3 min)** | `wait_backend_healthy`: 36 × 5 s en [`install.sh`](../../deploy/install.sh) L411–416 | Sí |
-| B | Detección (git-poll) | **0–120 s** | `REDEPLOY_INTERVAL` default `2min`, `OnUnitActiveSec` en [`install.sh`](../../deploy/install.sh) L490, L518 | Sí |
-| B | Primer poll tras arranque de EC2 | **+0–180 s** adicional | `OnBootSec=3min` en timer → [`install.sh`](../../deploy/install.sh) L517 | Sí |
-| B | `git fetch` + `reset --hard` | No medido (segundos) | [`redeploy.sh`](../../deploy/redeploy.sh) L53–62 | No |
-| B | `docker compose up -d --build` (build + recreate) | **No medido** (domina) | [`redeploy.sh`](../../deploy/redeploy.sh) L76; install.sh L392 (“varios minutos”) | No |
-| B | Ventana de indisponibilidad durante recreate | Concurrente con T_build | Sin rolling update ni `depends_on: condition: service_healthy` en backend/frontend/caddy → [`docker-compose.prod.yml`](../../deploy/docker-compose.prod.yml) | Sí (mecanismo) |
-| B | Readiness backend post-deploy | **≥20 s, ≤50 s** (+ entrypoint) | Dockerfile L74–75 + entrypoint | Parcial |
-| B | **Suma mínima derivable** | **≥20 s + T_build**; poll **+0–120 s** antes de empezar | — | Parcial |
-| C | `aws-provision.sh` (API + EC2 running) | No medido | [`aws-provision.sh`](../../deploy/aws-provision.sh) L278–279 (`ec2 wait instance-running`) | No |
-| C | Operador: SSH + `curl install.sh` | No medido (humano) | aws-provision.sh L338–343 | No |
-| C | `install.sh` (packages, clone, build, up) | No medido (build domina) | install.sh L392 | No |
-| C | Espera origen HTTPS | **≤150 s** | `wait_health`: 30 × 5 s → install.sh L448–454 | Sí |
-| C | Restaurar `.env` + dump PG | No medido | Runbook 6.2 (manual) | No |
-| C | **Suma** | **No verificable como total** | Demasiadas etapas sin benchmark en repo | No |
+- **Datos:** PostgreSQL en disco (EBS) y archivos en S3. Los contenedores no guardan estado (JWT en cliente).
+- **Despliegue:** GitHub Actions solo prueba el código. La EC2 revisa `main` cada ~2 min (*git-poll*); si hubo cambios, ejecuta `docker compose up -d --build`. Durante el rebuild el sitio puede quedar fuera de línea.
+- **Caída del proceso:** Docker reinicia el contenedor si el proceso termina. El healthcheck tarda ~20 s en marcar el servicio listo.
+- **Límite demo:** una sola máquina, una AZ, sin alta disponibilidad ni despliegue sin caída.
 
 ```mermaid
-flowchart TD
-  merge[merge a main]
-  timer["coco-redeploy.timer 0-120s"]
-  fetch[redeploy.sh git fetch]
-  changed{main avanzo?}
-  build["docker compose up -d --build"]
-  down[Ventana indisponibilidad]
-  ready["backend start-period 20s + healthcheck"]
-  merge --> timer --> fetch --> changed
-  changed -->|no| noop[no-op]
-  changed -->|si| build --> down --> ready
+flowchart LR
+  merge[merge a main] --> poll[timer ~2 min]
+  poll --> build[rebuild contenedores]
+  build --> ok[servicio disponible]
 ```
 
-**Cómo lo cumple la arquitectura (y sus límites).**
+**Indicadores (demo)**
 
-- **Stateless reconstruible:** backend y frontend no guardan sesión en memoria (JWT); el estado vive en el volumen `pgdata` (EBS) y en S3. Tras fallo o redeploy, los contenedores se recrean desde el código en `main`.
-- **CD git-poll, no push:** GitHub Actions solo integra (lint, Prisma, tests); el despliegue lo ejecuta [`redeploy.sh`](../../deploy/redeploy.sh) en la EC2 cada `REDEPLOY_INTERVAL` (default 2 min), **solo si** algún repo avanzó en `main`.
-- **Sin zero-downtime deploy:** `docker compose up -d --build` reconstruye imágenes y recrea contenedores; **no** hay blue/green ni swap health-gated. Cada merge a `main` puede producir **indisponibilidad durante el rebuild** — downtime **recurrente y planificado**, distinto de una falla no planificada.
-- **Recuperación ante crash del proceso:** `restart: unless-stopped` reinicia el contenedor **cuando el proceso termina**. El HEALTHCHECK del backend (`start-period=20s`, `interval=30s`, `retries=3`) marca readiness; **Docker no reinicia automáticamente** un contenedor solo por estado `unhealthy` si el proceso sigue vivo.
-- **Un solo ambiente productivo:** desarrollo local; **sin staging**. Reprovisionar EC2 requiere pasos manuales (`aws-provision.sh` + `install.sh` + restauración según 6.2).
+| Indicador | Objetivo | Notas |
+|-----------|----------|-------|
+| **RTO** | A: ≤3 min · B: poll + rebuild · C: horas | Ver escenarios arriba |
+| **RPO** | ≤24 h | Solo si hay backup diario de PostgreSQL (6.2) |
+| **SLA** | 99,0 % best-effort | Acotado por 1 EC2; mejorable con multi-AZ + RDS |
 
-**Tabla de indicadores**
-
-| Indicador | Definición | Valor objetivo (demo) | Valor real / medido (auto-setup) | Cómo la arquitectura lo cumple |
-|---|---|---|---|---|
-| **RTO** | Tiempo máximo para restaurar el servicio tras interrupción | **A:** ≤3 min (techo `wait_backend_healthy`) · **B:** poll ≤2 min + T_build (no medido) + readiness ≥20 s · **C:** horas, sin cifra única verificable | **A:** ≥20 s, ≤50 s readiness (+ entrypoint no medido); techo 180 s · **B:** 0–120 s hasta redeploy + T_build no medido + ≥20 s · **C:** no benchmarked (provision + install + restore manual) | Contenedores stateless; `restart: unless-stopped` al exit; CD git-poll + `up -d --build`; **ventana de caída en cada release**; sin HA ni rolling update |
-| **RPO** | Pérdida máxima de datos aceptable | **≤ 24 h** (backup diario PG) | **24 h** si se ejecuta backup manual diario; **sin límite** si no hay backup (estado actual por defecto) | Datos en vol. EBS `pgdata`; S3 durable (11×9) para archivos; RPO de BD = cadencia de `pg_dump` |
-| **SLA** | Disponibilidad comprometida del servicio | **99,0 %** (best-effort demo) | Acotado por **1 EC2 / 1 AZ** — sin HA; ventanas de deploy ~2 min cada poll + rebuild ocasional | Mejorable con ALB + multi-AZ + RDS (arquitectura recomendada) |
+Detalle operativo: [deploy-aws.md sección 7](../getting-started/deploy-aws.md).
 
 ### 6.2 Estrategia de respaldo y runbook (PostgreSQL + S3)
 

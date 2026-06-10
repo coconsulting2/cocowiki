@@ -2,8 +2,8 @@
 
 | Metadato | Valor |
 | ------------------------ | ------------------------- |
-| **Versión del documento** | 1.0.1 |
-| **Última actualización** | 2026-06-02 |
+| **Versión del documento** | 1.1.0 |
+| **Última actualización** | 2026-06-09 |
 | **Audiencia** | Usuarios finales del sistema (todos los roles excepto Admin Ditta) |
 
 ---
@@ -44,7 +44,7 @@ El acceso a CocoAPI no se obtiene por autoregistro. Su **Administrador de organi
 
 > **Importante:** Si ve el mensaje *"Error al iniciar sesión"*, verifique que su usuario y contraseña sean correctos. Si el problema persiste, contacte a su administrador.
 
-> **Consejo:** Si olvidó su contraseña, haga clic en el enlace **"Recuperar"** junto al campo de contraseña. [VERIFICAR: la funcionalidad de recuperar contraseña puede ser un placeholder]
+> **Importante:** Si olvidó su contraseña, contacte a su **Administrador de organización** o a **Ditta Consulting** para que le asigne una nueva. El enlace "Recuperar" en la pantalla de login no restablece la contraseña de forma automática.
 
 ### 2.2 Conocer la pantalla principal
 
@@ -53,7 +53,7 @@ El acceso a CocoAPI no se obtiene por autoregistro. Su **Administrador de organi
 Al iniciar sesión, verá su **Dashboard** (panel principal). La interfaz se compone de:
 
 - **Menú lateral (Sidebar):** A la izquierda de la pantalla. Muestra las opciones de navegación disponibles según su rol. Las opciones cambian automáticamente según los permisos asignados.
-- **Barra superior:** Muestra su nombre de usuario y un ícono de notificaciones.
+- **Barra superior:** Muestra su rol, campana de **notificaciones** (con contador de no leídas), cierre de sesión y acceso a su perfil.
 - **Área principal:** Muestra el contenido de la sección seleccionada, incluyendo tarjetas de métricas, listas de solicitudes y acciones disponibles.
 
 ![Perfil Solcitante](./images/manual-usuario/sidebard.png)
@@ -68,8 +68,9 @@ Al iniciar sesión, verá su **Dashboard** (panel principal). La interfaz se com
 
 ![Perfil Solcitante](./images/manual-usuario/perfl_usuario.png)
 
-1. Haga clic en su nombre de usuario en la barra superior o acceda a la ruta de perfil.
+1. Haga clic en sus iniciales en la barra superior o acceda a **Perfil de usuario** (`/perfil-usuario`).
 2. Podrá ver sus datos personales: nombre, correo electrónico, rol y departamento.
+3. En la sección **Preferencias de notificación** puede activar o desactivar alertas por correo según el tipo de evento (aprobaciones, rechazos, comprobantes, etc.).
 
 ### 2.5 Cerrar sesión
 
@@ -103,6 +104,8 @@ Al ingresar, verá:
   - *En proceso* — solicitudes en cotización o atención por agencia.
 - **Botón "+ Nueva solicitud"** — para crear una solicitud de viaje.
 - **Lista "Requieren tu atención"** — solicitudes activas con su estado y acciones disponibles.
+
+**Menú lateral:** DASHBOARD · CREAR SOLICITUD · DRAFT SOLICITUDES · GASTOS (COMPROBAR) · RESUMEN POR TRAMOS · REEMBOLSOS · HISTORIAL DE VIAJES
 
 ### 3.1 Crear una solicitud de viaje
 
@@ -170,8 +173,6 @@ Solo es posible editar una solicitud si su estado es **"Primera Revisión"**.
 3. Modifique los campos necesarios.
 4. Haga clic en **"Actualizar Solicitud"** para guardar los cambios.
 
-[IMAGEN: editar_solicitud]
-
 ### 3.4 Cancelar una solicitud
 
 1. En su Dashboard, identifique la solicitud que desea cancelar.
@@ -184,32 +185,37 @@ Solo es posible editar una solicitud si su estado es **"Primera Revisión"**.
 
 ![Subir comprobantes](./images/manual-usuario/subir_comprobantes.png)
 
-Cuando su viaje haya sido aprobado y se encuentre en el estado *"Comprobación gastos del viaje"*, deberá subir los comprobantes de sus gastos.
+Cuando su viaje esté aprobado y en estado *"Comprobación gastos del viaje"*, debe registrar cada gasto con su comprobante.
 
-1. En su Dashboard, haga clic en el botón **"Comprobar"** junto a la solicitud, **o** abra el detalle de la solicitud donde verá un banner informativo con el botón **"Subir comprobantes"**.
-2. El sistema le llevará a la pantalla de comprobación de gastos (`/subir-comprobante/[id]`).
+1. En su Dashboard, haga clic en **"Comprobar"**, en **GASTOS (COMPROBAR)** del menú, o en **"Subir comprobantes"** desde el detalle de la solicitud.
+2. El sistema abre el formulario de comprobación (`/subir-comprobante/[id]`).
 
-#### Viajes nacionales (CFDI)
+#### Datos del gasto
 
-3. En la zona de carga de archivos, arrastre o haga clic para seleccionar su archivo **PDF** del comprobante.
-4. Arrastre o haga clic para seleccionar el archivo **XML** del CFDI.
-5. Ambos archivos (PDF y XML) son obligatorios para viajes nacionales.
-6. El sistema mostrará una barra de progreso durante la carga.
-7. Al completarse, verá un mensaje *"Archivos subidos correctamente"*.
+3. Seleccione el **Concepto** (Hospedaje, Comida, Transporte, Caseta, Autobús, Vuelo u Otro).
+4. Ingrese el **Monto**. En viajes nacionales, al seleccionar el XML el sistema puede autorrellenar el total del CFDI.
+5. Si el viaje tiene **varios tramos**, elija el **Tramo del viaje** al que corresponde el comprobante.
+6. Para gastos en el extranjero, active **"Gasto en moneda extranjera (sin CFDI mexicano)"**, elija la moneda (USD, EUR, etc.), la **fecha del gasto** y revise la conversión a MXN que muestra el panel de tipo de cambio.
 
-#### Viajes internacionales
+#### Archivos
 
-8. Para viajes internacionales, arrastre o haga clic para seleccionar una **imagen** (JPG o PNG) del recibo.
-9. No se requiere archivo XML para gastos internacionales.
+7. **Viaje nacional:** arrastre o seleccione el **PDF** y el **XML** del CFDI. Ambos son obligatorios.
+8. **Viaje internacional:** suba una **imagen** (JPG o PNG) del recibo. No se requiere XML.
 
-[IMAGEN: comprobante_subido_exitoso]
+#### Política de viáticos y excedentes
 
-10. Después de subir los archivos, el sistema mostrará un resumen con los datos extraídos del CFDI: UUID, RFC del emisor, RFC del receptor, fecha, total y método de pago.
-11. También verá un indicador del estado de validación ante el SAT.
+9. Antes de subir, el sistema evalúa el gasto contra las **políticas de viáticos** de su organización.
+10. Si el monto **supera el tope** permitido, verá una alerta. Haga clic en **Justificar** y escriba el motivo (mínimo 10 caracteres). Su aprobador verá la justificación en su bandeja de autorizaciones.
+11. Tras enviar la justificación, confirme de nuevo con **"Subir Comprobante"**.
 
-> **Importante:** Para viajes nacionales, el archivo XML del CFDI es obligatorio. Sin él, no podrá completar la comprobación.
+#### Envío
 
-> **Consejo:** Para viajes internacionales, suba una foto clara y legible del recibo. Asegúrese de que se vean el monto, la fecha y el concepto.
+12. Haga clic en **"Subir Comprobante"** y confirme en el diálogo.
+13. El sistema crea el registro, sube los archivos, valida el CFDI ante el SAT (nacionales) y muestra una pantalla de éxito con el resumen fiscal (UUID, RFC emisor/receptor, fecha, total).
+
+> **Importante:** Para viajes nacionales, el XML del CFDI es obligatorio. Sin él, no podrá completar la comprobación.
+
+> **Consejo:** Para viajes internacionales, suba una foto clara del recibo con monto, fecha y concepto visibles.
 
 ### 3.6 Resubir un comprobante rechazado
 
@@ -237,9 +243,7 @@ Si el área de Cuentas por Pagar rechaza un comprobante:
 
 ### 3.8 Ver el detalle de una solicitud
 
-[IMAGEN: detalle_solicitud]
-
-1. En su Dashboard o historial, haga clic sobre una solicitud para ver su detalle.
+1. En su Dashboard o historial, haga clic sobre una solicitud para ver su detalle (`/detalles-solicitud/[id]`).
 2. Verá la información completa: destino, fechas, rutas, anticipo, observaciones.
 3. Si la solicitud se encuentra en estado **"Comprobación gastos del viaje"**, aparecerá un banner en la parte superior con el botón **"Subir comprobantes"**. Al hacer clic, el sistema lo redirige a la pantalla de comprobación.
 4. La **Línea de tiempo** muestra el recorrido de la solicitud con indicadores visuales:
@@ -251,6 +255,14 @@ Si el área de Cuentas por Pagar rechaza un comprobante:
 6. También podrá ver los comprobantes ya subidos y el resumen de tramos del viaje.
 
 ![timeline_solicitud](./images/manual-usuario/timeline_solicitud.png)
+
+### 3.9 Comentarios en la solicitud
+
+En el detalle de la solicitud verá la sección **Comentarios**. Puede escribir mensajes para pedir aclaraciones a aprobadores o finanzas. Cuando Cuentas por Pagar rechaza un comprobante, el motivo se publica aquí automáticamente.
+
+### 3.10 Resumen por tramos
+
+Seleccione **RESUMEN POR TRAMOS** en el menú lateral para ver un desglose de gastos y comprobantes por cada tramo del viaje (útil en viajes multidestino).
 
 ---
 
@@ -273,7 +285,7 @@ Al ingresar, verá el panel **"Por revisar"** con:
 
 ### Menú lateral
 
-DASHBOARD · AUTORIZACIONES · SOLICITUDES · CREAR SOLICITUD · DRAFT SOLICITUDES · GASTOS (COMPROBAR) · REEMBOLSOS · GASTO POR CC · HISTORIAL DE VIAJES
+DASHBOARD · AUTORIZACIONES · SOLICITUDES · CREAR SOLICITUD · DRAFT SOLICITUDES · GASTOS (COMPROBAR) · RESUMEN POR TRAMOS · REEMBOLSOS · GASTO POR CC · HISTORIAL DE VIAJES
 
 ### 4.1 Autorizar una solicitud
 
@@ -304,6 +316,10 @@ Como Autorizador N1, usted también puede crear solicitudes de viaje propias. Si
 
 ![reporte_gastos_por_cc](./images/manual-usuario/gasto_cc_n1.png)
 
+### 4.4 Revisar excepciones de política
+
+En **AUTORIZACIONES**, debajo de la bandeja de solicitudes, aparece la sección **Excepciones de política**. Ahí verá gastos que superaron el tope de viáticos y la justificación del solicitante. Apruebe o rechace cada excepción antes de que el comprobante siga su flujo normal.
+
 ---
 
 ## 5. Autorizador N2 — Jefe de Área
@@ -319,7 +335,7 @@ El **Autorizador N2** es el segundo nivel de aprobación. Su funcionalidad es id
 
 ### Su Dashboard
 
-El panel se muestra como **"Por revisar"** con el subtítulo del rol. Las métricas y la operación son las mismas que las del N1 (ver sección 4).
+El panel se muestra como **"Por revisar"** con el subtítulo del rol. Las métricas y la operación son las mismas que las del N1 (secciones 4.1 a 4.4).
 
 ![dashboard_autorizador_n2](./images/manual-usuario/autorizar_solcitud_n1.png)
 
@@ -346,7 +362,7 @@ Al ingresar, verá el panel **"Revisión financiera"** con:
 
 ### Menú lateral
 
-DASHBOARD · TODAS LAS SOLICITUDES · COTIZACIONES · COMPROBACIONES · EXPORTAR ERP · GASTO POR CC
+DASHBOARD · TODAS LAS SOLICITUDES · COTIZACIONES · COMPROBACIONES · RESUMEN POR TRAMOS · EXPORTAR ERP · GASTO POR CC
 
 ### 6.1 Cotizar una solicitud
 
@@ -369,7 +385,9 @@ DASHBOARD · TODAS LAS SOLICITUDES · COTIZACIONES · COMPROBACIONES · EXPORTAR
    - Los datos fiscales extraídos del CFDI (RFC emisor, RFC receptor, UUID, monto, fecha).
    - El indicador de validación ante el SAT.
 5. Para **aprobar** comprobantes, utilice el botón de aprobación.
-6. Para **rechazar** comprobantes, utilice el botón de rechazo e ingrese el motivo.
+6. Para **rechazar** comprobantes, utilice el botón de rechazo e ingrese el motivo. El motivo se publica en los comentarios de la solicitud.
+
+7. Use la sección **Comentarios de la solicitud** para pedir aclaraciones al solicitante sin rechazar formalmente el comprobante.
 
 > **Importante:** Verifique que el RFC receptor del comprobante coincida con el RFC de su organización.
 
@@ -452,7 +470,7 @@ El **Administrador** es el responsable de configurar y gestionar su propia empre
 
 ### Su Dashboard
 
-[dashboard_administrador](./images/manual-usuario/dashboard_adminOrg.png)
+![dashboard_administrador](./images/manual-usuario/dashboard_adminOrg.png)
 
 Al ingresar, verá el panel **"Usuarios del sistema"** con:
 
@@ -463,6 +481,8 @@ Al ingresar, verá el panel **"Usuarios del sistema"** con:
 ### Menú lateral
 
 DASHBOARD · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO · PLAZO DE REEMBOLSO · IMPORTAR USUARIOS · CATÁLOGO CONTABLE · INDICADORES DE IMPUESTO · MAPEO DE GASTOS · REGLAS DE WORKFLOW · LLAVES API · GASTO POR CC
+
+> **Nota:** El menú **REGLAS DE WORKFLOW** es exclusivo del Administrador de organización. El Admin Ditta no lo tiene.
 
 ### 8.1 Crear un usuario
 
@@ -556,11 +576,19 @@ DASHBOARD · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO
 
 1. Seleccione **"REGLAS DE WORKFLOW"** en el menú lateral.
 2. Defina la cadena de aprobación: quién aprueba qué solicitudes, cuándo se escala a segundo nivel (N2), y bajo qué condiciones.
-3. Guarde los cambios.
+3. Use el enlace **Simulador de workflow** dentro de la pantalla para probar escenarios antes de guardar.
+4. Guarde los cambios.
 
-> **Importante:** Esta funcionalidad es exclusiva del Administrador de organización. El Admin Ditta no tiene acceso a ella.
+> **Importante:** Esta pantalla es exclusiva del Administrador de organización. El Admin Ditta no tiene acceso a ella.
 
-### 8.12 Consultar reporte de gastos por centro de costos
+### 8.12 Gestionar llaves API
+
+1. Seleccione **"LLAVES API"** en el menú lateral (`/admin/api-keys`).
+2. Cree una llave con el alcance necesario (por ejemplo, exportación contable).
+3. Copie el secreto `cck_...` en el momento de la creación; solo se muestra una vez.
+4. Entregue la llave al equipo que integrará el ERP externo.
+
+### 8.13 Consultar reporte de gastos por centro de costos
 
 1. Seleccione **"GASTO POR CC"** en el menú lateral.
 2. Verá un reporte de gastos de su organización agrupado por centro de costos.
@@ -583,8 +611,6 @@ A lo largo de su ciclo de vida, una solicitud pasa por los siguientes estados:
 | **Cierre** | Proceso completado. | Sistema |
 | **Cancelado** | Solicitud cancelada por el solicitante o rechazada. | Solicitante / Autorizador |
 
-[IMAGEN: diagrama_estados_solicitud]
-
 ---
 
 ## 10. Preguntas frecuentes
@@ -595,7 +621,7 @@ A lo largo de su ciclo de vida, una solicitud pasa por los siguientes estados:
 Su Administrador de organización o el equipo de Ditta Consulting le proporcionará sus credenciales de acceso. No existe un proceso de autoregistro.
 
 **2. ¿Qué hago si olvidé mi contraseña?**
-Haga clic en el enlace "Recuperar" en la pantalla de inicio de sesión, o contacte a su Administrador para que le restablezca el acceso. [VERIFICAR: funcionalidad de recuperar contraseña]
+Contacte a su **Administrador de organización** o a Ditta Consulting. Ellos pueden asignarle una contraseña nueva. No existe recuperación automática por correo en la pantalla de login.
 
 **3. ¿Puedo tener más de un rol en el sistema?**
 Cada usuario tiene un único rol asignado. Si necesita funcionalidades de otro rol, contacte a su Administrador.
@@ -625,12 +651,15 @@ Verifique que el formato del archivo sea correcto (.pdf y .xml para nacionales, 
 **10. ¿Qué significa el indicador de validación SAT?**
 El sistema valida automáticamente los CFDI contra el servicio del SAT. El indicador le muestra si el comprobante es válido, cancelado o no encontrado.
 
+**11. ¿Qué pasa si mi gasto supera el tope de viáticos?**
+Debe justificar el excedente (mínimo 10 caracteres) antes de subir el comprobante. Su aprobador revisará la excepción en la bandeja de autorizaciones.
+
 ### Exportación
 
-**11. ¿En qué formato se exportan los datos contables?**
+**12. ¿En qué formato se exportan los datos contables?**
 Los datos se exportan en formato JSON compatible con sistemas SAP. Incluyen pólizas con encabezado y partidas de detalle (cuentas, montos, indicadores Debe/Haber).
 
-**12. ¿Puedo volver a descargar una exportación anterior?**
+**13. ¿Puedo volver a descargar una exportación anterior?**
 Sí. En la pantalla de exportación, active la casilla "Incluir ya sincronizados" y consulte el rango de fechas correspondiente.
 
 ---
@@ -653,24 +682,8 @@ Sí. En la pantalla de exportación, active la casilla "Incluir ya sincronizados
 | **SAT** | Servicio de Administración Tributaria. Autoridad fiscal de México que valida los CFDI. |
 | **Solicitud de viaje** | Petición formal dentro del sistema para realizar un viaje de negocios. Incluye rutas, fechas, necesidades y anticipo. |
 | **Workflow** | Cadena de aprobaciones que sigue una solicitud. Define quién aprueba, cuándo se escala y bajo qué reglas. |
-
----
-
-## 12. Funcionalidades en desarrollo
-
-Las siguientes funcionalidades existen parcialmente en el sistema pero podrían no estar completamente disponibles en su versión actual:
-
-| Funcionalidad | Descripción |
-|---|---|
-| Recuperar contraseña | Existe un enlace "Recuperar" en el inicio de sesión, pero la funcionalidad completa puede no estar disponible. Contacte a su Administrador si necesita restablecer su contraseña. |
-| Notificaciones en tiempo real | Los componentes de notificaciones están presentes en la interfaz, pero las alertas en tiempo real podrían no estar activas en todas las versiones. |
-| Simulador de workflow | Herramienta para probar reglas de aprobación antes de activarlas. Disponible solo para Administradores de organización en versiones futuras. |
-| Centros de costos (administración) | Pantalla de administración de centros de costos. Estará disponible en próximas versiones. |
-| Excepciones de política | Posibilidad de justificar y enviar solicitudes que excedan los topes de viáticos con una justificación. |
-| Comentarios en solicitudes | Sistema de chat/comentarios entre participantes de una solicitud (solicitante, aprobadores, finanzas). |
-| Tipo de cambio | Visualización del tipo de cambio aplicable para viajes internacionales. |
-
----
+| **Excepción de política** | Justificación formal cuando un gasto supera el tope de viáticos configurado. Requiere aprobación del autorizador. |
+| **Notificación** | Alerta en la campana del encabezado sobre eventos de sus solicitudes (aprobaciones, rechazos, comprobantes). |
 
 *© 2026 Ditta Consulting. Todos los derechos reservados.*
 *CocoAPI v0.4.2*

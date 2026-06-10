@@ -2,8 +2,8 @@
 
 | Metadato | Valor |
 | ------------------------ | ------------------------- |
-| **Versión del documento** | 1.0.1 |
-| **Última actualización** | 2026-06-02 |
+| **Versión del documento** | 1.1.0 |
+| **Última actualización** | 2026-06-09 |
 | **Audiencia** | Super Admin de Ditta Consulting (rol "Admin Ditta") |
 
 ---
@@ -28,20 +28,20 @@ Eres el **super-administrador** de la plataforma CocoAPI. Tu rol existe únicame
 ### Diferencia clave: Admin Ditta vs. Admin de Organización
 
 | Aspecto | Admin Ditta (tú) | Admin de Organización |
-|---------|------|------|
+|---------|------------------|------------------------|
 | Alcance | Todas las organizaciones de la plataforma | Solo su propia organización |
 | Organizaciones | Crear, activar, suspender, impersonar | No tiene acceso |
-| Reglas de workflow | No tiene acceso | Configura su cadena de aprobación |
+| Reglas de workflow | No tiene acceso | Configura su cadena de aprobación y simulador |
 | Crear usuarios | En cualquier organización | Solo en su organización |
-| Políticas de viáticos | | |
-| Categorías de empleado | | |
-| Plazo de reembolso | | |
-| Catálogo contable | | |
-| Indicadores de impuesto | | |
-| Mapeo de gastos | | |
-| Importar usuarios | | |
-| Llaves API | | |
-| Impersonar organización | | |
+| Políticas de viáticos | Sí (ROOT o org impersonada) | Sí |
+| Categorías de empleado | Sí | Sí |
+| Plazo de reembolso | Sí | Sí |
+| Catálogo contable | Sí | Sí |
+| Indicadores de impuesto | Sí | Sí |
+| Mapeo de gastos | Sí | Sí |
+| Importar usuarios | Sí | Sí |
+| Llaves API | Sí | Sí |
+| Impersonar organización | Sí | No |
 
 ### Tu menú lateral
 
@@ -49,9 +49,7 @@ Después de iniciar sesión, tu sidebar muestra:
 
 DASHBOARD · ORGANIZACIONES · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEGORÍAS DE EMPLEADO · PLAZO DE REEMBOLSO · IMPORTAR USUARIOS · CATÁLOGO CONTABLE · INDICADORES DE IMPUESTO · MAPEO DE GASTOS · LLAVES API · GASTO POR CC
 
-> **Nota:** Observa que **no** aparece "REGLAS DE WORKFLOW". Esa opción es exclusiva del Administrador de cada organización.
-
-[IMAGEN: sidebar_admin_ditta]
+> **Nota:** Observa que **no** aparece "REGLAS DE WORKFLOW". Esa opción es exclusiva del Administrador de cada organización (incluye simulador de reglas).
 
 ---
 
@@ -60,8 +58,6 @@ DASHBOARD · ORGANIZACIONES · CREAR USUARIO · POLÍTICAS DE VIÁTICOS · CATEG
 Esta es tu **pantalla exclusiva** — ningún otro rol tiene acceso.
 
 ### Pantalla principal
-
-[IMAGEN: lista_organizaciones]
 
 Accede desde **"ORGANIZACIONES"** en el menú lateral. Verás:
 
@@ -101,8 +97,6 @@ Accede desde **"ORGANIZACIONES"** en el menú lateral. Verás:
 ---
 
 ### 2.1 Crear una nueva organización
-
-[IMAGEN: wizard_crear_organizacion]
 
 1. Haz clic en el botón **"+ Nueva organización"**.
 2. Se abrirá un wizard con dos secciones.
@@ -144,8 +138,6 @@ Accede desde **"ORGANIZACIONES"** en el menú lateral. Verás:
 
 ### 2.3 Suspender una organización
 
-[IMAGEN: confirmar_suspension_organizacion]
-
 1. Localiza la organización en la tabla.
 2. Verifica que su estado sea *"Activa"*.
 3. Haz clic en **"Suspender"**.
@@ -159,8 +151,6 @@ Accede desde **"ORGANIZACIONES"** en el menú lateral. Verás:
 ---
 
 ### 2.4 Impersonar una organización
-
-[IMAGEN: banner_impersonacion]
 
 La impersonación te permite ver y configurar los datos de una organización cliente como si fueras su administrador.
 
@@ -184,8 +174,6 @@ La impersonación te permite ver y configurar los datos de una organización cli
 ## 3. Gestión de usuarios
 
 ### Dashboard de usuarios
-
-[IMAGEN: dashboard_usuarios_admin_ditta]
 
 Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 
@@ -213,13 +201,13 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 
 ### 3.1 Crear un usuario
 
+Tras iniciar sesión, tu perfil (`/perfil-usuario`) incluye **preferencias de notificación** (mismas opciones que el resto de roles).
+
 1. Haz clic en **"+ Crear usuario"** en el Dashboard, o selecciona **"CREAR USUARIO"** en el menú lateral.
 2. Completa los datos del usuario: nombre, correo electrónico, departamento.
 3. Selecciona el **rol** apropiado.
 4. Si estás impersonando una organización, el usuario se creará dentro de esa organización.
 5. Confirma la creación.
-
-[IMAGEN: formulario_crear_usuario_admin]
 
 ---
 
@@ -244,8 +232,6 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 
 ### 3.4 Importar usuarios masivamente
 
-[IMAGEN: importar_usuarios_admin]
-
 1. Selecciona **"IMPORTAR USUARIOS"** en el menú lateral.
 2. Arrastra o selecciona un archivo. Los formatos aceptados son **`.json`**, **`.csv`** y **`.txt`** (máx. 2 MB).
 3. El sistema generará una **vista previa** de los usuarios detectados con las siguientes características:
@@ -266,8 +252,6 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 ## 4. Configuración del sistema
 
 ### 4.1 Políticas de viáticos
-
-[IMAGEN: politicas_viaticos_admin]
 
 1. Selecciona **"POLÍTICAS DE VIÁTICOS"** en el menú lateral.
 2. Configura los topes de gasto por categoría (alimentación, transporte, hospedaje, etc.).
@@ -295,8 +279,6 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 
 ### 4.4 Catálogo contable
 
-[IMAGEN: catalogo_contable_admin]
-
 1. Selecciona **"CATÁLOGO CONTABLE"** en el menú lateral.
 2. Administra las cuentas contables (cuentas GL) que se usan para la exportación al ERP.
 3. Puedes crear, editar y eliminar cuentas.
@@ -316,8 +298,6 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 
 ### 4.6 Mapeo de tipos de gasto
 
-[IMAGEN: mapeo_gastos_admin]
-
 1. Selecciona **"MAPEO DE GASTOS"** en el menú lateral.
 2. Asocia cada tipo de gasto (alimentación, transporte terrestre, vuelo, etc.) a una cuenta contable del catálogo.
 3. Cuando todos los tipos de gasto ya estén mapeados, verás el mensaje: *"Todos los tipos de gasto ya están mapeados. Edita un mapeo existente."*
@@ -329,8 +309,6 @@ Tu Dashboard muestra la sección **"Usuarios del sistema"** con:
 ## 5. Monitoreo y reportes
 
 ### 5.1 Reporte de gastos por centro de costos
-
-[IMAGEN: reporte_gastos_cc_admin]
 
 1. Selecciona **"GASTO POR CC"** en el menú lateral.
 2. Verás un reporte de gastos agrupado por centro de costos.
@@ -363,7 +341,7 @@ Cuando impersonas una organización cliente, puedes acceder a la pantalla de **E
    - Si está *"Activa"*, el problema no es de la organización.
 4. Ve al Dashboard de usuarios y verifica que el usuario afectado exista y tenga el rol correcto.
 5. Si el problema persiste, pide al usuario que limpie las cookies de su navegador y vuelva a intentar.
-6. Si nada funciona, escala al equipo de desarrollo.
+6. Si nada funciona, escala a soporte técnico de Ditta con los datos de la sección 6.5.
 
 ---
 
@@ -374,7 +352,7 @@ Cuando impersonas una organización cliente, puedes acceder a la pantalla de **E
 3. Verifica los datos. Posibles causas:
    - **Error de configuración:** catálogo contable incorrecto, mapeo de gastos faltante, indicador de impuesto mal configurado. Corrígelo directamente.
    - **Error de datos de usuario:** rol incorrecto, departamento equivocado. Edita al usuario.
-   - **Bug del sistema:** documenta el caso (pasos para reproducir, capturas, datos involucrados) y escala a desarrollo.
+   - **Bug del sistema:** documenta el caso (pasos para reproducir, capturas, datos involucrados) y escala a soporte técnico.
 4. Sal de la impersonación cuando termines.
 
 ---
@@ -391,7 +369,7 @@ Si necesitas dar de alta a un cliente rápidamente:
 6. **Sal de la impersonación**.
 7. Comunica al administrador del cliente:
    - Sus credenciales de acceso.
-   - Que debe completar: **reglas de workflow**, **políticas de viáticos** e **importación de usuarios**.
+   - Que debe completar **reglas de workflow** (y probarlas en el simulador), **políticas de viáticos** e **importación de usuarios** si aún no lo hiciste vía impersonación.
 
 > **Consejo:** La configuración mínima para que una organización pueda operar es: catálogo contable + mapeo de gastos + al menos un usuario por cada rol operativo (Solicitante, N1, CxP).
 
@@ -405,13 +383,13 @@ Si el problema es recurrente (el usuario recibe el mensaje constantemente sin po
 
 1. Verifica que el reloj del servidor y del navegador del usuario estén sincronizados.
 2. Pide al usuario que limpie las cookies del navegador e intente de nuevo.
-3. Si persiste, escala al equipo de desarrollo indicando el `user_id` y el momento aproximado de los incidentes.
+3. Si persiste, escala a soporte técnico indicando el `user_id` y el momento aproximado de los incidentes.
 
 ---
 
 ### 6.5 Escalar a soporte técnico
 
-Cuando necesites escalar un problema al equipo de desarrollo, recopila la siguiente información:
+Cuando necesites escalar un problema, recopila la siguiente información:
 
 | Dato | Dónde encontrarlo |
 |------|-------------------|
@@ -419,28 +397,9 @@ Cuando necesites escalar un problema al equipo de desarrollo, recopila la siguie
 | **Usuario afectado** | Email del usuario en el Dashboard |
 | **Fecha y hora del incidente** | Pregunta al cliente o revisa los logs |
 | **Pasos para reproducir** | Documéntalos tú mismo vía impersonación |
-| **Capturas de pantalla** | Usa las herramientas del navegador |
+| **Capturas de pantalla** | Herramientas del navegador |
 
-#### Datos técnicos del stack (para referencia)
-
-| Componente | Detalle |
-|------------|---------|
-| Frontend | Astro + React (puerto :4321 en desarrollo) |
-| Backend | API REST (puerto :3000) |
-| Base de datos relacional | PostgreSQL |
-| Almacenamiento de archivos | AWS S3 (LocalStack en dev) |
-| Almacenamiento S3 | LocalStack (mock en desarrollo), S3 en producción |
-| Contenedores | Docker Compose |
-
-#### Comandos Docker útiles (solo en entorno de desarrollo)
-
-| Comando | Qué hace |
-|---------|----------|
-| `docker:dev:down && docker:dev` | Reinicia todos los contenedores |
-| `docker:data:reset` | Resetea las bases de datos |
-| `docker:dev:clean` | Reset completo (elimina volúmenes e imágenes) |
-
-> ** Atención:** Los comandos de reset eliminan datos. Úsalos solo en entornos de desarrollo, nunca en producción.
+**Stack de referencia:** Frontend Astro + React · Backend API REST · PostgreSQL · archivos en S3 · despliegue en Docker Compose sobre EC2.
 
 ---
 
@@ -459,31 +418,13 @@ Usa esta lista como guía cada vez que des de alta un nuevo cliente:
 - [ ] **Salir de impersonación**.
 - [ ] **Activar la organización** — cambiar de "En configuración" a "Activa".
 - [ ] **Entregar credenciales** al admin del cliente — email + contraseña temporal.
-- [ ] **Comunicar al admin del cliente** que debe configurar: reglas de workflow.
+- [ ] **Comunicar al admin del cliente** que debe configurar: **reglas de workflow** (incluye simulador) y **políticas de viáticos** si no las definiste tú vía impersonación.
 
 > **Consejo:** Guarda esta checklist como plantilla y personalízala para cada cliente.
 
 ---
 
-## 8. Funcionalidades en desarrollo
-
-Las siguientes funcionalidades existen como componentes en el sistema pero **no están habilitadas en la navegación principal** de esta versión:
-
-| Funcionalidad | Componente | Estado |
-|---|---|---|
-| **Simulador de workflow** | `SimuladorWorkflow.tsx` | Existe la pantalla pero no aparece en el menú lateral ni en las rutas de acceso. Permitiría probar reglas de aprobación antes de activarlas. |
-| **Centros de costos (CRUD)** | `CostCenterAdmin.tsx` | Pantalla de administración de centros de costos. No está en las rutas de acceso. |
-| **Gestión de roles y permisos** | `RolesAdmin.tsx` | Pantalla CRUD completa para gestionar roles y sus permisos granulares. No está habilitada en navegación. |
-| **Notificaciones en tiempo real** | `NotificationBell.tsx` · `NotificationPreferences.tsx` | Los componentes están presentes en la interfaz pero la integración de tiempo real puede no estar activa. |
-| **Excepciones de política** | `PolicyExceptionModal.tsx` · `PolicyExceptionsInbox.tsx` | Permitiría a un solicitante justificar gastos que excedan los topes y a un aprobador revisarlos. |
-| **Comentarios en solicitudes** | Directorio `comments/` | Sistema de chat/comentarios entre participantes de una solicitud. |
-| **Tipo de cambio** | `ExchangeRateDisplay.tsx` | Visualización del tipo de cambio para viajes internacionales. |
-
-> **Nota:** Estas funcionalidades podrían habilitarse en futuras versiones. Si necesitas acceso anticipado a alguna, coordina con el equipo de desarrollo.
-
----
-
-## 9. Referencia rápida
+## 8. Referencia rápida
 
 ### Llaves API
 

@@ -40,4 +40,5 @@
   * [Historias de usuario](proyecto/Historias-de-usuario_cocoAPI.md "US-01..25 — CocoAPI")
   * [RNF CocoAPI](proyecto/RNF_CocoAPI.md "Requerimientos no funcionales y trazabilidad US")
   * [Arquitectura condensada](arquitectura-datos/arquitectura-condensada.md "Entrega única: negocio, app, datos, infra, RNF, continuidad")
+  * [Implantación condensada](implantacion-condensada.md "Entrega única: implantación, despliegue, manuales y operación")
   * [Análisis de esfuerzos](proyecto/analisis-esfuerzos.md "Analisis Esfuerzos 2026@V2")

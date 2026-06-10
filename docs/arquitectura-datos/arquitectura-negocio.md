@@ -59,7 +59,6 @@ flowchart TD
     WN2 -.->|notificationService.js| NOTIF
 ```
 
-*(Nota para Draw.io: Puedes pegar este código Mermaid directamente en Draw.io a través de la opción `Arrange > Insert > Advanced > Mermaid...` para obtener su representación visual equivalente).*
 
 ## Justificación y Explicación
 

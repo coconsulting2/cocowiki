@@ -60,6 +60,8 @@ Los roles del sistema no otorgan acceso por su nombre: son **contenedores de gru
 
 El [Service Blueprint](service-blueprint.md) documenta la operación end-to-end con **roles configurables por organización** (no hardcoded), **9 macro-procesos** (incluye validación fiscal CFDI/SAT, políticas/reembolso y exportación contable ERP) e integraciones externas (SAT SOAP, Banxico REST, S3 pre-signed, Web Push, API keys ERP).
 
+El inventario granular de procesos — que expande la lista legado de 41 procesos a los 167 endpoints actuales, incluyendo dominios de CFDI/SAT, políticas de reembolso, workflow dinámico, multi-tenant y exportación contable — se documenta en [Lista de Procesos](lista-procesos.md). Los diagramas de secuencia y flujo detallados, actualizados a PostgreSQL/Prisma (sin triggers MariaDB), se encuentran en [Diagramas de Procesos](diagramas-procesos.md).
+
 Resumen de actores dinámicos:
 
 | Rol | Ámbito | Notas |

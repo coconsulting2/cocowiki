@@ -13,6 +13,8 @@
   * [Sistema de permisos](arquitectura-datos/permisos.md "RBAC granular + grupos + asignación directa")
   * [Multi-tenant (Ditta como ROOT)](arquitectura-datos/multi-tenancy.md "Aislamiento por organización + RLS Postgres + Prisma extension")
   * [Service Blueprint](arquitectura-datos/service-blueprint.md "Mapa Global de Operaciones — actores, macro-procesos, swimlanes")
+  * [Lista de Procesos](arquitectura-datos/lista-procesos.md "Inventario de 167 endpoints por dominio")
+  * [Diagramas de Procesos](arquitectura-datos/diagramas-procesos.md "Diagramas de secuencia y flujo por macro-proceso")
   * [Diagramas C4](arquitectura-datos/diagramas-c4.md "Context, Container, Component — arquitectura formal")
   * [Arquitectura en la nube](arquitectura-datos/arquitectura-nube.md "AWS: auto-setup un solo EC2 vs. producción recomendada multi-AZ")
   * [Documento de Arquitectura](arquitectura-datos/documento-arquitectura.md "Negocio, Aplicación, Datos, Infraestructura, RNF y Continuidad")
